@@ -44,7 +44,7 @@ It's simultaneously a **CMS**, a **developer framework**, and a **community plat
 │                visitor analytics, game dashboards   │
 ├─────────────────────────────────────────────────────┤
 │  Nostr         Native NIP-07 signer, relay config,  │
-│                note publishing, Nostr Terminal       │
+│                note publishing, Nostr Terminal      │
 └─────────────────────────────────────────────────────┘
 ```
 
