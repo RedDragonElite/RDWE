@@ -1,6 +1,14 @@
 # ◢ Red Dragon Web Engine ◣
 **RDWE · v3.1 · PHP 8.4+ · IIS · MariaDB**
 
+![VERSION](https://img.shields.io/badge/VERSION-1.0.0-555555?style=flat-square)
+![LICENSE](https://img.shields.io/badge/LICENSE-RDE_BLACK_FLAG-e05252?style=flat-square)
+![FIVEM](https://img.shields.io/badge/FIVEM-COMPATIBLE-00aaff?style=flat-square)
+![NOSTR](https://img.shields.io/badge/NOSTR-DECENTRALIZED-8b5cf6?style=flat-square)
+![PHP](https://img.shields.io/badge/PHP-8.4+-777bb4?style=flat-square)
+![IIS](https://img.shields.io/badge/SERVER-IIS-0078d4?style=flat-square)
+![DB](https://img.shields.io/badge/DB-MariaDB-c0765a?style=flat-square)
+
 > *Zero bloat. Zero bullshit. Built by developers, for developers.*
 
 ---
