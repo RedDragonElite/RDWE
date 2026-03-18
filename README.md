@@ -1,5 +1,5 @@
 # ◢ Red Dragon Web Engine ◣
-**RDWE · v1.0.0 · PHP 8.4+ · IIS · MariaDB**
+**RDWE · v1.0.0 · PHP 8.5.4+ · IIS · MariaDB**
 
 <div align="center">
 
