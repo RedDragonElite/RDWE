@@ -80,7 +80,7 @@ It's simultaneously a **CMS**, a **developer framework**, and a **community plat
 
 | Layer | Tech |
 |---|---|
-| Backend | PHP 8.4+ |
+| Backend | PHP 8.5.4+ |
 | Database | MariaDB (PDO, no ORM) |
 | Web Server | IIS (Microsoft) |
 | Frontend | Vanilla JS + RDUI.css (no frameworks) |
