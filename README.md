@@ -38,7 +38,7 @@ No WordPress. No Laravel overhead. No jQuery. No Bootstrap. No Materialize.
 
 ## ⚡ What is RDWE?
 
-RDWE is a **PHP 8.4+ web engine** built from scratch on IIS + MariaDB with zero external framework dependencies.  
+RDWE is a **PHP 8.5.4+ web engine** built from scratch on IIS + MariaDB with zero external framework dependencies.  
 Drop in a module folder. Open a browser. Done. No registration. No config files. No restarts.
 
 It's simultaneously a **CMS**, a **developer framework**, and a **community platform** — all in one zero-bloat stack.
