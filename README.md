@@ -302,6 +302,6 @@ All modules share one terminal aesthetic. No exceptions.
 
 *Crafted with 🔥 · Zero bloat · Free forever*
 
-`PHP 8.4+` · `IIS` · `MariaDB` · `BFS v6.66`
+`PHP 8.5.4+` · `IIS` · `MariaDB` · `BFS v6.66`
 
 </div>
