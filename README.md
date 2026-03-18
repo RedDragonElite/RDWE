@@ -6,7 +6,7 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-red?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-RDE%20Black%20Flag-black?style=for-the-badge)
 ![Nostr](https://img.shields.io/badge/Nostr-Decentralized-purple?style=for-the-badge)
-![PHP](https://img.shields.io/badge/PHP-8.4+-777bb4?style=flat-square)
+![PHP](https://img.shields.io/badge/PHP-8.5.4+-777bb4?style=flat-square)
 ![IIS](https://img.shields.io/badge/SERVER-IIS-0078d4?style=flat-square)
 ![DB](https://img.shields.io/badge/DB-MariaDB-c0765a?style=flat-square)
 
