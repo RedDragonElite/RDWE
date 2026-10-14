@@ -3,21 +3,25 @@
   'use strict';
 
   class Audio {
-    constructor() { this.ctx = null; this.muted = false; this.master = null; this.last = {}; }
+    constructor() { this.ctx = null; this.muted = false; this.master = null; this.last = {}; this.volume = 0.55; }
     unlock() {
       if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       this.ctx = new AC();
       this.master = this.ctx.createGain();
-      this.master.gain.value = this.muted ? 0 : 0.55;
+      this.master.gain.value = this.muted ? 0 : this.volume;
       const comp = this.ctx.createDynamicsCompressor();
       this.master.connect(comp); comp.connect(this.ctx.destination);
       this._ambient();
     }
     setMuted(m) {
       this.muted = m;
-      if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.55, this.ctx.currentTime, 0.05);
+      if (this.master) this.master.gain.setTargetAtTime(m ? 0 : this.volume, this.ctx.currentTime, 0.05);
+    }
+    setVolume(v) {
+      this.volume = v;
+      if (this.master && !this.muted) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
     }
     _throttle(key, ms) {
       const now = performance.now();
@@ -73,6 +77,13 @@
         case 'lost': this._tone(392, 0.4, 'triangle', 0.12); this._tone(311, 0.5, 'triangle', 0.12, 0, 0.3); this._tone(196, 1.2, 'triangle', 0.14, 0, 0.6); break;
         case 'win': [523, 659, 784, 1047].forEach((f, i) => this._tone(f, 0.6, 'triangle', 0.12, 0, i * 0.15)); break;
         case 'spawn': this._tone(330, 0.2, 'sine', 0.15, 660); break;
+        case 'coin': if (!this._throttle(name, 90)) { this._tone(1318, 0.08, 'square', 0.05); this._tone(1760, 0.18, 'square', 0.05, 0, 0.06); } break;
+        case 'construct': this._tone(392, 0.1, 'triangle', 0.1); this._tone(523, 0.1, 'triangle', 0.1, 0, 0.09); this._tone(659, 0.25, 'triangle', 0.1, 0, 0.18); break;
+        case 'fanfare': if (!this._throttle(name, 600)) [392, 523, 659, 784].forEach((f, i) => { this._tone(f, 0.35, 'sawtooth', 0.045, 0, i * 0.11); this._tone(f / 2, 0.35, 'triangle', 0.08, 0, i * 0.11); }); break;
+        case 'achv': [880, 1175, 1568].forEach((f, i) => this._tone(f, 0.3, 'sine', 0.09, 0, i * 0.09)); break;
+        case 'event': if (!this._throttle(name, 800)) { this._tone(147, 1.2, 'sawtooth', 0.07, 110); this._tone(220, 1.0, 'sawtooth', 0.05, 0, 0.15); } break;
+        case 'emp': this._tone(60, 0.8, 'square', 0.12, 2000); this._tone(3000, 0.4, 'sawtooth', 0.04, 80, 0.05); break;
+        case 'thunder': if (!this._throttle(name, 1500)) this._boom(0.5, 3); break;
         case 'eliminated': if (!this._throttle(name, 300)) this._tone(110, 0.6, 'sawtooth', 0.08, 55); break;
       }
     }

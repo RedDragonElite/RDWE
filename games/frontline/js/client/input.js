@@ -89,7 +89,8 @@
       if (!g.running) return;
       const presets = { 1: 0.1, 2: 0.2, 3: 0.3, 4: 0.5, 5: 0.75, 6: 1 };
       if (presets[e.key]) { g.setRatio(presets[e.key]); return; }
-      if (k === 'escape') { g.setMode(null); g.ui.closeRadial(); return; }
+      if (k === 'escape') { if (g.panels.current) g.panels.close(); g.setMode(null); g.ui.closeRadial(); return; }
+      if (k === 'tab') { e.preventDefault(); g.ui.cycleTab(); return; }
       if (k === ' ') { e.preventDefault(); g.focusMe(); return; }
       if (k === 'p') { g.togglePause(); return; }
       if (k === 'm') { g.toggleMute(); return; }
@@ -97,7 +98,7 @@
       if (k === 'e') { g.setRatio(Math.min(1, g.ratio + 0.05)); return; }
       if (k === 'home') { g.renderer.fitView(false); return; }
       for (const [kind, d] of [...Object.entries(C.BUILD), ...Object.entries(C.NUKES)]) {
-        if (d.key.toLowerCase() === k) { g.setMode(g.mode === kind ? null : kind); return; }
+        if (d.key && d.key.toLowerCase() === k) { g.setMode(g.mode === kind ? null : kind); return; }
       }
     }
 

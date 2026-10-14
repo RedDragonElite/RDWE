@@ -41,6 +41,8 @@
       this.nukeTrails = new Map();
       this.labels = new Map();
       this.hoverOwner = 0;
+      this.floats = [];
+      this.atmo = new BW.Atmosphere(this);
       this.time = 0;
       this._labelTimer = 0;
       this.dist = new Uint16Array(W * H);
@@ -303,7 +305,10 @@
       const ctx = this.ctx, c = this.cam, sim = this.sim, game = this.game;
       // camera easing
       const k = 1 - Math.pow(0.0005, dt);
-      c.tx = Math.max(0, Math.min(this.W, c.tx)); c.ty = Math.max(0, Math.min(this.H, c.ty));
+      // keep the view on the map (centre it if the whole map fits)
+      const hw = this.cw / 2 / c.tz, hh = this.ch / 2 / c.tz;
+      c.tx = this.W > hw * 2 ? Math.max(hw, Math.min(this.W - hw, c.tx)) : this.W / 2;
+      c.ty = this.H > hh * 2 ? Math.max(hh, Math.min(this.H - hh, c.ty)) : this.H / 2;
       c.x += (c.tx - c.x) * k; c.y += (c.ty - c.y) * k; c.zoom += (c.tz - c.zoom) * k;
       // labels
       this._labelTimer -= dt;
@@ -359,13 +364,25 @@
         ctx.stroke();
       }
 
+      for (const sh of sim.tradeShips) {
+        const i0 = Math.floor(Math.min(sh.path.length - 1, sh.prog));
+        ctx.strokeStyle = 'rgba(255,240,200,0.22)'; ctx.lineWidth = 0.45; ctx.beginPath();
+        for (let i = Math.max(0, i0 - 8); i <= i0; i++) {
+          const t = sh.path[i], x = t % this.W + 0.5, y = ((t / this.W) | 0) + 0.5;
+          if (i === Math.max(0, i0 - 8)) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      this.atmo.drawWorld(ctx);
+
       // fx in world space
       ctx.globalCompositeOperation = 'lighter';
       for (const f of this.flashes) {
         f.life -= dt;
         const a = Math.max(0, f.life / f.max);
         const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r * (1.4 - a * 0.4));
-        g.addColorStop(0, `rgba(255,255,240,${a})`); g.addColorStop(0.35, `rgba(255,200,120,${a * 0.7})`); g.addColorStop(1, 'rgba(255,80,20,0)');
+        if (f.color === 'emp') { g.addColorStop(0, `rgba(230,250,255,${a})`); g.addColorStop(0.4, `rgba(90,180,255,${a * 0.6})`); g.addColorStop(1, 'rgba(40,120,255,0)'); }
+        else { g.addColorStop(0, `rgba(255,255,240,${a})`); g.addColorStop(0.35, `rgba(255,200,120,${a * 0.7})`); g.addColorStop(1, 'rgba(255,80,20,0)'); }
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * 1.4, 0, 6.283); ctx.fill();
       }
       this.flashes = this.flashes.filter(f => f.life > 0);
@@ -383,6 +400,7 @@
         const dr = Math.pow(1 / (1 + (p.drag || 0)), dt);
         p.vx *= dr; p.vy *= dr;
         if (p.smoke) p.vy -= 0.8 * dt;
+        if (p.grav) p.vy += p.grav * dt;
         p.x += p.vx * dt; p.y += p.vy * dt;
         const a = Math.max(0, p.life / p.max);
         if (p.glow) ctx.globalCompositeOperation = 'lighter';
@@ -392,11 +410,12 @@
         ctx.globalCompositeOperation = 'source-over';
       }
       this.particles = this.particles.filter(p => p.life > 0);
-      if (this.particles.length > 3000) this.particles.splice(0, this.particles.length - 3000);
+      const pmax = this.game.settings.fx ? 3000 : 900;
+      if (this.particles.length > pmax) this.particles.splice(0, this.particles.length - pmax);
 
       // clouds (fade out when zoomed in)
       const ca = Math.max(0, Math.min(0.42, 0.62 - z * 0.15));
-      if (ca > 0.01) {
+      if (ca > 0.01 && this.game.settings.clouds) {
         const sc = 3.2, off = this.time * 1.4;
         const m = new DOMMatrix().translateSelf(off, off * 0.35).scaleSelf(sc, sc);
         this.cloudPat.setTransform(m);
@@ -407,10 +426,15 @@
 
       // ---------- screen space overlays
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.atmo.drawScreen(ctx, dt);
+      this._drawDeposits(ctx);
+      this._drawCrates(ctx);
       this._drawStructures(ctx);
+      this._drawTradeShips(ctx, alpha);
       this._drawBoats(ctx, alpha);
       this._drawNukes(ctx, alpha);
       this._drawLabels(ctx);
+      this._drawFloats(ctx, dt);
       this._drawArrows(ctx, dt);
       this._drawHover(ctx);
     }
@@ -420,6 +444,7 @@
       if (ht < 0) return;
       const x = ht % this.W + 0.5, y = ((ht / this.W) | 0) + 0.5;
       const pulse = 0.6 + 0.4 * Math.sin(this.time * 6);
+      const lw = Math.max(0.3, 1.5 / this.cam.zoom);
       if (this.sim.phase === 'spawn') {
         const R = C.SPAWN_RADIUS + 0.5;
         ctx.fillStyle = rgba(g.me.color, 0.35 * pulse); ctx.strokeStyle = rgba(g.me.color, 0.9); ctx.lineWidth = 0.35;
@@ -427,65 +452,195 @@
         return;
       }
       const mode = g.mode;
-      if (mode && C.NUKES[mode]) {
-        const R = C.NUKES[mode].radius;
-        ctx.fillStyle = `rgba(255,40,40,${0.12 + 0.08 * pulse})`; ctx.strokeStyle = 'rgba(255,70,70,0.95)';
-        ctx.lineWidth = Math.max(0.3, 1.5 / this.cam.zoom);
+      if (!mode) return;
+      if (C.NUKES[mode]) {
+        const R = C.NUKES[mode].radius, emp = mode === 'emp';
+        ctx.fillStyle = emp ? `rgba(80,180,255,${0.12 + 0.08 * pulse})` : `rgba(255,40,40,${0.12 + 0.08 * pulse})`;
+        ctx.strokeStyle = emp ? 'rgba(120,200,255,0.95)' : 'rgba(255,70,70,0.95)';
+        ctx.lineWidth = lw;
         ctx.setLineDash([2, 1.5]);
         ctx.beginPath(); ctx.arc(x, y, R, 0, 6.283); ctx.fill(); ctx.stroke();
         ctx.setLineDash([]);
         ctx.beginPath(); ctx.moveTo(x - R * 1.2, y); ctx.lineTo(x + R * 1.2, y); ctx.moveTo(x, y - R * 1.2); ctx.lineTo(x, y + R * 1.2); ctx.stroke();
-      } else if (mode === 'defense' || mode === 'sam') {
-        const R = C.BUILD[mode].radius;
-        ctx.strokeStyle = 'rgba(120,220,255,0.8)'; ctx.fillStyle = 'rgba(120,220,255,0.08)';
-        ctx.lineWidth = Math.max(0.3, 1.5 / this.cam.zoom);
+        return;
+      }
+      const d = C.BUILD[mode];
+      if (!d) return;
+      // snapped placement preview (cached per hover tile)
+      const key = mode + '|' + ht + '|' + (this.sim.tick >> 3);
+      if (this._pvKey !== key) { this._pvKey = key; this._pvTile = this.sim.canBuildAt(g.me, mode, ht); }
+      const t = this._pvTile, ok = t >= 0;
+      const px = ok ? t % this.W + 0.5 : x, py = ok ? ((t / this.W) | 0) + 0.5 : y;
+      if (d.radius) {
+        const R = d.radius;
+        ctx.strokeStyle = 'rgba(120,220,255,0.8)'; ctx.fillStyle = 'rgba(120,220,255,0.07)'; ctx.lineWidth = lw;
         ctx.beginPath();
-        if (mode === 'defense') ctx.rect(x - R, y - R, R * 2, R * 2); else ctx.arc(x, y, R, 0, 6.283);
+        if (mode === 'fort') ctx.rect(px - R, py - R, R * 2, R * 2); else ctx.arc(px, py, R, 0, 6.283);
         ctx.fill(); ctx.stroke();
+      }
+      ctx.fillStyle = ok ? `rgba(80,255,160,${0.25 + 0.2 * pulse})` : `rgba(255,60,60,${0.25 + 0.2 * pulse})`;
+      ctx.beginPath(); ctx.arc(px, py, 2.2, 0, 6.283); ctx.fill();
+      this._ghost = ok ? { e: d.e, x: px, y: py } : null;
+    }
+
+    _drawDeposits(ctx) {
+      const z = this.cam.zoom;
+      if (z < 1.1) return;
+      const v = this.viewRect(), sim = this.sim, s = Math.max(11, Math.min(28, z * 3));
+      for (const d of sim.deposits) {
+        if (d.x < v.x0 - 2 || d.x > v.x1 + 2 || d.y < v.y0 - 2 || d.y > v.y1 + 2) continue;
+        const [x, y] = this.worldToScreen(d.x + 0.5, d.y + 0.5);
+        const st = sim.structAt.get(d.tile);
+        const boosted = d.boost > sim.tick;
+        const bob = Math.sin(this.time * 2 + d.id) * s * 0.06;
+        const glow = d.kind === 'gems' ? '120,220,255' : d.kind === 'uranium' ? '140,255,90' : d.kind === 'gold' ? '255,210,80' : d.kind === 'oil' ? '40,40,40' : '230,230,240';
+        const gr = ctx.createRadialGradient(x, y, 0, x, y, s * (boosted ? 1.4 : 0.9));
+        gr.addColorStop(0, `rgba(${glow},${boosted ? 0.7 : 0.38})`); gr.addColorStop(1, `rgba(${glow},0)`);
+        ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, s * (boosted ? 1.4 : 0.9), 0, 6.283); ctx.fill();
+        const e = C.DEPOSITS[d.kind].e;
+        if (st) BW.Sprites.drawEmoji(ctx, e, x + s * 0.55, y - s * 0.55, s * 0.55);
+        else BW.Sprites.drawEmoji(ctx, e, x, y + bob, s * (0.75 + d.rich * 0.08));
+        if (z > 3 && !st) for (let i = 0; i < d.rich; i++) BW.Sprites.drawEmoji(ctx, '⭐', x - s * 0.3 + i * s * 0.3, y + s * 0.62, s * 0.28);
+        if (boosted && Math.random() < 0.15) this.particles.push({ x: d.x + Math.random(), y: d.y + Math.random(), vx: 0, vy: -3, life: 0.8, max: 0.8, size: 0.35, color: [255, 230, 120], glow: true });
       }
     }
 
-    _icon(ctx, kind, x, y, s, col, cd) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.fillStyle = 'rgba(8,10,18,0.85)';
-      ctx.strokeStyle = rgba(col, 1); ctx.lineWidth = Math.max(1.5, s * 0.12);
-      ctx.beginPath(); ctx.arc(0, 0, s * 0.62, 0, 6.283); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, s * 0.09);
-      const u = s * 0.32;
-      ctx.beginPath();
-      switch (kind) {
-        case 'city':
-          ctx.rect(-u, -u * 0.2, u * 0.8, u * 1.2); ctx.rect(-u * 0.1, -u, u * 0.7, u * 2); ctx.rect(u * 0.7, -u * 0.5, u * 0.45, u * 1.5); ctx.fill(); break;
-        case 'port':
-          ctx.arc(0, -u * 0.75, u * 0.25, 0, 6.283); ctx.moveTo(0, -u * 0.5); ctx.lineTo(0, u);
-          ctx.moveTo(-u * 0.5, -u * 0.15); ctx.lineTo(u * 0.5, -u * 0.15);
-          ctx.moveTo(-u * 0.9, u * 0.3); ctx.quadraticCurveTo(-u * 0.6, u, 0, u); ctx.quadraticCurveTo(u * 0.6, u, u * 0.9, u * 0.3); ctx.stroke(); break;
-        case 'defense':
-          ctx.moveTo(0, -u); ctx.lineTo(u * 0.9, -u * 0.6); ctx.lineTo(u * 0.75, u * 0.3); ctx.lineTo(0, u); ctx.lineTo(-u * 0.75, u * 0.3); ctx.lineTo(-u * 0.9, -u * 0.6); ctx.closePath(); ctx.fill(); break;
-        case 'silo':
-          ctx.moveTo(0, -u * 1.1); ctx.lineTo(u * 0.35, -u * 0.5); ctx.lineTo(u * 0.35, u * 0.6); ctx.lineTo(u * 0.7, u); ctx.lineTo(-u * 0.7, u); ctx.lineTo(-u * 0.35, u * 0.6); ctx.lineTo(-u * 0.35, -u * 0.5); ctx.closePath(); ctx.fill(); break;
-        case 'sam':
-          ctx.arc(0, u * 0.2, u * 0.75, Math.PI, 0); ctx.moveTo(0, u * 0.2); ctx.lineTo(u * 0.7, -u * 0.9); ctx.moveTo(-u * 0.5, u); ctx.lineTo(u * 0.5, u); ctx.stroke();
-          ctx.beginPath(); ctx.arc(u * 0.7, -u * 0.9, u * 0.18, 0, 6.283); ctx.fill(); break;
+    _drawCrates(ctx) {
+      const sim = this.sim, z = this.cam.zoom;
+      for (const c of sim.crates) {
+        const [x, y] = this.worldToScreen(c.x + 0.5, c.y + 0.5);
+        const s = Math.max(16, Math.min(34, z * 4));
+        const bob = Math.sin(this.time * 4) * s * 0.12;
+        const pulse = (this.time * 0.8) % 1;
+        ctx.strokeStyle = `rgba(255,220,100,${1 - pulse})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, s * (0.6 + pulse * 1.6), 0, 6.283); ctx.stroke();
+        // light beam
+        const g = ctx.createLinearGradient(x, y - s * 4, x, y);
+        g.addColorStop(0, 'rgba(255,230,140,0)'); g.addColorStop(1, 'rgba(255,230,140,0.45)');
+        ctx.fillStyle = g; ctx.fillRect(x - s * 0.18, y - s * 4, s * 0.36, s * 4);
+        BW.Sprites.drawEmoji(ctx, '📦', x, y - s * 0.3 + bob, s);
       }
-      if (cd > 0) {
-        ctx.strokeStyle = 'rgba(255,80,80,0.95)'; ctx.lineWidth = Math.max(1.5, s * 0.12);
-        ctx.beginPath(); ctx.arc(0, 0, s * 0.62, -Math.PI / 2, -Math.PI / 2 + cd * 6.283); ctx.stroke();
-      }
-      ctx.restore();
     }
+
     _drawStructures(ctx) {
-      const z = this.cam.zoom, s = Math.max(9, Math.min(26, z * 3.4));
-      if (z < 0.9) return;
+      const z = this.cam.zoom, s = Math.max(12, Math.min(30, z * 3.6));
       const v = this.viewRect(), sim = this.sim;
+      const small = z < 1.1;
       for (const st of sim.structures) {
         if (st.x < v.x0 - 2 || st.x > v.x1 + 2 || st.y < v.y0 - 2 || st.y > v.y1 + 2) continue;
         const [x, y] = this.worldToScreen(st.x + 0.5, st.y + 0.5);
-        const cd = st.cd > sim.tick ? (st.cd - sim.tick) / (st.kind === 'sam' ? 70 : 50) : 0;
-        this._icon(ctx, st.kind, x, y, s, sim.players[st.owner].color, cd);
+        const col = sim.players[st.owner].color;
+        const d = C.BUILD[st.kind];
+        if (small) {
+          if (st.kind !== 'wonder' && st.kind !== 'city' && st.kind !== 'silo') continue;
+          BW.Sprites.drawEmoji(ctx, d.e, x, y, st.kind === 'wonder' ? 22 : 12);
+          continue;
+        }
+        const building = st.done > sim.tick, off = st.off > sim.tick;
+        const big = st.kind === 'wonder' ? 1.8 : st.kind === 'city' ? 1.15 : 1;
+        const S = s * big;
+        // badge
+        ctx.fillStyle = 'rgba(8,10,18,0.78)';
+        ctx.strokeStyle = rgba(col, building ? 0.5 : 1); ctx.lineWidth = Math.max(1.5, S * 0.09);
+        ctx.beginPath(); ctx.arc(x, y, S * 0.6, 0, 6.283); ctx.fill(); ctx.stroke();
+        if (st.kind === 'wonder' && !building) {
+          const p = 0.5 + 0.5 * Math.sin(this.time * 3);
+          ctx.strokeStyle = `rgba(255,215,90,${0.4 + p * 0.5})`; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(x, y, S * (0.8 + p * 0.15), 0, 6.283); ctx.stroke();
+          const left = Math.max(0, C.WONDER_HOLD - (sim.tick - st.heldSince));
+          this._text(ctx, '⏳ ' + Math.ceil(left / 10) + 's', x, y + S * 1.05, Math.max(11, S * 0.42), '#ffd75a');
+        }
+        if (building) {
+          const u = (sim.tick - st.start) / Math.max(1, st.done - st.start);
+          ctx.globalAlpha = 0.45; BW.Sprites.drawEmoji(ctx, d.e, x, y, S * 0.78); ctx.globalAlpha = 1;
+          BW.Sprites.drawEmoji(ctx, '🏗️', x + S * 0.42, y - S * 0.42, S * 0.5);
+          ctx.strokeStyle = '#ffd75a'; ctx.lineWidth = Math.max(2, S * 0.1);
+          ctx.beginPath(); ctx.arc(x, y, S * 0.6, -Math.PI / 2, -Math.PI / 2 + u * 6.283); ctx.stroke();
+        } else {
+          BW.Sprites.drawEmoji(ctx, d.e, x, y, S * 0.78, off ? 0.35 : 1);
+        }
+        if (off) BW.Sprites.drawEmoji(ctx, '⚡', x + S * 0.4, y - S * 0.4, S * 0.5);
+        const cdMax = st.kind === 'sam' ? 70 : 50;
+        if (st.cd > sim.tick && !building) {
+          ctx.strokeStyle = 'rgba(255,80,80,0.95)'; ctx.lineWidth = Math.max(1.5, S * 0.1);
+          ctx.beginPath(); ctx.arc(x, y, S * 0.6, -Math.PI / 2, -Math.PI / 2 + ((st.cd - sim.tick) / cdMax) * 6.283); ctx.stroke();
+        }
+      }
+      if (this._ghost && this.game.mode) {
+        const [gx, gy] = this.worldToScreen(this._ghost.x, this._ghost.y);
+        BW.Sprites.drawEmoji(ctx, this._ghost.e, gx, gy - 4, s * 0.9, 0.55 + 0.3 * Math.sin(this.time * 6));
       }
     }
+
+    _drawTradeShips(ctx, alpha) {
+      const sim = this.sim, z = this.cam.zoom, W = this.W;
+      if (z < 0.9) return;
+      const s = Math.max(10, Math.min(22, z * 2.4));
+      const v = this.viewRect();
+      for (const sh of sim.tradeShips) {
+        const p = Math.min(sh.path.length - 1, sh.prog + sh.speed * alpha);
+        const i0 = Math.floor(p), i1 = Math.min(sh.path.length - 1, i0 + 1), f = p - i0;
+        const t0 = sh.path[i0], t1 = sh.path[i1];
+        const wx = t0 % W + ((t1 % W) - (t0 % W)) * f + 0.5, wy = ((t0 / W) | 0) + (((t1 / W) | 0) - ((t0 / W) | 0)) * f + 0.5;
+        if (wx < v.x0 - 2 || wx > v.x1 + 2 || wy < v.y0 - 2 || wy > v.y1 + 2) continue;
+        const [x, y] = this.worldToScreen(wx, wy);
+        ctx.fillStyle = rgba(sim.players[sh.owner].color, 0.85);
+        ctx.beginPath(); ctx.ellipse(x, y + s * 0.35, s * 0.45, s * 0.14, 0, 0, 6.283); ctx.fill();
+        BW.Sprites.drawEmoji(ctx, '⛵', x, y + Math.sin(this.time * 3 + sh.id) * 1.2, s);
+      }
+    }
+
+    floatText(wx, wy, text, color = '#fff', size = 16) {
+      this.floats.push({ x: wx, y: wy, text, color, size, life: 2.2, max: 2.2 });
+      if (this.floats.length > 60) this.floats.shift();
+    }
+    _drawFloats(ctx, dt) {
+      for (const f of this.floats) {
+        f.life -= dt;
+        const u = 1 - f.life / f.max;
+        const [x, y] = this.worldToScreen(f.x, f.y);
+        const a = Math.min(1, f.life / 0.6);
+        ctx.globalAlpha = Math.max(0, a);
+        const sc = u < 0.12 ? 0.6 + u / 0.12 * 0.5 : 1.1 - Math.min(0.1, (u - 0.12));
+        this._text(ctx, f.text, x, y - u * 46, f.size * sc, f.color);
+        ctx.globalAlpha = 1;
+      }
+      this.floats = this.floats.filter(f => f.life > 0);
+    }
+
+    empFx(x, y, R) {
+      this.flashes.push({ x, y, r: R * 0.8, life: 0.5, max: 0.5, color: 'emp' });
+      for (let i = 0; i < 3; i++) this.rings.push({ x, y, r0: 1, r1: R * (1 + i * 0.25), life: 1 + i * 0.3, max: 1 + i * 0.3, color: [110, 200, 255] });
+      const n = this.game.settings.fx ? 120 : 50;
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 6.283, s = R * (0.3 + Math.random());
+        this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.9, max: 0.9, size: 0.5, color: [150, 220, 255], glow: true, drag: 2 });
+      }
+      this.shake = Math.min(28, this.shake + 8);
+    }
+    meteorFx(x, y, R) {
+      // streak from the sky then a small blast
+      for (let i = 0; i < 24; i++) {
+        const k = i / 24;
+        this.particles.push({ x: x - 30 * (1 - k), y: y - 40 * (1 - k), vx: 0, vy: 0, life: 0.25 + k * 0.4, max: 0.65, size: 0.6 + k, color: [255, 200, 120], glow: true });
+      }
+      this.explosion(x, y, R * 1.2, false);
+    }
+    volcanoFx(x, y, R) {
+      this.explosion(x, y, R, false);
+      for (let i = 0; i < (this.game.settings.fx ? 160 : 60); i++) {
+        const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6, s = 6 + Math.random() * 22;
+        this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1.5 + Math.random() * 2, max: 3.5, size: 0.5 + Math.random(),
+          color: [255, 90 + Math.random() * 80, 20], glow: true, drag: 0.6, grav: 14 });
+      }
+    }
+    sparkle(x, y, color = [255, 220, 120], n = 24) {
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 6.283, s = 2 + Math.random() * 6;
+        this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 3, life: 1, max: 1, size: 0.45, color, glow: true, drag: 1.4 });
+      }
+    }
+
     _drawBoats(ctx, alpha) {
       const sim = this.sim, z = this.cam.zoom, W = this.W;
       for (const b of sim.boats) {
@@ -565,11 +720,17 @@
         if (x < -200 || y < -100 || x > this.cw + 200 || y > this.ch + 100) continue;
         const ally = me && me.allies.has(pid);
         const nameCol = pid === me?.id ? '#ffe28a' : ally ? '#9dffb0' : '#ffffff';
-        let name = p.name;
-        if (leader && pid === leader.id) name = '♛ ' + name;
-        if (ally) name = '◆ ' + name;
-        this._text(ctx, name, x, y - size * 0.35, size, nameCol);
-        this._text(ctx, '⚔ ' + fmt(p.troops), x, y + size * 0.55, size * 0.62, 'rgba(255,255,255,0.92)', 600);
+        const ny = y - size * 0.35;
+        this._text(ctx, p.name, x, ny, size, nameCol);
+        const w = ctx.measureText(p.name).width;
+        BW.Sprites.drawEmoji(ctx, p.emblem, x - w / 2 - size * 0.62, ny, size * 0.95);
+        if (leader && pid === leader.id) BW.Sprites.drawEmoji(ctx, '👑', x, ny - size * 0.95, size * 0.75);
+        if (ally) BW.Sprites.drawEmoji(ctx, '🤝', x + w / 2 + size * 0.55, ny, size * 0.75);
+        const tSize = size * 0.62;
+        this._text(ctx, fmt(p.troops), x + tSize * 0.45, y + size * 0.55, tSize, 'rgba(255,255,255,0.92)', 600);
+        const tw = ctx.measureText(fmt(p.troops)).width;
+        BW.Sprites.drawEmoji(ctx, '⚔️', x + tSize * 0.45 - tw / 2 - tSize * 0.6, y + size * 0.55, tSize * 0.9);
+        if (!p.fed && size > 12) BW.Sprites.drawEmoji(ctx, '🍖', x + tSize * 0.45 + tw / 2 + tSize * 0.6, y + size * 0.55, tSize * 0.8, 0.5 + 0.5 * Math.sin(this.time * 6));
       }
     }
     _drawArrows(ctx, dt) {
@@ -607,6 +768,12 @@
       const v = this.viewRect(), sx = mw / this.W, sy = mh / this.H;
       mctx.strokeStyle = '#ffe28a'; mctx.lineWidth = 1.5;
       mctx.strokeRect(v.x0 * sx, v.y0 * sy, (v.x1 - v.x0) * sx, (v.y1 - v.y0) * sy);
+      for (const d of this.sim.deposits) {
+        mctx.fillStyle = d.kind === 'gold' ? '#ffd75a' : d.kind === 'gems' ? '#7fe3ff' : d.kind === 'uranium' ? '#8cff5a' : d.kind === 'oil' ? '#222' : '#ddd';
+        mctx.fillRect(d.x * sx - 1.5, d.y * sy - 1.5, 3, 3);
+      }
+      for (const c of this.sim.crates) { mctx.fillStyle = '#ffcc55'; mctx.beginPath(); mctx.arc(c.x * sx, c.y * sy, 3 + Math.sin(this.time * 6), 0, 6.283); mctx.fill(); }
+      if (this.sim.storm) { const [x, y] = this.sim.stormPos(); mctx.strokeStyle = 'rgba(200,210,255,0.7)'; mctx.beginPath(); mctx.arc(x * sx, y * sy, this.sim.storm.r * sx, 0, 6.283); mctx.stroke(); }
       for (const n of this.sim.nukes) {
         mctx.fillStyle = '#ff3040'; mctx.beginPath(); mctx.arc(n.tx * sx, n.ty * sy, 3 + Math.sin(this.time * 10) * 1.5, 0, 6.283); mctx.fill();
       }

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const root = new URL('../js/', import.meta.url);
-for (const f of ['core/rng.js', 'core/constants.js', 'sim/mapgen.js', 'sim/ai.js', 'sim/sim.js']) {
+for (const f of ['core/rng.js', 'core/constants.js', 'sim/mapgen.js', 'sim/ai.js', 'sim/economy.js', 'sim/events.js', 'sim/sim.js']) {
   vm.runInThisContext(readFileSync(new URL(f, root), 'utf8'), { filename: f });
 }
 const BW = globalThis.BW, C = BW.C;
@@ -40,16 +40,29 @@ const bot = sim.alivePlayers().find(p => !p.human);
 ev = step([{ type: 'ally', pid: 1, target: bot.id }]);
 assert.ok(ev.some(e => e.type === 'ally' || e.type === 'allyDenied'), 'alliance answered');
 
-// build + nuke
-me.gold = 1e6;
+// economy: research, trade, build with construction time
+me.gold = 1e6; for (const k of C.TRADE_RES) me.res[k] = 2000; me.res.sci = 5000;
+ev = step([{ type: 'research', pid: 1, tech: 'mining' }, { type: 'research', pid: 1, tech: 'econ' }, { type: 'research', pid: 1, tech: 'fission' }]);
+assert.ok(me.tech.has('fission'), 'research chain: ' + [...me.tech]);
+const g0 = me.gold;
+ev = step([{ type: 'trade', pid: 1, res: 'wood', qty: 100, side: 'sell' }]);
+assert.ok(me.gold > g0 && ev.some(e => e.type === 'trade'), 'sold wood');
 const home = [...me.border][0];
 ev = step([{ type: 'build', pid: 1, kind: 'silo', tile: home }]);
-assert.ok(ev.some(e => e.type === 'build'), 'silo built: ' + JSON.stringify(ev.filter(e => e.type === 'fail')));
+assert.ok(ev.some(e => e.type === 'build'), 'silo placed: ' + JSON.stringify(ev.filter(e => e.type === 'fail')));
+ev = step([], C.BUILD.silo.time + 2);
+assert.ok(ev.some(e => e.type === 'built' && e.kind === 'silo'), 'silo finished');
 const foe = sim.alivePlayers().filter(p => p !== me && !me.allies.has(p.id)).sort((a, b) => b.tiles - a.tiles)[0];
 const [fx, fy] = sim.centroid(foe);
 const ft = Math.round(fy) * sim.W + Math.round(fx);
 ev = step([{ type: 'nuke', pid: 1, kind: 'atom', tile: ft }], 200);
 assert.ok(ev.some(e => e.type === 'nukeHit' || e.type === 'nukeIntercept'), 'nuke resolved');
+
+// world events fire and deposits pay out
+sim.nextEvent = sim.tick + 1;
+ev = step([], 3);
+assert.ok(ev.some(e => e.type === 'worldEvent'), 'world event fired');
+assert.ok(sim.deposits.length > 10, 'deposits exist');
 
 // determinism under identical intents
 console.log('smoke OK · tiles', me.tiles, '· tick', sim.tick, '· hash', sim.hash());

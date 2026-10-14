@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>RDE // FRONTLINE</title>
-  <meta name="description" content="RDE Frontline — Territorial Border-Strategie in purem HTML, CSS & JS. Red Dragon Elite.">
+  <meta name="description" content="RDE Frontline — Next-Gen Territorial-Strategie in purem HTML, CSS & JS. Red Dragon Elite.">
   <meta name="theme-color" content="#07090f">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,41 +19,53 @@
   <div id="hud" class="hidden">
     <header id="topbar" class="glass">
       <div class="brand"><span class="dragon">◢</span>FRONTLINE<span class="dragon">◣</span></div>
-      <div id="sharebar"><div id="sharefill"></div><div id="winmark" title="Siegesgrenze"></div></div>
+      <div id="sharebar"><div id="sharefill"></div><div id="winmark" title="Siegesgrenze 80%"></div></div>
       <div class="tb-right">
+        <span id="daytime" title="Tageszeit">☀️</span>
         <span id="clock">00:00</span>
         <button class="tb-btn" id="btn-speed" title="Spielgeschwindigkeit">1×</button>
-        <button class="tb-btn" id="btn-pause" title="Pause (P)">❚❚</button>
+        <button class="tb-btn" id="btn-pause" title="Pause (P)">⏸️</button>
         <button class="tb-btn" id="btn-mute" title="Ton (M)">🔊</button>
         <button class="tb-btn" id="btn-full" title="Vollbild">⛶</button>
       </div>
     </header>
+    <div id="resbar" class="glass"></div>
 
     <aside id="board" class="glass">
-      <div class="board-head"><span>STAND</span><button id="board-toggle" class="tb-btn small">▾</button></div>
-      <table><thead><tr><th>#</th><th>NATION</th><th>TRUPPEN</th><th>LAND</th></tr></thead><tbody id="board-body"></tbody></table>
+      <div class="board-head"><span>🏆 STAND</span><button id="board-toggle" class="tb-btn small">▾</button></div>
+      <table><thead><tr><th>#</th><th>NATION</th><th>⚔️</th><th>LAND</th></tr></thead><tbody id="board-body"></tbody></table>
     </aside>
+
+    <nav id="rail">
+      <button class="rail-btn" data-panel="research"><span class="re">🧪</span><span class="rl">Forschung</span><span class="badge hidden" id="badge-research"></span></button>
+      <button class="rail-btn" data-panel="market"><span class="re">🏪</span><span class="rl">Börse</span></button>
+      <button class="rail-btn" data-panel="diplomacy"><span class="re">🤝</span><span class="rl">Diplomatie</span><span class="badge hidden" id="badge-diplo"></span></button>
+      <button class="rail-btn" data-panel="stats"><span class="re">📊</span><span class="rl">Statistik</span></button>
+      <button class="rail-btn" data-panel="settings"><span class="re">⚙️</span><span class="rl">Optionen</span></button>
+    </nav>
 
     <div id="feed"></div>
     <div id="toasts"></div>
+    <div id="banner" class="hidden"></div>
 
     <div id="spawn-banner" class="glass hidden">
-      <div class="sb-title">WÄHLE DEINEN STARTPUNKT</div>
-      <div class="sb-sub">Klick auf freies Land · Krieg beginnt in <b id="spawn-timer">12</b>s</div>
+      <div class="sb-title">🐉 WÄHLE DEINEN STARTPUNKT</div>
+      <div class="sb-sub">Klick auf freies Land · nah an 🥇💎🛢️ lohnt sich · Krieg in <b id="spawn-timer">12</b>s</div>
     </div>
 
     <div id="bottom">
-      <div id="buildbar"></div>
+      <div id="dock" class="glass">
+        <div id="dock-tabs"></div>
+        <div id="dock-cards"></div>
+      </div>
       <div id="stats" class="glass">
         <div class="st-troops">
           <div class="st-row">
-            <span class="ico-sword"></span><span id="troops" class="big">0</span><span class="slash">/</span><span id="troops-max">0</span>
+            <span class="emo-lg">⚔️</span><span id="troops" class="big">0</span><span class="slash">/</span><span id="troops-max">0</span>
             <span id="troop-rate" class="rate">+0/s</span>
           </div>
           <div class="bar"><div id="troop-bar"></div></div>
-        </div>
-        <div class="st-gold">
-          <span class="coin"></span><span id="gold" class="big gold">0</span><span id="gold-rate" class="rate">+0/s</span>
+          <div class="st-chips"><span id="food-state" class="chip"></span><span id="mod-chips"></span></div>
         </div>
         <div class="st-ratio">
           <div class="ratio-head"><span>ANGRIFFSGRÖSSE</span><b id="ratio-val">30%</b><span id="ratio-troops" class="muted"></span></div>
@@ -70,6 +82,13 @@
     <div id="mode-hint" class="hidden"></div>
     <div id="tooltip" class="glass hidden"></div>
     <div id="radial" class="hidden"></div>
+
+    <div id="modal" class="hidden">
+      <div class="modal-card glass">
+        <header class="modal-head"><h2 id="modal-title"></h2><button class="tb-btn" id="modal-close" title="Schließen (Esc)">✖</button></header>
+        <div id="modal-body"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ================= MAIN MENU ================= -->
@@ -79,12 +98,15 @@
       <div class="logo">
         <div class="logo-top">RED DRAGON ELITE</div>
         <h1>FRONTLINE</h1>
-        <div class="logo-sub">◢ Territorial Warfare · Pure HTML / CSS / JS ◣</div>
+        <div class="logo-sub">◢ NEXT GEN · Territorial Warfare · Pure HTML / CSS / JS ◣</div>
+        <div class="logo-emojis">🏙️ 🌾 ⛏️ 🥇 💎 🛢️ ☢️ 🚀 🏛️ ⛵ 🌋 ☄️</div>
       </div>
       <div class="menu-grid">
         <section class="glass panel">
           <h3>KOMMANDANT</h3>
           <label>Name<input id="m-name" maxlength="18" value="SerpentsByte" autocomplete="off"></label>
+          <label>Wappen</label>
+          <div id="m-emblems" class="emblems"></div>
           <label>Farbe</label>
           <div id="m-colors" class="swatches"></div>
         </section>
@@ -95,21 +117,29 @@
           <label>Seed
             <div class="seed-row"><input id="m-seed" autocomplete="off"><button id="m-dice" class="tb-btn" title="Zufall">🎲</button></div>
           </label>
+          <label class="check"><input type="checkbox" id="m-events" checked> 🌋 Weltereignisse (Meteore, Vulkane, Stürme…)</label>
         </section>
         <section class="glass panel">
           <h3>GEGNER</h3>
           <label>Nationen <b id="m-bots-val">14</b><input id="m-bots" type="range" min="2" max="40" value="14"></label>
           <label>KI-Stärke<select id="m-diff"></select></label>
-          <div class="mp-note">🌐 Multiplayer: Lockstep-Architektur ist eingebaut – Relay-Server folgt.</div>
+          <div class="win-info">
+            <div>🏆 <b>Siegbedingungen</b></div>
+            <div>🗺️ 80% des Landes erobern</div>
+            <div>🏛️ Weltwunder 5 Min. halten</div>
+            <div>⚔️ Als Letzter übrig bleiben</div>
+          </div>
+          <div class="mp-note">🌐 Lockstep-Multiplayer-Architektur ist eingebaut – Relay-Server folgt.</div>
         </section>
       </div>
-      <button id="m-play" class="play-btn">IN DEN KRIEG ZIEHEN</button>
+      <button id="m-play" class="play-btn">⚔️ IN DEN KRIEG ZIEHEN</button>
       <div class="controls-help">
-        <span><kbd>Linksklick</kbd> Angreifen / Boot</span>
+        <span><kbd>Linksklick</kbd> Angriff / Boot</span>
         <span><kbd>Rechtsklick</kbd> Befehlsrad</span>
         <span><kbd>Mausrad</kbd> Zoom</span>
-        <span><kbd>Ziehen</kbd>/<kbd>WASD</kbd> Kamera</span>
+        <span><kbd>WASD</kbd> Kamera</span>
         <span><kbd>1-6</kbd> Angriffsgröße</span>
+        <span><kbd>Tab</kbd> Bau-Kategorie</span>
         <span><kbd>Leertaste</kbd> Zu dir</span>
       </div>
     </div>
@@ -118,12 +148,13 @@
   <!-- ================= END SCREEN ================= -->
   <div id="end" class="overlay hidden">
     <div class="end-card glass">
+      <div id="end-emoji" class="end-emoji">🏆</div>
       <div id="end-title" class="end-title">SIEG</div>
       <div id="end-sub" class="end-sub"></div>
       <div id="end-stats" class="end-stats"></div>
       <div class="end-btns">
-        <button id="end-watch" class="tb-btn wide">Weiter zuschauen</button>
-        <button id="end-again" class="play-btn small">NOCHMAL</button>
+        <button id="end-watch" class="tb-btn wide">👁️ Weiter zuschauen</button>
+        <button id="end-again" class="play-btn small">🔁 NOCHMAL</button>
       </div>
     </div>
   </div>
@@ -133,13 +164,18 @@
   <script src="js/core/constants.js"></script>
   <script src="js/sim/mapgen.js"></script>
   <script src="js/sim/ai.js"></script>
+  <script src="js/sim/economy.js"></script>
+  <script src="js/sim/events.js"></script>
   <script src="js/sim/sim.js"></script>
   <!-- network -->
   <script src="js/net/transport.js"></script>
   <!-- client -->
   <script src="js/client/audio.js"></script>
+  <script src="js/client/sprites.js"></script>
+  <script src="js/client/atmosphere.js"></script>
   <script src="js/client/renderer.js"></script>
   <script src="js/client/ui.js"></script>
+  <script src="js/client/panels.js"></script>
   <script src="js/client/input.js"></script>
   <script src="js/main.js"></script>
 </body>

@@ -1,10 +1,13 @@
-/* RDE // FRONTLINE — authoritative, deterministic game simulation
+/* RDE // FRONTLINE — authoritative, deterministic game simulation (core)
  *
  * Rules for multiplayer-readiness:
  *  - The ONLY way to change state from outside is sim.step(intents).
  *  - No DOM, no Date, no Math.random. Randomness comes from this.rng only.
  *  - Iteration orders are deterministic (arrays, insertion-ordered Sets/Maps).
  * Run the same intents on the same tick on every client => identical worlds (lockstep).
+ *
+ * Economy (resources, buildings, research, trade) lives in economy.js,
+ * world events in events.js — both are mixed into Sim.prototype.
  */
 (function (BW) {
   'use strict';
@@ -23,6 +26,7 @@
       this.tick = 0;
       this.phase = 'spawn';
       this.winner = 0;
+      this.winReason = '';
       this.players = [null];
       this.attacks = [];
       this.boats = [];
@@ -39,17 +43,24 @@
       this._bfsSeen = new Uint32Array(this.N);
       this._bfsStamp = 0;
 
+      this.deposits = this.map.deposits.map(d => Object.assign({ boost: 0 }, d));
+      this.depAt = new Map(this.deposits.map(d => [d.tile, d]));
+      this._initEconomy();
+      this._initEvents();
+
       // --- players ------------------------------------------------------
-      const used = new Set();
+      const used = new Set(), usedEmblems = new Set();
       for (const hp of cfg.humans) {
-        this._addPlayer({ name: hp.name, color: hp.color, human: true, clientId: hp.clientId, diff: 'normal' });
+        this._addPlayer({ name: hp.name, color: hp.color, emblem: hp.emblem || '🐉', human: true, clientId: hp.clientId, diff: 'normal' });
         used.add(hp.color.join(','));
+        usedEmblems.add(hp.emblem);
       }
       const names = this.rng.shuffle(C.NATION_NAMES.slice());
       const colors = this.rng.shuffle(C.PALETTE.filter(c => !used.has(c.join(','))));
+      const emblems = this.rng.shuffle(C.EMBLEMS.filter(e => !usedEmblems.has(e)));
       for (let i = 0; i < cfg.bots; i++) {
         const name = names[i % names.length] + (i >= names.length ? ' ' + (2 + Math.floor(i / names.length)) : '');
-        this._addPlayer({ name, color: colors[i % colors.length], human: false, diff: cfg.difficulty });
+        this._addPlayer({ name, color: colors[i % colors.length], emblem: emblems[i % emblems.length], human: false, diff: cfg.difficulty });
       }
       // bots claim their land right away so humans can pick around them
       for (const p of this.players) if (p && !p.human) this._spawn(p, this._findSpawnTile());
@@ -58,14 +69,20 @@
     _addPlayer(o) {
       const id = this.players.length;
       const p = {
-        id, name: o.name, color: o.color, human: o.human, clientId: o.clientId ?? null, diff: o.diff,
+        id, name: o.name, color: o.color, emblem: o.emblem, human: o.human, clientId: o.clientId ?? null, diff: o.diff,
         alive: true, spawned: false, spawnTile: -1,
-        troops: C.START_TROOPS, gold: 0, tiles: 0, sx: 0, sy: 0,
+        troops: C.START_TROOPS, gold: 1500, tiles: 0, sx: 0, sy: 0,
+        res: { food: 60, wood: 80, iron: 10, silver: 0, gems: 0, oil: 0, uranium: 0, sci: 0 },
+        rates: { gold: 0, food: 0, wood: 0, iron: 0, silver: 0, gems: 0, oil: 0, uranium: 0, sci: 0 },
+        terr: new Int32Array(8),
+        tech: new Set(),
+        fed: true,
         border: new Set(), allies: new Set(), traitorUntil: 0,
-        counts: { city: 0, port: 0, defense: 0, silo: 0, sam: 0 },
+        counts: {}, built: {},
         nextThink: 0, lastTarget: 0,
-        stats: { conquered: 0, lost: 0, nukes: 0, peak: 0, deathTick: 0 },
+        stats: { conquered: 0, lost: 0, nukes: 0, peak: 0, deathTick: 0, goldEarned: 0, crates: 0, trades: 0 },
       };
+      for (const k in C.BUILD) { p.counts[k] = 0; p.built[k] = 0; }
       this.players.push(p);
       return p;
     }
@@ -85,35 +102,20 @@
     allied(a, b) { return a !== 0 && b !== 0 && this.players[a].allies.has(b); }
     alivePlayers() { return this.players.filter(p => p && p.alive); }
     emit(type, data) { this.events.push(Object.assign({ type, tick: this.tick }, data)); }
-
-    maxTroops(p) {
-      return Math.floor(Math.pow(p.tiles, 0.72) * 55 + 2000 + p.counts.city * 25000);
-    }
-    troopRate(p) {
-      const max = this.maxTroops(p);
-      const mult = p.human ? 1 : C.DIFFICULTY[p.diff].growth;
-      return Math.max(0, (10 + Math.pow(Math.max(p.troops, 1), 0.73) / 4) * (1 - p.troops / max)) * mult;
-    }
-    goldRate(p) {
-      return 1 + Math.sqrt(p.tiles) * 0.3 + p.counts.city * 1 + p.counts.port * 3;
-    }
-    buildCost(p, kind) {
-      const d = C.BUILD[kind], n = p.counts[kind];
-      return d.growth === 'double' ? d.base * Math.min(Math.pow(2, n), 16) : d.base * (1 + n);
-    }
+    has(p, tech) { return p.tech.has(tech); }
 
     setOwner(t, o) {
       const old = this.owner[t];
       if (old === o) return;
-      const x = t % this.W, y = (t / this.W) | 0;
+      const x = t % this.W, y = (t / this.W) | 0, ter = this.terrain[t];
       this.owner[t] = o;
       if (old) {
         const p = this.players[old];
-        p.tiles--; p.sx -= x; p.sy -= y; p.border.delete(t); p.stats.lost++;
+        p.tiles--; p.sx -= x; p.sy -= y; p.border.delete(t); p.stats.lost++; p.terr[ter]--;
       }
       if (o) {
         const p = this.players[o];
-        p.tiles++; p.sx += x; p.sy += y;
+        p.tiles++; p.sx += x; p.sy += y; p.terr[ter]++;
         if (p.tiles > p.stats.peak) p.stats.peak = p.tiles;
       }
       this._updBorder(t);
@@ -125,8 +127,15 @@
       if (n > 3) this._updBorder(d);
       const s = this.structAt.get(t);
       if (s) {
-        if (o) { s.owner = o; this.emit('captured', { sid: s.id, kind: s.kind, by: o, from: old, x, y }); }
-        else this._destroyStructure(s);
+        if (o) {
+          s.owner = o;
+          if (s.kind === 'wonder') s.heldSince = this.tick;
+          this.emit('captured', { sid: s.id, kind: s.kind, by: o, from: old, x, y });
+        } else this._destroyStructure(s);
+      }
+      if (o && old !== o) {
+        const d = this.depAt.get(t);
+        if (d) this.emit('depositTaken', { pid: o, from: old, kind: d.kind, x, y });
       }
       this.changed.push(t);
     }
@@ -169,11 +178,7 @@
       const o = this.owner[tile];
       if (o && o !== p.id) return false;
       if (p.spawned) { // relocate during spawn phase
-        for (const t of [...p.border]) this.setOwner(t, 0);
-        let guard = 0;
-        while (p.tiles > 0 && guard++ < 50) {
-          for (let t = 0; t < this.N && p.tiles; t++) if (this.owner[t] === p.id) this.setOwner(t, 0);
-        }
+        for (let t = 0; t < this.N && p.tiles; t++) if (this.owner[t] === p.id) this.setOwner(t, 0);
       }
       const [cx, cy] = this.xy(tile), R = C.SPAWN_RADIUS;
       for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
@@ -206,12 +211,12 @@
       if (this.phase === 'over') { this.tick++; return; }
 
       this._recountStructures();
+      this._economyTick();
       for (const p of this.players) {
         if (!p || !p.alive) continue;
         const max = this.maxTroops(p);
         if (p.troops < max) p.troops = Math.min(max, p.troops + this.troopRate(p));
         else p.troops -= (p.troops - max) * 0.02;
-        p.gold += this.goldRate(p);
         if (!p.human && this.tick >= p.nextThink) {
           const d = C.DIFFICULTY[p.diff].think;
           p.nextThink = this.tick + d[0] + this.rng.int(d[1] - d[0]);
@@ -220,7 +225,9 @@
       }
       this._processAttacks();
       this._processBoats();
+      this._processTradeShips();
       this._processNukes();
+      this._eventsTick();
       this.allyRequests = this.allyRequests.filter(r => r.expires > this.tick);
       this._checkDeaths();
       this._checkWin();
@@ -238,10 +245,28 @@
         case 'boat': if (this.phase === 'play') this.cmdBoat(p, it.tile, it.ratio); break;
         case 'build': if (this.phase === 'play') this.cmdBuild(p, it.kind, it.tile); break;
         case 'nuke': if (this.phase === 'play') this.cmdNuke(p, it.kind, it.tile); break;
+        case 'research': if (this.phase === 'play') this.cmdResearch(p, it.tech); break;
+        case 'trade': if (this.phase === 'play') this.cmdTrade(p, it.res, it.qty, it.side); break;
         case 'ally': this.cmdAlly(p, it.target); break;
         case 'allyReply': this.cmdAllyReply(p, it.target, it.accept); break;
         case 'unally': this.cmdUnally(p, it.target); break;
       }
+    }
+
+    // ---------------------------------------------------------------- troops
+    maxTroops(p) {
+      let m = Math.pow(p.tiles, 0.72) * 55 + 2000 + p.counts.city * 25000;
+      if (this.has(p, 'med')) m *= 1.15;
+      if (p.counts.wonder) m *= 1.2;
+      return Math.floor(m);
+    }
+    troopRate(p) {
+      const max = this.maxTroops(p);
+      let mult = p.human ? 1 : C.DIFFICULTY[p.diff].growth;
+      mult *= 1 + 0.12 * Math.min(5, p.counts.barracks);
+      mult *= p.fed ? 1.15 : 0.7;
+      if (this.has(p, 'empire')) mult *= 1.2;
+      return Math.max(0, (10 + Math.pow(Math.max(p.troops, 1), 0.73) / 4) * (1 - p.troops / max)) * mult;
     }
 
     // ---------------------------------------------------------------- attacks
@@ -254,8 +279,7 @@
       const troops = Math.floor(p.troops * ratio);
       if (troops < 1) return;
       if (this.startAttack(p, target, troops, null)) return;
-      // not adjacent → try an amphibious landing instead
-      this.cmdBoat(p, tile, ratio);
+      this.cmdBoat(p, tile, ratio); // not adjacent → amphibious landing
     }
 
     startAttack(p, target, troops, seeds) {
@@ -266,7 +290,6 @@
       let a = this.attacks.find(x => x.attacker === p.id && x.target === target);
       const fresh = !a;
       if (fresh) a = { id: this.nextId++, attacker: p.id, target, troops: 0, cand: [], pos: new Map(), start: this.tick };
-      // seed candidates
       const add = (t) => { if (this.owner[t] === target && this.isLand(t)) this._addCand(a, t); };
       if (seeds) {
         for (const s of seeds) { const n = this.nbrs(s); const nb = Array.from(this._nb.subarray(0, n)); for (const t of nb) add(t); }
@@ -275,8 +298,7 @@
       }
       if (!a.cand.length) return false;
       p.troops -= troops;
-      // head-on collision with a counter attack: troops cancel each other
-      if (target !== 0) {
+      if (target !== 0) { // head-on collision with a counter attack
         const opp = this.attacks.find(x => x.attacker === target && x.target === p.id);
         if (opp) {
           const m = Math.min(opp.troops, troops);
@@ -309,18 +331,21 @@
       this.emit('attackEnd', { pid: a.attacker, target: a.target });
     }
     tileCost(t, attacker, target) {
-      const tm = C.TERRAIN[this.terrain[t]].cost * (this.rad[t] > this.tick ? 4 : 1);
+      let tm = C.TERRAIN[this.terrain[t]].cost * (this.rad[t] > this.tick ? 4 : 1);
+      if (this.has(attacker, 'steel')) tm *= 0.88;
       if (!target) return 6 * tm * (1 + attacker.tiles / 60000);
       const D = this.players[target];
       const dens = D.troops / Math.max(1, D.tiles);
       let c = (8 + dens * 1.25) * tm;
-      if (this._inDefense(t, target)) c *= 2.5;
+      if (this._inFort(t, target)) c *= this.has(D, 'fort2') ? 3.5 : 2.5;
+      if (this.has(D, 'elite')) c *= 1.25;
+      if (D.counts.wonder) c *= 1.3;
       return c;
     }
-    _inDefense(t, owner) {
-      const R = C.BUILD.defense.radius, x = t % this.W, y = (t / this.W) | 0;
+    _inFort(t, owner) {
+      const R = C.BUILD.fort.radius, x = t % this.W, y = (t / this.W) | 0;
       for (const s of this.structures) {
-        if (s.kind !== 'defense' || s.owner !== owner) continue;
+        if (s.kind !== 'fort' || s.owner !== owner || !this.active(s)) continue;
         if (Math.abs(s.x - x) <= R && Math.abs(s.y - y) <= R) return true;
       }
       return false;
@@ -333,8 +358,9 @@
         if (!A.alive) { this._endAttack(a, false); continue; }
         const D = a.target ? this.players[a.target] : null;
         if (D && (!D.alive || this.allied(A.id, D.id))) { this._endAttack(a, true); continue; }
-        const rate = D ? 0.08 : 0.14;
-        let n = Math.min(a.cand.length, 1 + Math.floor(a.cand.length * rate));
+        let rate = D ? 0.08 : 0.14;
+        if (this.has(A, 'logi')) rate *= 1.3;
+        const n = Math.min(a.cand.length, 1 + Math.floor(a.cand.length * rate));
         let stalled = false;
         for (let k = 0; k < n && a.cand.length; k++) {
           let bestT = -1, bestS = -1e9;
@@ -372,27 +398,23 @@
       let h = 0, tl = 0;
       q[tl++] = tile; seen[tile] = stamp; prev[tile] = -1;
       let goal = -1;
-      while (h < tl) {
+      while (h < tl && goal < 0) {
         const t = q[h++];
         const land = ter[t] >= T.BEACH;
         const n = this.nbrs(t);
+        const nb = [this._nb[0], this._nb[1], this._nb[2], this._nb[3]];
         for (let i = 0; i < n; i++) {
-          const nt = this._nb[i];
+          const nt = nb[i];
           if (seen[nt] === stamp) continue;
           const nl = ter[nt] >= T.BEACH;
-          if (nl) {
-            if (!land || own[nt] !== tgtOwner) continue; // walk only through the target's own land
-          }
+          if (nl && (!land || own[nt] !== tgtOwner)) continue; // walk only through the target's own land
           seen[nt] = stamp; prev[nt] = t; q[tl++] = nt;
           if (!nl) {
-            // water tile next to our coast?
             const m = this.nbrs(nt);
             for (let j = 0; j < m; j++) if (own[this._nb[j]] === pid) { goal = nt; break; }
-            this.nbrs(t); // restore neighbour buffer for outer loop
             if (goal >= 0) break;
           }
         }
-        if (goal >= 0) break;
         if (tl >= N) break;
       }
       if (goal < 0) return null;
@@ -405,27 +427,35 @@
       if (landing < 0 || path.length < 1) return null;
       return { path: Int32Array.from(path), landing };
     }
+    maxBoats(p) { return C.MAX_BOATS + (this.has(p, 'nav') ? 1 : 0); }
     cmdBoat(p, tile, ratio) {
       if (tile < 0 || tile >= this.N || !this.isLand(tile) || this.owner[tile] === p.id) return;
       if (this.allied(p.id, this.owner[tile])) return;
-      if (this.boats.filter(b => b.owner === p.id).length >= C.MAX_BOATS) {
-        this.emit('fail', { pid: p.id, msg: 'Maximal ' + C.MAX_BOATS + ' Boote gleichzeitig.' }); return;
+      if (this.boats.filter(b => b.owner === p.id).length >= this.maxBoats(p)) {
+        this.emit('fail', { pid: p.id, msg: 'Maximal ' + this.maxBoats(p) + ' Boote gleichzeitig.' }); return;
       }
       const r = this.findBoatPath(p.id, tile);
       if (!r) { this.emit('fail', { pid: p.id, msg: 'Kein Weg dorthin – weder Land- noch Seeverbindung.' }); return; }
       const troops = Math.floor(p.troops * Math.max(0.01, Math.min(1, +ratio || 0.3)));
       if (troops < 10) return;
       p.troops -= troops;
-      const b = { id: this.nextId++, owner: p.id, troops, path: r.path, landing: r.landing, prog: 0,
-        speed: p.counts.port ? 2.4 : 1.6 };
+      let speed = p.counts.port ? 2.4 : 1.6;
+      if (this.has(p, 'nav')) speed *= 1.3;
+      const b = { id: this.nextId++, owner: p.id, troops, path: r.path, landing: r.landing, prog: 0, speed };
       this.boats.push(b);
       this.emit('boat', { pid: p.id, bid: b.id, target: this.owner[r.landing] });
+    }
+    _shipSpeed(path, prog, speed) {
+      if (!this.storm) return speed;
+      const t = path[Math.min(path.length - 1, Math.floor(prog))];
+      const [x, y] = this.xy(t), [sx, sy] = this.stormPos();
+      return (x - sx) ** 2 + (y - sy) ** 2 < this.storm.r * this.storm.r ? speed * 0.35 : speed;
     }
     _processBoats() {
       for (const b of this.boats.slice()) {
         const P = this.players[b.owner];
         if (!P.alive) { this.boats.splice(this.boats.indexOf(b), 1); continue; }
-        b.prog += b.speed;
+        b.prog += this._shipSpeed(b.path, b.prog, b.speed);
         if (b.prog < b.path.length - 1) continue;
         this.boats.splice(this.boats.indexOf(b), 1);
         const L = b.landing, o = this.owner[L];
@@ -436,85 +466,28 @@
         b.troops -= cost;
         this.setOwner(L, b.owner);
         this.emit('boatLand', { pid: b.owner, x, y, ok: true, target: o });
-        P.troops += b.troops; // startAttack draws them back out
-        if (!this.startAttack(P, o, b.troops, [L])) { /* troops already refunded */ }
+        P.troops += b.troops; // startAttack draws them back out (or they stay home if blocked)
+        this.startAttack(P, o, b.troops, [L]);
       }
     }
 
-    // ---------------------------------------------------------------- structures
-    _recountStructures() {
-      for (const p of this.players) if (p) { const c = p.counts; c.city = c.port = c.defense = c.silo = c.sam = 0; }
-      for (const s of this.structures) this.players[s.owner].counts[s.kind]++;
-    }
-    _isCoastal(t) {
-      const n = this.nbrs(t);
-      for (let i = 0; i < n; i++) if (!this.isLand(this._nb[i])) return true;
-      return false;
-    }
-    _structNear(x, y, r) {
-      for (const s of this.structures) if (Math.abs(s.x - x) <= r && Math.abs(s.y - y) <= r) return s;
-      return null;
-    }
-    canBuildAt(p, kind, tile) {
-      if (tile < 0 || tile >= this.N || this.owner[tile] !== p.id) return -1;
-      let t = tile;
-      if (C.BUILD[kind].coastal && !this._isCoastal(t)) {
-        t = -1; let bd = 1e9;
-        const [cx, cy] = this.xy(tile);
-        for (let dy = -8; dy <= 8; dy++) for (let dx = -8; dx <= 8; dx++) {
-          const x = cx + dx, y = cy + dy;
-          if (x < 0 || y < 0 || x >= this.W || y >= this.H) continue;
-          const u = y * this.W + x;
-          if (this.owner[u] === p.id && this._isCoastal(u) && dx * dx + dy * dy < bd) { bd = dx * dx + dy * dy; t = u; }
-        }
-        if (t < 0) return -2;
-      }
-      const [x, y] = this.xy(t);
-      if (this._structNear(x, y, 3)) return -3;
-      return t;
-    }
-    cmdBuild(p, kind, tile) {
-      const d = C.BUILD[kind];
-      if (!d) return;
-      this._recountStructures();
-      const t = this.canBuildAt(p, kind, tile);
-      if (t < 0) {
-        const msg = t === -2 ? 'Häfen brauchen Küste in der Nähe.' : t === -3 ? 'Zu nah an einem anderen Gebäude.' : 'Nur auf eigenem Land baubar.';
-        this.emit('fail', { pid: p.id, msg }); return;
-      }
-      const cost = this.buildCost(p, kind);
-      if (p.gold < cost) { this.emit('fail', { pid: p.id, msg: 'Nicht genug Gold.' }); return; }
-      p.gold -= cost;
-      const [x, y] = this.xy(t);
-      const s = { id: this.nextId++, kind, owner: p.id, tile: t, x, y, built: this.tick, cd: 0 };
-      this.structures.push(s);
-      this.structAt.set(t, s);
-      p.counts[kind]++;
-      this.emit('build', { pid: p.id, kind, x, y });
-    }
-    _destroyStructure(s) {
-      const i = this.structures.indexOf(s);
-      if (i >= 0) this.structures.splice(i, 1);
-      this.structAt.delete(s.tile);
-      this.emit('destroyed', { kind: s.kind, x: s.x, y: s.y, owner: s.owner });
-    }
-
-    // ---------------------------------------------------------------- nukes
+    // ---------------------------------------------------------------- nukes / missiles
     cmdNuke(p, kind, tile) {
       const d = C.NUKES[kind];
       if (!d || tile < 0 || tile >= this.N) return;
-      const silos = this.structures.filter(s => s.kind === 'silo' && s.owner === p.id);
-      if (!silos.length) { this.emit('fail', { pid: p.id, msg: 'Du brauchst ein Raketensilo.' }); return; }
-      if (p.gold < d.cost) { this.emit('fail', { pid: p.id, msg: 'Nicht genug Gold.' }); return; }
+      if (d.tech && !this.has(p, d.tech)) { this.emit('fail', { pid: p.id, msg: 'Erst erforschen: ' + C.TECH[d.tech].name }); return; }
+      const silos = this.structures.filter(s => s.kind === 'silo' && s.owner === p.id && s.done <= this.tick);
+      if (!silos.length) { this.emit('fail', { pid: p.id, msg: 'Du brauchst ein fertiges Raketensilo.' }); return; }
+      if (!this.canAfford(p, d.cost)) { this.emit('fail', { pid: p.id, msg: 'Nicht genug Ressourcen.' }); return; }
       const [tx, ty] = this.xy(tile);
       let best = null, bd = 1e18;
       for (const s of silos) {
-        if (s.cd > this.tick) continue;
+        if (s.cd > this.tick || s.off > this.tick) continue;
         const dd = (s.x - tx) ** 2 + (s.y - ty) ** 2;
         if (dd < bd) { bd = dd; best = s; }
       }
       if (!best) { this.emit('fail', { pid: p.id, msg: 'Silo lädt nach…' }); return; }
-      p.gold -= d.cost;
+      this.pay(p, d.cost);
       best.cd = this.tick + 50;
       const flight = Math.round(30 + Math.sqrt(bd) / 5);
       const n = { id: this.nextId++, owner: p.id, kind, fx: best.x, fy: best.y, tx, ty, tile,
@@ -530,12 +503,17 @@
         const u = (this.tick - n.launched) / (n.eta - n.launched);
         if (!n.checked && u >= 0.65) {
           n.checked = true;
-          const R = C.BUILD.sam.radius;
+          const elecR = 20;
           for (const s of this.structures) {
-            if (s.kind !== 'sam' || s.owner === n.owner || this.allied(s.owner, n.owner) || s.cd > this.tick) continue;
+            if (s.kind !== 'sam' || s.owner === n.owner || this.allied(s.owner, n.owner) || s.cd > this.tick || !this.active(s)) continue;
+            const O = this.players[s.owner];
+            const R = C.BUILD.sam.radius + (this.has(O, 'elec') ? elecR : 0);
             if ((s.x - n.tx) ** 2 + (s.y - n.ty) ** 2 > R * R) continue;
             s.cd = this.tick + 70;
-            if (this.rng.next() < C.NUKES[n.kind].intercept) {
+            let p = C.NUKES[n.kind].intercept + (this.has(O, 'elec') ? 0.15 : 0);
+            const RR = C.BUILD.radar.radius;
+            if (this.structures.some(r => r.kind === 'radar' && r.owner === s.owner && this.active(r) && (r.x - s.x) ** 2 + (r.y - s.y) ** 2 <= RR * RR)) p += 0.15;
+            if (this.rng.next() < Math.min(0.97, p)) {
               this.nukes.splice(this.nukes.indexOf(n), 1);
               const gx = n.fx + (n.tx - n.fx) * u, gy = n.fy + (n.ty - n.fy) * u;
               this.emit('nukeIntercept', { nid: n.id, owner: n.owner, by: s.owner, x: gx, y: gy, sx: s.x, sy: s.y, u });
@@ -546,32 +524,52 @@
         }
         if (this.tick >= n.eta) {
           this.nukes.splice(this.nukes.indexOf(n), 1);
-          this._detonate(n);
+          if (n.kind === 'emp') this._emp(n);
+          else {
+            const victims = this._blast(n.tx, n.ty, C.NUKES[n.kind].radius, { rad: 600, troop: 1.6 });
+            this.emit('nukeHit', { nid: n.id, owner: n.owner, kind: n.kind, x: n.tx, y: n.ty, r: C.NUKES[n.kind].radius, victims });
+          }
         }
       }
     }
-    _detonate(n) {
-      const R = C.NUKES[n.kind].radius, lost = new Map();
+    /** Generic area destruction used by nukes, meteors and volcanoes. Returns victim ids. */
+    _blast(cx, cy, R, o) {
+      const lost = new Map();
+      const bunkers = this.structures.filter(s => s.kind === 'bunker' && this.active(s) &&
+        (s.x - cx) ** 2 + (s.y - cy) ** 2 <= (R + C.BUILD.bunker.radius) ** 2);
+      const BR = C.BUILD.bunker.radius;
       for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
         const d2 = dx * dx + dy * dy;
         if (d2 > R * R) continue;
-        const x = n.tx + dx, y = n.ty + dy;
+        const x = cx + dx, y = cy + dy;
         if (x < 0 || y < 0 || x >= this.W || y >= this.H) continue;
         const t = y * this.W + x;
         const r = Math.sqrt(d2) / R;
-        this.rad[t] = this.tick + 600;
-        const prob = r < 0.65 ? 1 : 1 - (r - 0.65) / 0.35 * 0.8;
+        if (o.rad) this.rad[t] = Math.max(this.rad[t], this.tick + o.rad);
+        const ow = this.owner[t];
+        let prot = false;
+        if (ow && bunkers.length) for (const b of bunkers) if (b.owner === ow && (b.x - x) ** 2 + (b.y - y) ** 2 <= BR * BR) { prot = true; break; }
+        let prob = r < 0.65 ? 1 : 1 - (r - 0.65) / 0.35 * 0.8;
+        if (prot) prob *= 0.35;
         if (this.rng.next() > prob) continue;
         const s = this.structAt.get(t);
-        if (s && r < 0.85) this._destroyStructure(s);
-        const o = this.owner[t];
-        if (o) { lost.set(o, (lost.get(o) || 0) + 1); this.setOwner(t, 0); }
+        if (s && r < 0.85 && !prot) this._destroyStructure(s);
+        if (ow) { lost.set(ow, (lost.get(ow) || 0) + 1); this.setOwner(t, 0); }
       }
-      for (const [o, c] of lost) {
-        const P = this.players[o];
-        P.troops -= P.troops * Math.min(0.85, (c / (P.tiles + c)) * 1.6);
+      for (const [ow, c] of lost) {
+        const P = this.players[ow];
+        P.troops -= P.troops * Math.min(0.85, (c / (P.tiles + c)) * (o.troop || 1));
       }
-      this.emit('nukeHit', { nid: n.id, owner: n.owner, kind: n.kind, x: n.tx, y: n.ty, r: R, victims: [...lost.keys()] });
+      return [...lost.keys()];
+    }
+    _emp(n) {
+      const R = C.NUKES.emp.radius, hit = [];
+      for (const s of this.structures) {
+        if ((s.x - n.tx) ** 2 + (s.y - n.ty) ** 2 > R * R) continue;
+        s.off = this.tick + C.NUKES.emp.emp;
+        hit.push(s.id);
+      }
+      this.emit('empHit', { owner: n.owner, x: n.tx, y: n.ty, r: R, count: hit.length });
     }
 
     // ---------------------------------------------------------------- diplomacy
@@ -629,28 +627,36 @@
     }
     _checkWin() {
       const alive = this.alivePlayers();
-      let winner = 0;
+      let winner = 0, reason = 'land';
       for (const p of alive) if (p.tiles / this.map.landCount >= C.WIN_SHARE) winner = p.id;
-      if (!winner && alive.length === 1) winner = alive[0].id;
+      if (!winner) {
+        for (const s of this.structures) {
+          if (s.kind === 'wonder' && s.done <= this.tick && this.tick - s.heldSince >= C.WONDER_HOLD) { winner = s.owner; reason = 'wonder'; break; }
+        }
+      }
+      if (!winner && alive.length === 1) { winner = alive[0].id; reason = 'last'; }
       if (!winner && alive.length > 1 && alive.every(p => alive.every(q => q === p || p.allies.has(q.id)))) {
-        winner = alive.reduce((a, b) => (b.tiles > a.tiles ? b : a)).id; // peace among all survivors
+        winner = alive.reduce((a, b) => (b.tiles > a.tiles ? b : a)).id; reason = 'peace';
       }
       if (winner) {
-        this.phase = 'over'; this.winner = winner;
-        this.emit('gameOver', { winner });
+        this.phase = 'over'; this.winner = winner; this.winReason = reason;
+        this.emit('gameOver', { winner, reason });
       }
     }
 
-    // ---------------------------------------------------------------- multiplayer helpers
     /** Cheap state fingerprint for desync detection between lockstep peers. */
     hash() {
       let h = 2166136261 >>> 0;
       const o = this.owner;
       for (let i = 0; i < o.length; i += 3) { h ^= o[i]; h = Math.imul(h, 16777619); }
-      for (const p of this.players) if (p) { h ^= (p.troops | 0) ^ (p.tiles << 8); h = Math.imul(h, 16777619); }
-      return (h ^ this.tick) >>> 0;
+      for (const p of this.players) if (p) {
+        h ^= (p.troops | 0) ^ (p.tiles << 8) ^ (p.gold | 0); h = Math.imul(h, 16777619);
+        for (const k of C.TRADE_RES) { h ^= (p.res[k] * 10) | 0; h = Math.imul(h, 16777619); }
+      }
+      return (h ^ this.tick ^ this.structures.length) >>> 0;
     }
   }
 
+  Object.assign(Sim.prototype, BW.SimEconomy, BW.SimEvents);
   BW.Sim = Sim;
 })(globalThis.BW = globalThis.BW || {});

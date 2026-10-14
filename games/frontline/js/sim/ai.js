@@ -3,7 +3,9 @@
  * identically on every lockstep client without any network traffic. */
 (function (BW) {
   'use strict';
-  const C = BW.C;
+  const C = BW.C, T = C.T;
+
+  const TECH_ORDER = ['agri', 'mining', 'steel', 'med', 'econ', 'nav', 'fort2', 'logi', 'fission', 'arch', 'elite', 'elec', 'fusion', 'empire'];
 
   function scanNeighbours(sim, p) {
     const counts = new Map();
@@ -27,17 +29,100 @@
   function interiorTile(sim, p, border) {
     const [cx, cy] = sim.centroid(p);
     const c = Math.round(cy) * sim.W + Math.round(cx);
-    const ok = (t) => t >= 0 && t < sim.N && sim.owner[t] === p.id && !sim._structNear(t % sim.W, (t / sim.W) | 0, 4);
+    const ok = (t) => t >= 0 && t < sim.N && sim.owner[t] === p.id;
     if (ok(c) && sim.rng.chance(0.3)) return c;
     for (let k = 0; k < 16 && border.length; k++) {
       const b = sim.rng.pick(border);
       const [bx, by] = sim.xy(b);
       const f = sim.rng.range(0.35, 0.8);
-      const x = Math.round(bx + (cx - bx) * f), y = Math.round(by + (cy - by) * f);
-      const t = y * sim.W + x;
+      const t = Math.round(by + (cy - by) * f) * sim.W + Math.round(bx + (cx - bx) * f);
       if (ok(t)) return t;
     }
     return ok(c) ? c : -1;
+  }
+
+  function tryBuild(sim, p, kind, tile) {
+    if (tile < 0 || sim.buildBlocker(p, kind)) return false;
+    const t = sim.canBuildAt(p, kind, tile);
+    if (t < 0) return false;
+    sim.cmdBuild(p, kind, t);
+    return true;
+  }
+
+  function economy(sim, p, D, border, coast, underAttack) {
+    const b = p.built, r = p.res;
+    // research first – cheap and permanent
+    let look = 0;
+    for (const k of TECH_ORDER) {
+      const st = sim.techState(p, k);
+      if (st === 'done') continue;
+      if (st === 'ready') { sim.cmdResearch(p, k); break; }
+      if (++look >= 3) break; // don't skip too far ahead of the plan
+    }
+    // sell surplus on the stock market, keep a reserve
+    if (sim.rng.chance(0.3)) {
+      for (const k of C.TRADE_RES) {
+        const keep = k === 'uranium' ? 150 : k === 'gems' ? 160 : 400;
+        if (r[k] > keep * 1.5) { sim.cmdTrade(p, k, Math.floor(r[k] - keep), 'sell'); break; }
+      }
+    }
+    const inner = () => interiorTile(sim, p, border);
+    // 1. food security
+    if ((!p.fed || p.rates.food < 0) && tryBuild(sim, p, 'farm', inner())) return;
+    // 2. extract owned deposits
+    for (const d of sim.deposits) {
+      if (sim.owner[d.tile] !== p.id || sim.structAt.has(d.tile)) continue;
+      const kind = d.kind === 'oil' ? 'derrick' : 'mine';
+      if (tryBuild(sim, p, kind, d.tile)) return;
+    }
+    // 3. defense when pressed
+    if (underAttack.length && sim.rng.chance(0.25 + D.aggr * 0.3)) {
+      const a = sim.rng.pick(underAttack);
+      if (a.cand.length) {
+        const t = a.cand[sim.rng.int(a.cand.length)];
+        const [bx, by] = sim.xy(t), [cx, cy] = sim.centroid(p);
+        if (tryBuild(sim, p, 'fort', Math.round(by + (cy - by) * 0.15) * sim.W + Math.round(bx + (cx - bx) * 0.15))) return;
+      }
+    }
+    // 4. growth buildings by priority
+    const wish = [];
+    if (r.wood < 40 && p.terr[T.FOREST] > 20 && b.sawmill < 3) wish.push('sawmill');
+    wish.push('city');
+    if (coast > 0 && b.port < 2) wish.push('port');
+    if (b.city >= 1 && b.lab < 2) wish.push('lab');
+    if (b.barracks < 3) wish.push('barracks');
+    if (b.farm < 2 + b.city) wish.push('farm');
+    if (b.market < 1 && p.tiles > 1500) wish.push('market');
+    if (b.bank < 1 && p.gold > 20000) wish.push('bank');
+    if (D.nukes && p.tiles > 2500) {
+      if (b.silo < 1) wish.push('silo');
+      if (b.sam < 1 && sim.structures.some(s => s.kind === 'silo' && s.owner !== p.id)) wish.push('sam');
+      if (b.radar < 1 && b.sam > 0) wish.push('radar');
+      if (b.bunker < 1 && sim.nukes.length) wish.push('bunker');
+    }
+    if (sim.has(p, 'arch') && b.wonder < 1 && p.tiles > 5000) wish.unshift('wonder');
+    for (const k of wish) {
+      if (!sim.canAfford(p, sim.costOf(p, k))) continue;
+      const t = k === 'port' ? (border.find(u => sim._isCoastal(u)) ?? -1) : inner();
+      if (tryBuild(sim, p, k, t)) return;
+    }
+  }
+
+  function missiles(sim, p, D) {
+    if (!D.nukes || !p.counts.silo || !sim.rng.chance(0.15 + D.aggr * 0.2)) return;
+    const foes = sim.alivePlayers().filter(q => q !== p && !p.allies.has(q.id));
+    if (!foes.length) return;
+    const q = foes.reduce((a, b) => (b.tiles > a.tiles ? b : a));
+    if (q.tiles < p.tiles * 0.7) return;
+    const [cx, cy] = sim.centroid(q);
+    let t = Math.round(cy) * sim.W + Math.round(cx);
+    if (sim.owner[t] !== q.id && q.border.size) t = q.border.values().next().value;
+    // knock out air defense first
+    const sam = sim.structures.find(s => s.kind === 'sam' && s.owner === q.id && sim.active(s));
+    if (sam && sim.has(p, 'elec') && sim.canAfford(p, C.NUKES.emp.cost)) { sim.cmdNuke(p, 'emp', sam.tile); return; }
+    const kind = sim.has(p, 'fusion') && sim.canAfford(p, C.NUKES.hydro.cost) && sim.rng.chance(0.5) ? 'hydro' : 'atom';
+    if (sim.has(p, C.NUKES[kind].tech) && sim.canAfford(p, C.NUKES[kind].cost)) sim.cmdNuke(p, kind, t);
+    else if (sim.has(p, 'fission') && p.gold > 60000 && p.res.uranium < 30) sim.cmdTrade(p, 'uranium', 30, 'buy');
   }
 
   function think(sim, p) {
@@ -47,44 +132,8 @@
     const { counts, neutral, coast, border } = scanNeighbours(sim, p);
     const underAttack = sim.attacks.filter(a => a.target === p.id);
 
-    // ---------- economy
-    if (p.gold > sim.buildCost(p, 'city') && sim.rng.chance(0.55)) {
-      const t = interiorTile(sim, p, border);
-      if (t >= 0) sim.cmdBuild(p, 'city', t);
-    }
-    if (coast > 0 && p.counts.port < 2 && p.gold > sim.buildCost(p, 'port') * 1.3 && sim.rng.chance(0.25)) {
-      const coastal = border.filter(t => sim._isCoastal(t));
-      if (coastal.length) sim.cmdBuild(p, 'port', sim.rng.pick(coastal));
-    }
-    if (underAttack.length && p.gold > sim.buildCost(p, 'defense') && sim.rng.chance(0.25 + D.aggr * 0.3)) {
-      const a = sim.rng.pick(underAttack);
-      // attack candidates are tiles we own on that front
-      if (a.cand.length) {
-        const t = a.cand[sim.rng.int(a.cand.length)];
-        const [bx, by] = sim.xy(t), [cx, cy] = sim.centroid(p);
-        const x = Math.round(bx + (cx - bx) * 0.15), y = Math.round(by + (cy - by) * 0.15);
-        sim.cmdBuild(p, 'defense', y * sim.W + x);
-      }
-    }
-    if (D.nukes && p.tiles > 2500) {
-      if (p.counts.silo === 0 && p.gold > sim.buildCost(p, 'silo') && sim.rng.chance(0.2)) {
-        const t = interiorTile(sim, p, border); if (t >= 0) sim.cmdBuild(p, 'silo', t);
-      } else if (p.counts.sam === 0 && p.gold > sim.buildCost(p, 'sam') && sim.structures.some(s => s.kind === 'silo' && s.owner !== p.id) && sim.rng.chance(0.25)) {
-        const t = interiorTile(sim, p, border); if (t >= 0) sim.cmdBuild(p, 'sam', t);
-      } else if (p.counts.silo > 0 && p.gold > C.NUKES.atom.cost && sim.rng.chance(0.15 + D.aggr * 0.2)) {
-        const foes = sim.alivePlayers().filter(q => q !== p && !p.allies.has(q.id));
-        if (foes.length) {
-          const q = foes.reduce((a, b) => (b.tiles > a.tiles ? b : a));
-          if (q.tiles > p.tiles * 0.7) {
-            const [cx, cy] = sim.centroid(q);
-            let t = Math.round(cy) * sim.W + Math.round(cx);
-            if (sim.owner[t] !== q.id && q.border.size) t = q.border.values().next().value;
-            const kind = p.gold > C.NUKES.hydro.cost && sim.rng.chance(0.5) ? 'hydro' : 'atom';
-            sim.cmdNuke(p, kind, t);
-          }
-        }
-      }
-    }
+    economy(sim, p, D, border, coast, underAttack);
+    missiles(sim, p, D);
 
     // ---------- diplomacy
     const human = sim.players.find(q => q && q.human && q.alive);
@@ -97,6 +146,7 @@
     const minFill = 0.55 - D.aggr * 0.3;
     if (fill < minFill && !underAttack.length) return;
 
+    // grab crates & deposits next to us first
     if (neutral > 0 && (sim.rng.chance(0.75) || counts.size === 0)) {
       sim.startAttack(p, 0, Math.floor(p.troops * sim.rng.range(0.25, 0.45)), null);
       return;
@@ -112,7 +162,8 @@
       let s = (myDens - dens) * 2 + Math.log(1 + c) - q.troops / Math.max(1, p.troops) * 3;
       if (o === p.lastTarget) s += 1.5;
       if (q.human) s += D.aggr * 2;
-      if (underAttack.some(a => a.attacker === o)) s += 3; // strike back
+      if (underAttack.some(a => a.attacker === o)) s += 3;
+      if (q.counts.wonder) s += 4; // nobody lets a wonder stand
       if (s > bestScore) { bestScore = s; best = q; }
     }
     if (best) {
@@ -125,8 +176,10 @@
       }
     }
 
-    // no land targets → go naval
+    // no land targets → go naval (prefer crates and deposits)
     if ((neutral === 0 && counts.size === 0 || sim.rng.chance(0.06)) && coast > 0 && fill > 0.5) {
+      const crate = sim.crates.find(c => !sim.owner[c.tile]);
+      if (crate && sim.rng.chance(0.5)) { sim.cmdBoat(p, crate.tile, 0.3); return; }
       for (let k = 0; k < 20; k++) {
         const t = sim.rng.int(sim.N);
         if (!sim.isLand(t)) continue;

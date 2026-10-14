@@ -127,7 +127,26 @@
     }
     for (let i = 0; i < N; i++) if (terrain[i] === T.DEEP && waterDist[i] <= 4) terrain[i] = T.SHALLOW;
 
-    return { W, H, N, seed, type: opts.type, terrain, height, sea, maxH, waterDist, landCount };
+    // resource deposits (gold, silver, iron, gems, oil, uranium)
+    const deposits = [];
+    const D = BW.C.DEPOSITS, kinds = Object.keys(D);
+    const totalW = kinds.reduce((a, k) => a + D[k].w, 0);
+    const drng = new BW.RNG((seed ^ 0x13579bdf) >>> 0);
+    const want = Math.max(14, Math.min(110, Math.round(landCount / 1900)));
+    for (let k = 0; k < want * 80 && deposits.length < want; k++) {
+      let r = drng.next() * totalW, kind = kinds[0];
+      for (const kk of kinds) { r -= D[kk].w; if (r <= 0) { kind = kk; break; } }
+      const t = drng.int(N);
+      if (D[kind].on.indexOf(terrain[t]) < 0) continue;
+      const x = t % W, y = (t / W) | 0;
+      let ok = true;
+      for (const d of deposits) if ((d.x - x) ** 2 + (d.y - y) ** 2 < 100) { ok = false; break; }
+      if (!ok) continue;
+      const rr = drng.next();
+      deposits.push({ id: deposits.length, kind, tile: t, x, y, rich: rr < 0.55 ? 1 : rr < 0.88 ? 2 : 3 });
+    }
+
+    return { W, H, N, seed, type: opts.type, terrain, height, sea, maxH, waterDist, landCount, deposits };
   }
 
   BW.MapGen = { generate, makeNoise, fbm };

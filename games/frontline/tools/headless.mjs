@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 const root = new URL('../js/', import.meta.url);
-for (const f of ['core/rng.js', 'core/constants.js', 'sim/mapgen.js', 'sim/ai.js', 'sim/sim.js']) {
+for (const f of ['core/rng.js', 'core/constants.js', 'sim/mapgen.js', 'sim/ai.js', 'sim/economy.js', 'sim/events.js', 'sim/sim.js']) {
   vm.runInThisContext(readFileSync(new URL(f, root), 'utf8'), { filename: f });
 }
 const BW = globalThis.BW;
@@ -24,5 +24,6 @@ const s = a.sim;
 console.log('gen ms', a.tGen.toFixed(0), 'total ms', a.ms.toFixed(0), 'ticks', s.tick, 'phase', s.phase, 'land', s.map.landCount);
 console.log('events', a.counts);
 console.log(s.alivePlayers().sort((x, y) => y.tiles - x.tiles).slice(0, 8)
-  .map(p => `${p.name} tiles=${p.tiles} troops=${p.troops | 0} gold=${p.gold | 0} ${JSON.stringify(p.counts)}`).join('\n'));
+  .map(p => `${p.emblem} ${p.name} tiles=${p.tiles} troops=${p.troops | 0} gold=${p.gold | 0} fed=${p.fed} tech=${[...p.tech].join(',')}\n   res=${JSON.stringify(Object.fromEntries(Object.entries(p.res).map(([k, v]) => [k, v | 0])))}\n   built=${JSON.stringify(Object.fromEntries(Object.entries(p.counts).filter(e => e[1])))}`).join('\n'));
+console.log('structures', s.structures.length, 'tradeShips', s.tradeShips.length, 'crates', s.crates.length, 'deposits', s.deposits.length);
 console.log('deterministic:', a.sim.hash() === b.sim.hash(), a.sim.hash(), b.sim.hash());
