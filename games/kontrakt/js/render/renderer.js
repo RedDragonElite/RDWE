@@ -387,6 +387,14 @@
       for (const d of w.debris || []) if (d.x > vx0 - 60 && d.x < vx1 + 60 && d.y > vy0 - 60 && d.y < vy1 + 60) K.drawDebris(ctx, d, this.time);
       // prop placement ghost
       if (w.placing) this.drawGhost(ctx, w.placing);
+      // spike strips
+      for (const s of w.spikes || []) {
+        ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.a);
+        ctx.fillStyle = '#1b1c1f'; ctx.fillRect(-s.len / 2, -5, s.len, 10);
+        ctx.fillStyle = '#c9ced6'; for (let k = -s.len / 2 + 4; k < s.len / 2 - 2; k += 8) { ctx.beginPath(); ctx.moveTo(k, -6); ctx.lineTo(k + 3, 0); ctx.lineTo(k, 6); ctx.fill(); }
+        ctx.fillStyle = '#e0a800'; ctx.fillRect(-s.len / 2 - 6, -6, 6, 12); ctx.fillRect(s.len / 2, -6, 6, 12);
+        ctx.restore();
+      }
       // fuel hose from the pump to your hand
       if (w.P.nozzle) {
         const nz = w.P.nozzle, f = w.P.fueling && w.cars.find((q) => q.id === w.P.fueling.car);
@@ -429,6 +437,7 @@
       // weather & glows
       this.drawWeather(ctx, dt, vx0, vy0, vx1, vy1);
       this.drawGlows(ctx, vx0, vy0, vx1, vy1);
+      if (w.heli) this.drawHeli(ctx, w.heli);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       if (!g.post || !g.post.ok) this.vignette(ctx);
       this.drawOverlay(dt);
@@ -697,6 +706,7 @@
         void inside;
       }
       // headlights & police lights
+      if (w.heli && !w.heli.dead && !w.heli.leaving) { const H = w.heli, r = (H.spotR || 110) * 1.35; l.globalAlpha = Math.min(1, 0.25 + nightK); l.drawImage(K.lightSprite([235, 242, 255]), H.sx - r, H.sy - r, r * 2, r * 2); }
       for (const c of w.cars) {
         if (c.dead || c.x < vx0 - 300 || c.x > vx1 + 300 || c.y < vy0 - 300 || c.y > vy1 + 300) continue;
         if (c.lightsOn) {
@@ -770,6 +780,32 @@
       }
       if (wx.flash > 0.5) { ctx.fillStyle = `rgba(230,235,255,${(wx.flash - 0.5) * 0.5})`; ctx.fillRect(0, 0, this.cw, this.ch); }
       ctx.restore();
+    }
+    /** police helicopter: shadow on the ground, body, rotor disc, nav lights, beam */
+    drawHeli(ctx, H) {
+      const t = this.time, alt = H.dead ? Math.max(0, H.fallT / 2.2) : 1;
+      // shadow
+      ctx.save(); ctx.globalAlpha = 0.28; ctx.fillStyle = '#000';
+      ctx.translate(H.x + 70 * alt, H.y + 110 * alt); ctx.rotate(H.a); ctx.beginPath(); ctx.ellipse(0, 0, 46, 16, 0, 0, 6.3); ctx.fill();
+      ctx.beginPath(); ctx.arc(-6, 0, 40, 0, 6.3); ctx.globalAlpha = 0.1; ctx.fill(); ctx.restore();
+      // beam from the belly to the spot (night)
+      if (!H.dead && this.w.daylight() < 0.5) {
+        const g = ctx.createLinearGradient(H.x, H.y, H.sx, H.sy); g.addColorStop(0, 'rgba(230,240,255,0.22)'); g.addColorStop(1, 'rgba(230,240,255,0.04)');
+        const a = Math.atan2(H.sy - H.y, H.sx - H.x), r = H.spotR || 110;
+        ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(H.x, H.y); ctx.lineTo(H.sx + Math.cos(a + 1.57) * r, H.sy + Math.sin(a + 1.57) * r); ctx.lineTo(H.sx + Math.cos(a - 1.57) * r, H.sy + Math.sin(a - 1.57) * r); ctx.closePath(); ctx.fill();
+      }
+      ctx.save(); ctx.translate(H.x, H.y); ctx.rotate(H.a + (H.dead ? t * 6 : 0)); const k = 1.25 + 0.25 * alt; ctx.scale(k, k);
+      ctx.fillStyle = '#1a2b4a'; ctx.beginPath(); ctx.ellipse(4, 0, 22, 11, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#e8e6e1'; ctx.fillRect(-10, -11, 14, 3); ctx.fillRect(-10, 8, 14, 3);
+      ctx.fillStyle = '#9fc2e8'; ctx.beginPath(); ctx.ellipse(16, 0, 8, 7, 0, -1.3, 1.3); ctx.fill();
+      ctx.fillStyle = '#1a2b4a'; ctx.fillRect(-42, -2.5, 26, 5); ctx.fillRect(-46, -8, 5, 16);
+      ctx.strokeStyle = '#2b2d31'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-6, -14); ctx.lineTo(14, -14); ctx.moveTo(-6, 14); ctx.lineTo(14, 14); ctx.stroke();
+      ctx.fillStyle = Math.floor(t * 2) % 2 ? '#ff2a2a' : '#2a2a2a'; ctx.beginPath(); ctx.arc(-44, 0, 2.2, 0, 6.3); ctx.fill();
+      ctx.restore();
+      // rotor: a soft disc with two blurred blades
+      ctx.save(); ctx.translate(H.x, H.y); ctx.globalAlpha = 0.16; ctx.fillStyle = '#d0d4da'; ctx.beginPath(); ctx.arc(0, 0, 44, 0, 6.3); ctx.fill();
+      ctx.globalAlpha = 0.5; ctx.strokeStyle = '#1b1c1f'; ctx.lineWidth = 3; ctx.rotate(t * 31);
+      ctx.beginPath(); ctx.moveTo(-46, 0); ctx.lineTo(46, 0); ctx.moveTo(0, -46); ctx.lineTo(0, 46); ctx.stroke(); ctx.restore();
     }
     drawGlows(ctx, vx0, vy0, vx1, vy1) {
       const w = this.w, nightK = 1 - w.daylight();
@@ -859,7 +895,13 @@
           o.fillStyle = col; o.font = `900 ${12 * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.textBaseline = 'middle';
           o.fillText(st === 'hostile' || k >= 1 ? '!' : '?', sx, hy + 0.5 * s);
         }
-        if (a.reportT > 0) { o.fillStyle = '#6fd0ff'; o.font = `${12 * s}px sans-serif`; o.textAlign = 'center'; o.fillText('📞', sx + 14 * s, hy); }
+        if (a.reportT > 0 && (!a.call || w.t - a.call.t0 > a.call.dial)) {
+          // phone at the ear: the ring shows how long until they get through
+          const k = a.call ? U.clamp((w.t - a.call.t0) / a.call.dur, 0, 1) : 0.5;
+          o.lineWidth = 2.4 * s; o.strokeStyle = 'rgba(0,0,0,0.6)'; o.beginPath(); o.arc(sx + 15 * s, hy, 8 * s, 0, 6.3); o.stroke();
+          o.strokeStyle = '#e0182d'; o.beginPath(); o.arc(sx + 15 * s, hy, 8 * s, -Math.PI / 2, -Math.PI / 2 + U.TAU * k); o.stroke();
+          o.fillStyle = '#fff'; o.font = `${10 * s}px sans-serif`; o.textAlign = 'center'; o.textBaseline = 'middle'; o.fillText('📞', sx + 15 * s, hy + 0.5 * s);
+        }
         if (a.bark && g.settings.barks) this.bubble(o, sx, hy - 16 * s, a.bark.text, Math.min(1, a.bark.t * 2), a.kind, s);
       }
       if (p.bark) { const [sx, sy] = toS(p.x, p.y); this.bubble(o, sx, sy - 34 * zs, p.bark.text, Math.min(1, p.bark.t * 2), 'player', s); }

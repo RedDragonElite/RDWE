@@ -92,6 +92,31 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Unbewaffnete Räuber werden in Handschellen abgeführt.
   - Stoppst du selbst einen, bist du der **Held der Straße**. Das gibt XP und keine Anzeige.
 
+### Fahndung (nach rde_aipd, plus echte Suche)
+- **Notruf statt Allwissenheit:**
+  - Zeugen rufen die Polizei je nach Viertel, Tageszeit und Schock an: zwischen 20 % am Hafen und 60 % in Mitte, nachts seltener.
+  - Ein Anruf dauert 5–9 s: reagieren, Panik, Handy raus, wählen, reden. Über dem Kopf zeigt ein Ring, wie lange es noch dauert.
+  - Geh zum Anrufer, sobald das Handy draußen ist, und er legt eingeschüchtert auf. Wer bewusstlos oder tot ist, ruft nicht an.
+  - Gemeldet wird der Tatort, nicht deine aktuelle Position.
+- **Polizeifunk:** Jede Sichtung geht mit Position und Richtung an alle Einheiten.
+- **Suche nach Sichtverlust:**
+  - Am vorhergesagten Ort öffnet sich ein Suchgebiet, das mit der Zeit wächst.
+  - Zwei Streifen suchen zu Fuß und verteilen sich. Sie prüfen unabgesuchtes Gelände, Ecken und Verstecke und haken Bereiche ab. Alle anderen Wagen fahren die Straßen ringsum ab.
+  - Eine neue Sichtung zieht alle sofort zusammen.
+  - HUD und Minimap zeigen „SICHTKONTAKT“, „SUCHE LÄUFT“ oder „AUSSER SICHT“ und das Suchgebiet.
+- **Sterne fallen nur ungesehen:** nach 15 s ohne Sichtkontakt, dann ein Stern alle 20 s (rde_aipd).
+- **Einheiten je Stufe:** 2/3/4/5/6, höchstens 8.
+- **Tackles** treffen je nach Stufe mit 15–55 %. Wer daneben greift, stolpert.
+- **Hubschrauber ab 3 Sternen:**
+  - Er folgt dir oder kreist das Suchgebiet ab.
+  - Sein Suchscheinwerfer findet dich nur im Freien, nie unter einem Dach.
+  - Gewehre können ihn abschießen.
+- **Verfolgungsjagden:**
+  - PIT-Manöver, die dein Heck ausbrechen lassen.
+  - Straßensperren vor dir (ab 3 Sternen), Nagelbänder (ab 4).
+  - Ohne Sichtkontakt fährt die Verfolgung zur Funkposition, nicht zu dir.
+- **Verstecken:** in Containern, Schränken und Spinden (**T** halten, **E** zum Rauskommen). Suchende Polizisten schauen in Verstecke direkt neben sich.
+
 ### Unterwelt: Verbrechen, Knast, Drogen
 - **Strafregister:** Jede gemeldete Tat landet auf der Anklage, mit eigener Haftzeit (Raub 4h, Mord 10h, Polizistenmord 20h …).
   - Entkommst du der Fahndung, verfallen die Anklagepunkte.
@@ -373,7 +398,7 @@ games/kontrakt/
   - `node tools/sim.mjs` spielt Laufen, Schießen, Auftrag, Takedown, Fahren, 5 Spielstunden und Speichern headless durch.
   - `node tools/scenarios.mjs` prüft die KI: Hausfriedensbruch, Verkleidung, Münzen-Ablenkung, Leichenfund, Zeugen mit Polizei, Klaviersaite.
   - `node tools/crime.mjs` prüft Unterwelt, Überfälle, Gangs und Reviere; `node tools/city.mjs` prüft Strand, Clubs, Tänzerinnen und Immobilien; `node tools/cars.mjs` prüft Sprit, Crashs, Verformung, Gurt, Laternen, Reifen, Tuning, Autohaus, Zapfsäule, Werkstatt und Car Service.
-  - `node tools/arms.mjs` prüft Scharfschützengewehre, Scope-Wackeln, Atem anhalten und .50-Durchschlag; `node tools/props.mjs` prüft Platzieren, Container, Schlösser, Stationen, Einbrecher und Speichern der Props.
+  - `node tools/arms.mjs` prüft Scharfschützengewehre, Scope-Wackeln, Atem anhalten und .50-Durchschlag; `node tools/props.mjs` prüft Platzieren, Container, Schlösser, Stationen, Einbrecher und Speichern der Props; `node tools/hunt.mjs` prüft Notrufe, Funk, Suche, Sternabbau, Verstecke, Hubschrauber, Straßensperren und PIT.
 - **Speichern** in `localStorage`. Die Stadt wird aus dem Seed neu erzeugt, deshalb bleibt der Spielstand klein.
 
 *Red Dragon Elite · pure HTML · CSS · JavaScript*

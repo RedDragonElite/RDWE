@@ -417,6 +417,14 @@
       this.sirenO.start(); this.sirenO2.start();
       // engines: your car and the nearest one in traffic
       this.eng = this.mkEngine(); this.engT = this.mkEngine();
+      // helicopter: blade-pass thump (≈11 Hz) chopping a low turbine roar
+      { const n = c.createBufferSource(); n.buffer = this.brown; n.loop = true;
+        const bp = c.createBiquadFilter(); bp.type = 'lowpass'; bp.frequency.value = 520; bp.Q.value = 0.8;
+        const am = c.createGain(); am.gain.value = 0.5; const lfo = c.createOscillator(); lfo.type = 'sawtooth'; lfo.frequency.value = 11; const lg = c.createGain(); lg.gain.value = 0.5; lfo.connect(lg); lg.connect(am.gain);
+        const wh = c.createOscillator(); wh.type = 'triangle'; wh.frequency.value = 2400; const whg = c.createGain(); whg.gain.value = 0.04;
+        this.heliG = c.createGain(); this.heliG.gain.value = 0; this.heliP = c.createStereoPanner();
+        n.connect(bp); bp.connect(am); am.connect(this.heliG); wh.connect(whg); whg.connect(this.heliG); this.heliG.connect(this.heliP); this.heliP.connect(this.sfx);
+        n.start(); lfo.start(); wh.start(); }
       // club bass when inside clubs/bars
       this.clubT = 0; this.critT = 0; this.gullT = 0; this.heartT = 0;
     }
@@ -452,6 +460,12 @@
         set(this.sirenLP.frequency, own ? 1400 : 900 + k * 2200, 0.1);
         set(this.sirenP.pan, own ? 0 : U.clamp((sc.x - this.lx) / 700, -1, 1), 0.1);
       } else set(this.sirenG.gain, 0, 0.2);
+      // police helicopter overhead
+      if (this.heliG) {
+        const H = w.heli, d = H ? Math.hypot(H.x - this.lx, H.y - this.ly) : 1e9, k = H ? U.clamp(1 - d / 2400, 0, 1) : 0;
+        set(this.heliG.gain, k * k * 0.5 * (this.inside ? 0.45 : 1), 0.3);
+        if (H) set(this.heliP.pan, U.clamp((H.x - this.lx) / 700, -1, 1), 0.2);
+      }
       // engines
       const car = p.inCar ? w.carOf(p) : null;
       this.engineVoice(this.eng, car && car.engineOn !== false ? car : null, 1, t, set);

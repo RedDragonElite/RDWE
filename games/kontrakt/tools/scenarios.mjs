@@ -1,7 +1,7 @@
 // AI behaviour scenarios: node tools/scenarios.mjs
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js','js/game/gangs.js','js/game/autos.js','js/game/carservice.js','js/game/nightlife.js','js/game/hotbar.js','js/game/props.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
+for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js','js/game/gangs.js','js/game/autos.js','js/game/carservice.js','js/game/nightlife.js','js/game/hotbar.js','js/game/props.js','js/game/manhunt.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
 const K = ctx.K, TILE = 32;
 let ok = 0, fail = 0;
 const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
@@ -84,6 +84,7 @@ console.log('5) shooting in public: witnesses call the police');
   w.attack(p, 0, true, true);
   run(w, 2);
   check(civ.state === 'flee' || civ.state === 'cower', `witness flees (state=${civ.state})`);
+  w.forceCalls = true; p.x -= 12 * 32;   // walk off — standing next to a caller makes them hang up
   let wanted = 0; for (let i = 0; i < 60 * 12 && !wanted; i++) { run(w, 1); wanted = w.wanted; }
   check(wanted >= 1, `wanted level after report: ${wanted}`);
   const units = () => w.cars.filter(c => c.unit && c.unit.mode !== 'patrol' && !c.dead);

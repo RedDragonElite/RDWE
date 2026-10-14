@@ -9,7 +9,7 @@
   K.mixin({
     initCrime() {
       this.wanted = 0;
-      this.heat = { x: 0, y: 0, seenT: 0, spawnT: 0, anon: false };
+      this.heat = { x: 0, y: 0, vx: 0, vy: 0, seenT: 0, decayT: 0, spawnT: 0, anon: false, search: null };
       this.charges = {};
     },
     /** player committed something at (x,y) — find who saw it */
@@ -54,8 +54,24 @@
         default: // civilians, shopkeepers, staff
           if (n.armedKeeper && (type === 'shots' || type === 'murder' || type === 'assault')) { this.alarm(n, perp); break; }
           this.flee(n, x, y, true);
-          if (sev > 0 && !n.reportT) { n.reportT = 3.5 + Math.random() * 4; n.reportType = type; n.reportX = x; n.reportY = y; }
+          if (sev > 0 && !n.reportT && this.wouldCall(n, type, x, y)) this.startCall(n, type, x, y);
       }
+    },
+    /** does this witness pick up the phone? (rde_aipd: area, time of day, shock) */
+    wouldCall(n, type, x, y) {
+      for (const o of this.near(x, y, 20 * TILE)) if (o !== n && o.reportT > 0 && o.reportType === type) return false;   // someone's already on it
+      let ch = { down: 0.6, old: 0.5, beach: 0.5, park: 0.42, res: 0.42, hill: 0.38, ind: 0.24, docks: 0.2 }[this.districtAt(x, y)] || 0.45;
+      const h = this.hour();
+      if (h >= 22 || h < 6) ch *= 0.6; else if (h >= 18) ch *= 0.85;
+      if (this.t - (this.lastPlayerShotT || -99) < 5) ch *= 0.55;   // heads down while bullets fly
+      if (SEV[type] >= 2) ch = Math.min(0.95, ch * 1.5);
+      return Math.random() < ch || this.forceCalls;
+    },
+    /** react → panic → dial → talk: 5–9 s in which you can still stop the call */
+    startCall(n, type, x, y) {
+      const dur = 5 + Math.random() * 4;
+      n.call = { t0: this.t, dial: 0.8 + Math.random() * 1.2 + 1.5 + Math.random() * 2, dur };
+      n.reportT = dur; n.reportType = type; n.reportX = x; n.reportY = y;
     },
     /** a civilian finished the phone call */
     report(n) {
@@ -68,9 +84,10 @@
       }
       if (type === 'body') { this.policeInvestigate(n.reportX, n.reportY); this.bark(n, 'Polizei?! Hier liegt eine Leiche!'); return; }
       this.bark(n, U.pick(['Polizei! Schnell!', 'Hallo, Polizei? Hier ist ein Irrer!', 'Kommen Sie sofort!']));
-      this.raiseWanted(SEV[type] || 1, type);
+      this.raiseWanted(SEV[type] || 1, type, n.reportX, n.reportY);
+      n.call = null;
     },
-    raiseWanted(level, type) {
+    raiseWanted(level, type, sx, sy) {
       const P = this.P;
       // already behind bars: crimes in the cell just add time
       if (P.jail && !P.jail.escaped) {
@@ -87,7 +104,8 @@
       w = Math.min(5, w);
       this.wanted = w;
       const p = this.player;
-      this.heat.x = p.x; this.heat.y = p.y; this.heat.seenT = 0;
+      // the report gives the scene, not where you are now
+      this.heat.x = sx != null ? sx : p.x; this.heat.y = sy != null ? sy : p.y; this.heat.seenT = 0; this.heat.decayT = 0; if (sx != null) { this.heat.vx = 0; this.heat.vy = 0; }
       if (Math.floor(w) > Math.floor(prev)) {
         this.emit('wanted', { level: Math.floor(w), prev: Math.floor(prev), why: WHAT[type] || '' });
         this.note('wanted', { level: w });
@@ -113,18 +131,31 @@
       const p = this.player;
       if (!p.alive) return;
       // civilians on the phone
-      for (const n of this.actors) if (n.reportT > 0 && n.alive && !n.ko) { n.reportT -= dt; if (n.reportT <= 0) this.report(n); }
+      for (const n of this.actors) if (n.reportT > 0 && n.alive && !n.ko) {
+        if (!n.call && !n.reportFoe) n.call = { t0: this.t, dial: Math.min(2.5, n.reportT * 0.4), dur: n.reportT };   // every report is a phone call
+        // walk up to a caller and they hang up (intimidated); knock them out or kill them and nobody calls
+        if (n.call && this.t - n.call.t0 > n.call.dial && !p.hidden && Math.hypot(n.x - p.x, n.y - p.y) < 2.6 * TILE && K.los(this, n.x, n.y, p.x, p.y)) {
+          n.reportT = 0; n.call = null;
+          this.bark(n, U.pick(['Okay, okay! Ich leg auf!', 'Bitte nicht! Ich hab nichts gesagt!', 'Schon gut, kein Anruf!']), 2.2);
+          this.flee(n, p.x, p.y, false); n.reportT = 0;
+          continue;
+        }
+        n.reportT -= dt; if (n.reportT <= 0) this.report(n);
+      }
       this.updatePolice(dt);
-      if (this.wanted <= 0) return;
+      if (this.wanted <= 0) { if (this.updateManhunt) this.updateManhunt(dt, false); return; }
       const seen = this.actors.some((c) => c.kind === 'cop' && c.alive && !c.ko && c.seesPlayer) || this.cars.some((c) => c.kind === 'police' && c.driver && c.driver !== 'player' && c.seesPlayer);
-      if (seen) { this.heat.x = p.x; this.heat.y = p.y; this.heat.seenT = 0; }
-      else if (!this.cars.some((c) => c.unit && c.unit.mode === 'respond' && this.t - c.unit.t0 < 60)) this.heat.seenT += dt; // the call stays open while units are en route
-      const lose = 24 + this.wanted * 8;
-      this.heatProgress = U.clamp(this.heat.seenT / lose, 0, 1);
-      if (this.heat.seenT > lose) {
+      if (this.updateManhunt) this.updateManhunt(dt, seen); else if (seen) { this.heat.x = p.x; this.heat.y = p.y; this.heat.seenT = 0; }
+      const H = this.heat, HU = K.HUNT || { unseenGrace: 15, starEvery: 20 };
+      if (H.seenT > 0 || !seen) H.seenT += dt;
+      if (seen || (this.heli && this.heli.sees)) { H.seenT = 0; H.decayT = 0; }
+      if (this.P.surrender || this.arrestProgress > 0.05) H.decayT = 0;
+      else if (H.seenT > HU.unseenGrace) H.decayT = (H.decayT || 0) + dt;   // rde_aipd: 15 s unseen, then a star every 20 s
+      this.heatProgress = H.seenT < HU.unseenGrace ? (H.seenT / HU.unseenGrace) * 0.35 : 0.35 + 0.65 * U.clamp((H.decayT || 0) / HU.starEvery, 0, 1);
+      if ((H.decayT || 0) > HU.starEvery) {
         const prev = Math.floor(this.wanted);
         this.wanted = Math.max(0, Math.floor(this.wanted) - 1);
-        this.heat.seenT = 0;
+        H.decayT = 0;
         this.emit('wanted', { level: this.wanted, prev, why: this.wanted ? 'Spur verwischt' : 'Fahndung eingestellt' });
         if (!this.wanted) { this.charges = {}; this.heat.anon = false; for (const c of this.actors) if (c.kind === 'cop' && c.state !== 'station' && !c.inCar) this.calmDown(c); }
       }

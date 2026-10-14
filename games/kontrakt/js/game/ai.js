@@ -645,7 +645,7 @@
     ai_hostile(a, dt) {
       const isP = !a.foe;
       const p = isP ? this.player : this.byId.get(a.foe);
-      if (!p || p.removed || !p.alive || p.hidden || (!isP && p.ko > 0)) { this.calmDown(a); return; }
+      if (!p || p.removed || !p.alive || (!isP && (p.hidden || p.ko > 0))) { this.calmDown(a); return; }
       if (isP && a.kind === 'cop') {
         if (this.wanted < 1) { this.calmDown(a); return; }
         if (this.P.surrender || !this.copMayShoot()) { a.state = 'arrest'; a.brain.arT = 0; return; }
@@ -698,6 +698,7 @@
       if (a.hp < 35) this.flee(a, p.x, p.y, true);
     },
     ai_search(a, dt) {
+      if (a.kind === 'cop' && this.wanted > 0 && this.copSearch) return this.copSearch(a, dt);
       a.brain.searchT -= dt;
       if (a.brain.searchT <= 0) { this.calmDown(a); this.bark(a, U.pick(['Muss weg sein.', 'Zurück auf Position.', 'Augen offen halten.']), 1.8); return; }
       if (a.brain.waitT > 0) { a.brain.waitT -= dt; a.faceTo = a.angle + dt * 2.2; return; }
@@ -739,7 +740,13 @@
       if (d > 1.6 * TILE) { this.goTo(a, p.x, p.y, { tol: 30 }); a.dv = this.steer(a, 140, dt); }
       if (d > 10 * TILE && a.seesPlayer && !a.brain.fled) { a.brain.fled = true; this.raiseWanted(Math.max(1, Math.floor(this.wanted)), 'resist'); this.bark(a, 'Er flieht! Bleib stehen!'); }
       // tackle a runner
-      if (d < 1.3 * TILE && p.speed > 60 && !p.inCar && a.cool <= 0 && p.stun <= 0) { p.stun = 1.5; p.vx = p.vy = 0; a.cool = 2.5; this.bark(a, 'Am Boden bleiben!'); this.emit('tackle', { x: p.x, y: p.y }); }
+      if (d < 1.3 * TILE && p.speed > 60 && !p.inCar && (a.brain.tackleCD || 0) <= this.t && p.stun <= 0) {
+        // rde_aipd: a tackle lands with a chance that grows with the stars; a miss sends the officer sprawling
+        a.brain.tackleCD = this.t + 12;
+        const ch = K.HUNT ? K.HUNT.tackle[Math.min(5, Math.max(1, Math.floor(this.wanted)))] : 0.4;
+        if (Math.random() < ch + (this.forceTackle || 0)) { p.stun = 2 + Math.random() * 1.5; p.vx = p.vy = 0; a.cool = 2.5; this.bark(a, 'Am Boden bleiben!'); this.emit('tackle', { x: p.x, y: p.y }); }
+        else { a.stun = 1.2; this.bark(a, U.pick(['Verdammt!', 'Bleib stehen!']), 1.4); this.emit('tackle', { x: a.x, y: a.y, miss: true }); }
+      }
       if (d < 2.2 * TILE && (p.speed < 25 || p.stun > 0) && !p.inCar) {
         a.brain.arT += dt;
         this.arrestProgress = a.brain.arT / 2.5;

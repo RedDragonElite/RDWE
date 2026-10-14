@@ -64,6 +64,7 @@
       this.noise(a.x, a.y, sup ? 3 : d.noise, 'shot', a);
       if (isP) {
         this.note('shot', { sup });
+        this.lastPlayerShotT = this.t;
         for (const c of this.near(a.x, a.y, 18 * TILE)) if (c.kind === 'cop' && c.alive && !c.inCar && (!sup || Math.hypot(c.x - a.x, c.y - a.y) < 6 * TILE)) { this.lastThreatT = this.t; break; }
         const heroic = this.near(a.x, a.y, 14 * TILE).some((t) => t.kind === 'thug' && t.crim && t.alive && Math.abs(U.angDiff(aim, Math.atan2(t.y - a.y, t.x - a.x))) < 0.3);
         if (!sup && !heroic) this.crimeEvent(a, 'shots', a.x, a.y, null);
@@ -119,6 +120,7 @@
             this.hurt(a, p.dmg * fall, owner, { kind: 'bullet', dir: Math.atan2(p.vy, p.vx), head, w: p.w, x, y });
             if (p.pierce > 0) { p.pierce--; p.dmg *= 0.6; p.skip = a.id; } else { alive = false; break; }
           }
+          if (this.heli && p.owner === this.player.id && this.heliHit && this.heliHit(x, y, p.dmg, p.w)) { alive = false; break; }
           const car = this.bulletCar(x, y, p.car);
           if (car && W8[p.w] && W8[p.w].amr && p.pierce > 0 && p.skipCar !== car.id) {
             // .50 BMG goes straight through the body work — and whoever sits behind it

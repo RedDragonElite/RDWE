@@ -112,6 +112,7 @@
         if (c.serviceLock) thr = 0;
         c.thr = thr; c.steer = U.lerp(c.steer, steer, Math.min(1, dt * 10));
         this.carPhysics(c, thr, c.steer, hb, dt);
+        if (c.yawT > 0 && this.applyYawKick) this.applyYawKick(c, dt);
       }
       this.carCollisions(dt);
     },

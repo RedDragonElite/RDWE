@@ -119,12 +119,13 @@
       }
       // reinforcements by wanted level
       if (this.wanted > 0) {
-        const want = [0, 1, 2, 3, 4, 5][Math.floor(this.wanted)];
-        const busy = units.filter((c) => c.unit.mode !== 'patrol' && c.unit.mode !== 'leave').length;
+        const HU = K.HUNT, want = HU ? HU.units[Math.floor(this.wanted)] : Math.floor(this.wanted);
+        const busy = units.filter((c) => c.unit.mode !== 'patrol' && c.unit.mode !== 'leave' && c.unit.mode !== 'block').length;
         this.heat.spawnT -= dt;
-        if (busy < want && this.heat.spawnT <= 0) {
+        if (busy < want && busy < (HU ? HU.cap : 8) && this.heat.spawnT <= 0) {
           this.heat.spawnT = 11 - this.wanted;
-          this.dispatch(this.heat.x, this.heat.y, this.wanted >= 2 ? 2 : 1);
+          const tg = this.huntTarget ? this.huntTarget() : this.heat;
+          this.dispatch(tg.x, tg.y, this.wanted >= 2 ? 2 : 1);
         }
       }
       for (const c of units) this.unitThink(c, dt);
@@ -146,12 +147,23 @@
         if (this.wanted > 0 && c.seesPlayer && p.inCar) u.mode = 'pursuit';
         if (u.foe) { const f = this.byId.get(u.foe); if (f && f.alive) u.dest = { x: f.x, y: f.y }; }
         else if (this.wanted > 0 && c.seesPlayer) u.dest = { x: tgt.x, y: tgt.y };
+        else if (this.wanted > 0 && this.heat.seenT < 1.5) u.dest = { x: this.heat.x, y: this.heat.y };   // radio
         const dd = Math.hypot(u.dest.x - c.x, u.dest.y - c.y);
         const atEnd = c.route && c.routeI >= c.route.length - 1 && c.speed < 30 && Math.hypot(c.route[c.route.length - 1][0] - c.x, c.route[c.route.length - 1][1] - c.y) < 60;
-        if (dd < 5 * TILE || atEnd || (dd < 9 * TILE && c.speed < 25 && this.t - u.t0 > 8) || (c.seesPlayer && this.wanted > 0 && !p.inCar && d < 9 * TILE) || this.t - u.t0 > 150) this.deployUnit(c);
+        if (dd < 5 * TILE || atEnd || (dd < 9 * TILE && c.speed < 25 && this.t - u.t0 > 8) || (c.seesPlayer && this.wanted > 0 && !p.inCar && d < 9 * TILE) || this.t - u.t0 > 150) {
+          // two crews search on foot, everybody else sweeps the streets around the area
+          if (this.wanted > 0 && !c.seesPlayer && this.heat.search && this.copUnits().filter((q) => q.unit.mode === 'onscene').length >= 2) { u.mode = 'sweep'; u.dest = null; }
+          else this.deployUnit(c);
+        }
       } else if (u.mode === 'pursuit') {
-        if (!p.inCar && d < 9 * TILE) this.deployUnit(c);
+        if (!p.inCar && d < 9 * TILE && c.seesPlayer) this.deployUnit(c);
         if (this.wanted <= 0) { u.mode = 'patrol'; c.siren = false; }
+        else if (!c.seesPlayer && this.heat.seenT > 6) { u.mode = 'sweep'; u.dest = null; }
+      } else if (u.mode === 'sweep') {
+        if (this.wanted <= 0) { u.mode = 'leave'; c.siren = false; return; }
+        if (c.seesPlayer) { if (p.inCar) u.mode = 'pursuit'; else { u.mode = 'respond'; u.dest = { x: tgt.x, y: tgt.y }; u.t0 = this.t; } return; }
+        if (this.heat.seenT < 1.5) { u.mode = 'respond'; u.dest = { x: this.heat.x, y: this.heat.y }; u.t0 = this.t; return; }
+        if (!u.dest || Math.hypot(u.dest.x - c.x, u.dest.y - c.y) < 4 * TILE || this.t - u.t0 > 35) { u.dest = this.sweepPoint(); u.t0 = this.t; c.route = null; }
       } else if (u.mode === 'onscene') {
         // everyone back in the car?
         const inside = u.crew.filter((id) => { const a = this.byId.get(id); return a && a.alive && a.inCar === c.id; });
@@ -161,9 +173,21 @@
           u.mode = this.wanted > 0 ? 'respond' : 'leave'; u.dest = { x: this.heat.x, y: this.heat.y }; u.t0 = this.t; u.foe = 0;
           c.siren = this.wanted >= 2;
         } else if (!alive.length) { u.mode = 'abandoned'; c.siren = false; c.driver = null; }
+      } else if (u.mode === 'block') {
+        // roadblock cars stay put (managed by updateRoadblocks)
       } else if (u.mode === 'leave') {
         if (Math.hypot(c.x - p.x, c.y - p.y) > 48 * TILE && !K.los(this, p.x, p.y, c.x, c.y)) this.despawnCar(c);
       }
+    },
+    /** a road spot inside (or around) the search area for a sweeping car */
+    sweepPoint() {
+      const S = this.heat.search, cx = S ? S.x : this.heat.x, cy = S ? S.y : this.heat.y, r = S ? S.r + 6 * TILE : 14 * TILE;
+      for (let k = 0; k < 30; k++) {
+        const a = Math.random() * U.TAU, d = Math.sqrt(Math.random()) * r, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d;
+        const tx = (x / TILE) | 0, ty = (y / TILE) | 0;
+        if (tx > 1 && ty > 1 && tx < this.W - 1 && ty < this.city.W && this.tiles[ty * this.W + tx] === K.T.ROAD) return { x: (tx + 0.5) * TILE, y: (ty + 0.5) * TILE };
+      }
+      return { x: cx, y: cy };
     },
     deployUnit(c) {
       const u = c.unit;
@@ -215,13 +239,17 @@
     unitDrive(c, dt) {
       const u = c.unit;
       if (u.mode === 'patrol' || u.mode === 'leave') return this.trafficDrive(c, dt);
-      if (u.mode === 'onscene' || u.mode === 'abandoned') return [c.vf > 5 ? -1 : 0, 0, false];
+      if (u.mode === 'onscene' || u.mode === 'abandoned' || u.mode === 'block') return [c.vf > 5 ? -1 : 0, 0, false];
       const p = this.player;
-      const tgt = u.mode === 'pursuit' ? (p.inCar ? this.carOf(p) : p) : u.dest;
+      if (!u.dest && u.mode === 'sweep') u.dest = this.sweepPoint();
+      // pursuit only knows what it sees or what the radio says
+      const tgt = u.mode === 'pursuit' ? (c.seesPlayer ? (p.inCar ? this.carOf(p) : p) : this.huntTarget ? this.huntTarget() : this.heat) : u.dest;
       const d = Math.hypot(tgt.x - c.x, tgt.y - c.y);
       const direct = d < 11 * TILE && K.los(this, c.x, c.y, tgt.x, tgt.y);
       let wx, wy, last = false;
-      if (direct && u.mode === 'pursuit') { wx = tgt.x; wy = tgt.y; }
+      const pit = u.mode === 'pursuit' && this.pitSteer ? this.pitSteer(c, dt) : null;
+      if (pit) { [wx, wy] = pit; }
+      else if (direct && u.mode === 'pursuit') { wx = tgt.x; wy = tgt.y; }
       else {
         if (!c.route || Math.hypot(c.routeDest.x - tgt.x, c.routeDest.y - tgt.y) > 6 * TILE || (u.mode === 'pursuit' && this.t - c.routeT > 6)) this.planRoute(c, tgt);
         const behind = (q) => (q[0] - c.x) * Math.cos(c.a) + (q[1] - c.y) * Math.sin(c.a) < -12;

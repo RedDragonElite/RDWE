@@ -107,6 +107,8 @@
       this.set('wanted', wl, (v) => { e.stars.innerHTML = '<b>' + '★'.repeat(v) + '</b>' + '★'.repeat(5 - v); document.body.classList.toggle('wanted', v >= 2); });
       e.stars.classList.toggle('blink', wl > 0 && w.heat.seenT > 3);
       e.heat.style.width = wl > 0 ? (100 - (w.heatProgress || 0) * 100) + '%' : '0%';
+      { const H = w.heat, st = p.hidden ? (wl > 0 ? 'hide' : 'hid0') : wl <= 0 ? '' : H.seenT < 1.5 ? 'seen' : H.search ? 'search' : 'lost';
+        this.set('hunt', st, (v) => { const el = this.huntEl || (this.huntEl = document.getElementById('hunt')); el.className = v; el.textContent = { seen: 'SICHTKONTAKT', search: 'SUCHE LÄUFT', lost: 'AUSSER SICHT', hide: 'VERSTECKT · SUCHE LÄUFT', hid0: 'VERSTECKT', '': '' }[v]; }); }
       // vitals
       const mh = w.maxHp();
       this.set('hp', Math.ceil(Math.max(0, p.hp)), (v) => { e.hp.style.width = (v / mh * 100) + '%'; e.hpT.textContent = v; });
@@ -375,6 +377,13 @@
         if (car.owned) { const [mx, my] = toM(car.x, car.y); if (mx < 0 || my < 0 || mx > S || my > S) continue; if (car.service) { x.fillStyle = '#3b82f6'; x.beginPath(); x.arc(mx, my, 8, 0, 6.3); x.fill(); } x.fillText('🚗', mx, my); }
       }
       for (const car of w.cars) if (car.kind === 'police' && !car.dead) { const [mx, my] = toM(car.x, car.y); x.fillStyle = Math.floor(this.t * 6) % 2 ? '#ff2a2a' : '#4f9bff'; x.fillRect(mx - 6, my - 6, 12, 12); }
+      // manhunt: the search area and the helicopter
+      if (w.wanted > 0 && w.heat.search) {
+        const S = w.heat.search, [mx, my] = toM(S.x, S.y), [rx] = toM(S.x + S.r, S.y), r = Math.max(8, rx - mx);
+        x.save(); x.setLineDash([8, 6]); x.lineWidth = 3; x.strokeStyle = 'rgba(255,176,0,0.85)'; x.fillStyle = 'rgba(255,176,0,0.1)';
+        x.beginPath(); x.arc(mx, my, r, 0, 6.3); x.fill(); x.stroke(); x.restore();
+      }
+      if (w.heli && !w.heli.dead) { const [mx, my] = toM(w.heli.x, w.heli.y); x.save(); x.translate(mx, my); x.rotate(this.t * 12); x.strokeStyle = '#4f9bff'; x.lineWidth = 3; x.beginPath(); x.moveTo(-10, 0); x.lineTo(10, 0); x.moveTo(0, -10); x.lineTo(0, 10); x.stroke(); x.restore(); x.fillStyle = '#4f9bff'; x.beginPath(); x.arc(mx, my, 4, 0, 6.3); x.fill(); }
       // waypoint
       if (this.g.waypoint) { const [mx, my] = toM(this.g.waypoint.x, this.g.waypoint.y); x.strokeStyle = '#ffd34d'; x.lineWidth = 3; x.beginPath(); x.arc(U.clamp(mx, 12, S - 12), U.clamp(my, 12, S - 12), 9, 0, 6.3); x.stroke(); }
       // player arrow
@@ -418,6 +427,7 @@
           if (e.level > e.prev) { this.banner('★'.repeat(e.level), e.why || 'Fahndung', 'wanted', 2.2); this.feed(`Fahndungsstufe ${e.level}: ${e.why}`, 'bad'); }
           else this.feed(e.level ? `Fahndung gesenkt (${e.why})` : 'Fahndung eingestellt. Du bist sauber.', 'good');
           break;
+        case 'radio': this.feed('📻 Polizeifunk: ' + e.text, 'bad'); break;
         case 'phone': this.feed('📱 ' + e.text, 'phone'); g.phoneBadge = (g.phoneBadge || 0) + 1; break;
         case 'xp': break;
         case 'targetDown': this.banner('ZIEL ELIMINIERT', e.name, 'red', 3); break;

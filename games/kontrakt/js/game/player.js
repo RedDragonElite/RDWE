@@ -65,6 +65,14 @@
       }
       this.carInput = null;
 
+      // -------------------------------------------------------- hidden in a container
+      if (a.hidden) {
+        a.vx = a.vy = 0; a.speed = 0;
+        this.ctx = [{ key: 'E', label: 'Rauskommen', fn: () => this.unhide() }];
+        if (pr.e) this.unhide();
+        return;
+      }
+
       // -------------------------------------------------------- surrender
       if (pr.x) this.toggleSurrender();
       if (pr.v && this.crewActors && this.crewActors().length) this.crewCommand('attack');
@@ -256,6 +264,11 @@
         if (door.access && door.access.includes('owner') && b && !b.owned) add('E', 'Verschlossen — Immobilie zu verkaufen', null);
         else if (hasPick || hasBar) add('E', hasBar && !hasPick ? 'Tür aufbrechen (Brecheisen)' : 'Schloss knacken', () => this.pickDoor(door, !hasPick), hasPick ? 2.6 : 1.3, { tick: hasBar && !hasPick ? (dt) => { if (Math.random() < dt * 3) this.noise(a.x, a.y, 5, 'scuffle', a); } : null });
         else add('E', 'Verschlossen — Dietrich nötig', null);
+      }
+      // hide yourself
+      if (!this.drag && this.hideSpotNearPlayer) {
+        const hs = this.hideSpotNearPlayer();
+        if (hs) add('T', `Verstecken (${{ dumpster: 'Container', wardrobe: 'Schrank', locker: 'Spind' }[hs.k]})`, () => this.hideIn(hs), 0.6);
       }
       // props
       if (!this.drag) {

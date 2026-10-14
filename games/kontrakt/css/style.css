@@ -451,3 +451,9 @@ body.placing #prompt { display: none; }
 .fx-app .pi i { font-style: normal; font-size: 20px; text-align: center; }
 .fx-app .pi b { font-size: 13px; } .fx-app .pi small { display: block; color: #9ca3af; font-size: 11px; }
 .fx-app .pi .btn { padding: 5px 9px; font-size: 12px; }
+
+/* manhunt status under the stars */
+#hunt { margin-top: 4px; text-align: center; font: 600 11px var(--f-head); letter-spacing: .3em; min-height: 14px; }
+#hunt.seen { color: #ff3b4e; animation: pulse .5s infinite alternate; }
+#hunt.search, #hunt.hide { color: #ffb000; }
+#hunt.lost, #hunt.hid0 { color: #ece9e2; opacity: .8; }
