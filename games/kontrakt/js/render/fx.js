@@ -50,7 +50,7 @@
           });
           break;
         }
-        case 'drop': if (!g) return; this.stamp(x, y, 3, (c) => { c.fillStyle = '#5a0306'; c.globalAlpha = 0.8; c.beginPath(); c.arc(x, y, o.s || 1.4, 0, 6.3); c.fill(); }); break;
+        case 'drop': if (!g) return; this.stamp(x, y, 3, (c) => { c.fillStyle = o.col === 'oil' ? '#14110c' : o.col === 'water' ? '#3a4a5a' : '#5a0306'; c.globalAlpha = o.col === 'water' ? 0.35 : 0.8; c.beginPath(); c.arc(x, y, o.s || 1.4, 0, 6.3); c.fill(); }); break;
         case 'smear': if (!g) return; this.stamp(x, y, 12, (c) => { c.strokeStyle = 'rgba(90,4,8,0.35)'; c.lineWidth = 10; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); c.lineTo(x - Math.cos(o.a) * 8, y - Math.sin(o.a) * 8); c.stroke(); }); break;
         case 'foot': this.stamp(x, y, 6, (c) => { c.fillStyle = 'rgba(90,6,10,0.5)'; c.translate(x, y); c.rotate(o.a); c.beginPath(); c.ellipse(0, o.side ? 3 : -3, 3.2, 1.6, 0, 0, 6.3); c.fill(); }); break;
         case 'hole': this.stamp(x, y, 4, (c) => { c.fillStyle = 'rgba(15,15,15,0.85)'; c.beginPath(); c.arc(x, y, 1.6, 0, 6.3); c.fill(); c.strokeStyle = 'rgba(200,200,200,0.25)'; c.lineWidth = 0.8; c.beginPath(); c.arc(x, y, 2.6, 0, 6.3); c.stroke(); }); break;

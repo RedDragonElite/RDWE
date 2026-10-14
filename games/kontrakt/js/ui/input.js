@@ -17,7 +17,7 @@
         if (e.button === 1) e.preventDefault();
         if (!isGameTarget(e) || this.g.paused) return;
         if (e.button === 0) { this.lmb = true; this.pressed.add('fire'); }
-        if (e.button === 2) this.rmb = true;
+        if (e.button === 2) { this.rmb = true; this.pressed.add('aim'); }
       });
       window.addEventListener('mouseup', (e) => { if (e.button === 0) this.lmb = false; if (e.button === 2) this.rmb = false; });
       window.addEventListener('wheel', (e) => { if (this.g.paused || !isGameTarget(e)) return; this.wheel += e.deltaY > 0 ? 1 : -1; }, { passive: true });
@@ -45,11 +45,12 @@
       if (code === 'Tab' || k === 'i') { if (m.panelKind === 'inv') m.closePanel(); else if (!g.paused || m.panelKind) m.inventory(); return; }
       if (k === 'p') { m.togglePhone(); return; }
       if (k === 'm') { m.toggleMap(); return; }
+      if (k === 'b' && g.world.player.inCar && !g.paused) { this.pressed.add('b'); return; }   // seatbelt while driving
       if (k === 'b') { if (m.panelKind === 'crew') m.closePanel(); else if (!g.paused || m.panelKind) m.crew(); return; }
       if (g.paused) return;
       if (k === 'z' || k === 'y' && false) { g.zoomLevel = g.zoomLevel === 1 ? 1.3 : g.zoomLevel === 1.3 ? 0.78 : 1; return; }
       if (/^[1-9]$/.test(e.key)) { this.slot = +e.key - 1; return; }
-      const map = { e: 'e', f: 'f', t: 't', g: 'g', r: 'reload', h: 'holster', l: 'l', c: 'crouch', x: 'x', k: 'k', v: 'v' };
+      const map = { e: 'e', f: 'f', t: 't', g: 'g', r: 'reload', h: 'holster', l: 'l', c: 'crouch', x: 'x', k: 'k', v: 'v', n: 'n', q: 'q' };
       if (map[k]) { this.pressed.add(map[k]); if (k === 'h') this.pressed.add('h'); if (k === 'r') this.pressed.add('r'); }
     }
     snapshot(world) {

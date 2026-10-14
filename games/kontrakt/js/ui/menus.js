@@ -63,6 +63,7 @@
             <button class="app" data-a="estate"><i style="background:linear-gradient(135deg,#3d8a4a,#123a1a)">🏠</i>Immobilien</button>
             <button class="app" data-a="msgs"><i style="background:linear-gradient(135deg,#8a4ac8,#2a1240)">💬</i>Nachrichten</button>
             <button class="app" data-a="bank"><i style="background:linear-gradient(135deg,#5fd38d,#14482a)">💰</i>Konto</button>
+            <button class="app" data-a="cars"><i style="background:linear-gradient(135deg,#3b82f6,#0f172a)">🚘</i>Car Service</button>
             <button class="app" data-a="inv"><i style="background:linear-gradient(135deg,#6b6f78,#22252b)">🎒</i>Inventar</button>
             <button class="app" data-a="settings"><i style="background:linear-gradient(135deg,#444,#111)">⚙️</i>Optionen</button>
             <button class="app" data-a="help"><i style="background:linear-gradient(135deg,#c98a1e,#4a3008)">❓</i>Hilfe</button>
@@ -122,7 +123,8 @@
         body.innerHTML = `<div class="ph-h">KONTO</div><div class="card"><div class="sub">Bargeld</div><h4 style="font-size:30px;color:#9ff0b8">${U.money(P.money)}</h4></div><div class="card"><div class="sub">Konto · Sparkasse</div><h4 style="font-size:26px;color:#7fb7a0">${U.money(P.bank || 0)}</h4><p>Ein- und Auszahlen am Geldautomaten.</p></div>
           <div class="card"><div class="sub">Passives Einkommen</div><h4>${U.money(inc)} / Tag</h4><p>Zahlt jeden Morgen um 08:00 aus.</p></div>
           <div class="card"><div class="sub">Verdient mit Aufträgen</div><h4>${U.money(P.stats.earned)}</h4></div>`;
-      } else if (app === 'map') { this.closePhone(); this.openMap(); return; }
+      } else if (app === 'cars' || app.startsWith('cars:')) { this.carApp(body, app.split(':')[1] || 'start'); return; }
+      else if (app === 'map') { this.closePhone(); this.openMap(); return; }
       else if (app === 'inv') { this.closePhone(); this.inventory(); return; }
       else if (app === 'settings') { this.closePhone(); this.settings(); return; }
       else if (app === 'help') { this.closePhone(); this.controls(); return; }
@@ -150,7 +152,7 @@
       this.sync();
       return $('#pn-body');
     }
-    closePanel() { $('#panel').classList.add('hidden'); this.panelKind = null; this.sync(); }
+    closePanel() { if (this.tunePrev) { this.tunePrev.undo(); this.tunePrev = null; } $('#panel').classList.add('hidden'); this.panelKind = null; this.sync(); }
     openFromWorld(e) {
       if (e.open === 'shop') this.shop(e.shop, e.b);
       else if (e.open === 'stash') this.stash(e.prop);
@@ -161,6 +163,119 @@
       else if (e.open === 'recruit') this.recruit();
       else if (e.open === 'crew') this.crew();
       else if (e.open === 'tag') this.tagEditor();
+      else if (e.open === 'dealer') this.dealer(e.kind);
+      else if (e.open === 'tuning') this.tuning(e.car);
+    }
+
+    // ============================================================ cars
+    /** draw a car big into a canvas (preview), optionally with a fake override */
+    carPreview(cv, car, o = {}) {
+      const x = cv.getContext('2d'), S = cv.width, H = cv.height;
+      x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, S, H);
+      const g = x.createRadialGradient(S / 2, H / 2, 10, S / 2, H / 2, S * 0.7); g.addColorStop(0, '#2a2d34'); g.addColorStop(1, '#0d0e12');
+      x.fillStyle = g; x.fillRect(0, 0, S, H);
+      x.strokeStyle = 'rgba(255,255,255,0.05)'; for (let i = 0; i < S; i += 24) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, H); x.stroke(); }
+      const k = o.scale || Math.min(S / (car.l + 30), H / (car.w + 40)) * 0.95;
+      x.save(); x.translate(S / 2, H / 2); x.scale(k, k);
+      K.drawCar(x, { ...car, x: 0, y: 0, a: o.a != null ? o.a : 0, steer: 0, brake: 0, lightsOn: true }, this.g.renderer ? this.g.renderer.time : 0, { sx: 4, sy: 6, preview: true });
+      x.restore();
+    }
+    carStats(kind, tune) {
+      const d = K.CARK[kind], m = K.CARMODELS[kind];
+      const fake = { kind, tune: tune || {}, eng: 100, temp: 85, tires: [100, 100, 100, 100], engineOn: true, fuel: 50 };
+      const mods = this.g.world.carMods(fake);
+      const top = Math.round(d.max * mods.max * K.KMH), acc = d.acc * mods.acc, grip = mods.grip;
+      const bar = (name, v, max, txt) => `<div class="sk"><span>${name}</span><i><b style="width:${Math.min(100, v / max * 100)}%;background:#f59e0b"></b></i><em>${txt}</em></div>`;
+      return `<div class="skills carstats">${bar('Spitze', top, 260, top + ' km/h')}${bar('Beschl.', acc, 900, Math.round(acc))}${bar('Handling', grip, 1.5, grip.toFixed(2))}${bar('Bremsen', mods.brake, 1.6, '×' + mods.brake.toFixed(1))}${bar('Verbrauch', K.CARCLS[m.cls].fuel, 0.4, m.cls === 'ev' ? 'elektrisch' : K.CARCLS[m.cls].fuel.toFixed(2) + '%/s')}</div>`;
+    }
+    dealer(sel) {
+      const w = this.g.world, list = Object.entries(K.CARMODELS).filter(([, m]) => !m.hidden).sort((a, b) => a[1].price - b[1].price);
+      sel = sel && K.CARMODELS[sel] ? sel : this.dealerSel || list[0][0]; this.dealerSel = sel;
+      const M = K.CARMODELS[sel], cols = K.CARK[sel].colors.concat(['#111214', '#e6e6e0', '#c8102e', '#1f3b63', '#a9b0b8']).filter((c, i, a) => a.indexOf(c) === i);
+      this.dealerCol = cols.includes(this.dealerCol) ? this.dealerCol : cols[0];
+      const owned = w.ownedCars().filter((r) => r.kind === sel).length;
+      const h = `<div class="dealer"><div class="dl-list">${list.map(([k, m]) => `<button class="dl-it ${k === sel ? 'on' : ''}" data-car="${k}"><b>${esc(m.name)}</b><small>${U.money(m.price)} · ${esc(K.CARCLS[m.cls] ? m.cls : '')}</small></button>`).join('')}</div>
+        <div class="dl-main"><canvas id="dl-cv" width="560" height="260"></canvas>
+          <h3>${esc(M.name)} <small>${esc(M.cls.toUpperCase())}</small></h3><p>${esc(M.desc || '')}</p>${this.carStats(sel)}
+          <div class="sub">Farbe ab Werk</div><div class="sw">${cols.map((c) => `<i data-col="${c}" class="${c === this.dealerCol ? 'on' : ''}" style="background:${c}"></i>`).join('')}</div>
+          <div class="btns"><button class="btn" id="dl-buy">Kaufen · ${U.money(M.price)}</button>${owned ? `<span class="tag">${owned}× in deinem Besitz</span>` : ''}</div>
+          <p style="color:#888;font-size:12px">Bezahlt wird bar oder per Karte. Der Wagen steht danach vor dem Autohaus. Tuning gibt's in der Werkstatt „Schraubstock“, Lieferung per Car-Service-App.</p></div></div>`;
+      const body = this.panel('AUTOHAUS KRÄHENBURG', h, 'dealer');
+      const draw = () => this.carPreview(body.querySelector('#dl-cv'), { kind: sel, l: K.CARK[sel].l, w: K.CARK[sel].w, color: this.dealerCol, tune: {}, hp: 100 });
+      draw();
+      body.querySelectorAll('[data-car]').forEach((b) => (b.onclick = () => this.dealer(b.dataset.car)));
+      body.querySelectorAll('[data-col]').forEach((b) => (b.onclick = () => { this.dealerCol = b.dataset.col; body.querySelectorAll('[data-col]').forEach((q) => q.classList.toggle('on', q === b)); draw(); }));
+      body.querySelector('#dl-buy').onclick = () => { if (w.buyCar(sel, this.dealerCol)) { this.closePanel(); this.g.save(true); } };
+    }
+    tuning(carId, cat, prev) {
+      const w = this.g.world, c = w.cars.find((q) => q.id === carId);
+      if (!c) return this.closePanel();
+      // revert an unbought preview when navigating
+      if (this.tunePrev && this.tunePrev.car === carId && !prev) { this.tunePrev.undo(); this.tunePrev = null; }
+      cat = cat || this.tuneCat || 'perf'; this.tuneCat = cat;
+      const G = K.TUNING.find((g) => g.cat === cat), q = w.repairQuote(c), M = K.carModel(c);
+      const cur = (part) => part.id === 'color' ? c.color : (c.tune || {})[part.id] || 0;
+      let h = `<div class="tune"><div class="tn-left"><canvas id="tn-cv" width="420" height="230"></canvas>
+          <h3>${esc(M.name)} <small>${esc(c.plate || '')}</small></h3>${this.carStats(c.kind, c.tune)}
+          <div class="card tn-rep">${q ? `<b>🔧 Reparatur</b><p>Motor ${Math.round(c.eng)}% · Karosserie ${Math.round(c.bodyHP)}% · Reifen ${c.tires.filter((t) => t < 20).length ? c.tires.filter((t) => t < 20).length + ' platt' : 'ok'}</p><button class="btn" id="tn-rep" ${w.repairJob ? 'disabled' : ''}>${w.repairJob ? 'Wird repariert…' : `Reparieren · ${U.money(q.price)} · ~${Math.round(q.dur)} s`}</button>` : '<b>🔧 Kein Schaden</b><p>Der Wagen ist in Schuss.</p>'}</div></div>
+        <div class="tn-right"><div class="tn-cats">${K.TUNING.map((g) => `<button class="${g.cat === cat ? 'on' : ''}" data-cat="${g.cat}" style="--c:${g.col}">${g.icon} ${g.name}</button>`).join('')}</div>`;
+      for (const part of G.parts) {
+        h += `<div class="tn-part"><div class="sub">${esc(part.name)}${part.desc ? ` <small>· ${esc(part.desc)}</small>` : ''}</div><div class="tn-opts">`;
+        part.opts.forEach((o, i) => {
+          const on = cur(part) === o.v || (part.id === 'color' && c.color === o.v);
+          const sw = typeof o.v === 'string' && o.v[0] === '#' ? `<i style="background:${o.v}"></i>` : '';
+          const pv = this.tunePrev && this.tunePrev.part === part.id && this.tunePrev.i === i;
+          h += `<button class="tn-o ${on ? 'cur' : ''} ${pv ? 'pv' : ''}" data-part="${part.id}" data-i="${i}">${sw}${esc(o.name)}${on ? ' ✓' : `<small>${U.money(K.tunePrice(c, part, o))}</small>`}</button>`;
+        });
+        h += '</div></div>';
+      }
+      h += `</div></div>${this.tunePrev ? `<div class="tn-buy"><span>Vorschau: <b>${esc(this.tunePrev.label)}</b></span><button class="btn" id="tn-ok">✅ Kaufen · ${U.money(this.tunePrev.price)}</button><button class="btn ghost" id="tn-no">❌ Abbrechen</button></div>` : ''}`;
+      const body = this.panel('WERKSTATT „SCHRAUBSTOCK“', h, 'tuning');
+      this.carPreview(body.querySelector('#tn-cv'), c);
+      body.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = () => this.tuning(carId, b.dataset.cat)));
+      const rep = body.querySelector('#tn-rep'); if (rep) rep.onclick = () => { if (w.startRepair(c)) { this.closePanel(); } };
+      body.querySelectorAll('[data-part]').forEach((b) => (b.onclick = () => {
+        const part = G.parts.find((p) => p.id === b.dataset.part), o = part.opts[+b.dataset.i];
+        if (cur(part) === o.v) return;
+        if (this.tunePrev) this.tunePrev.undo();
+        const snap = { color: c.color, tune: { ...c.tune }, nos: c.nos };
+        w.applyTune(c, part.id, o);
+        this.tunePrev = { car: carId, part: part.id, i: +b.dataset.i, label: `${part.name}: ${o.name}`, price: K.tunePrice(c, part, o), undo: () => { c.color = snap.color; c.tune = snap.tune; c.nos = snap.nos; } };
+        this.tuning(carId, cat, true);
+      }));
+      const ok = body.querySelector('#tn-ok');
+      if (ok) ok.onclick = () => { const t = this.tunePrev; t.undo(); this.tunePrev = null; w.buyTune(c, t.part, G.parts.find((p) => p.id === t.part).opts[t.i]); this.tuning(carId, cat, true); };
+      const no = body.querySelector('#tn-no');
+      if (no) no.onclick = () => { this.tunePrev.undo(); this.tunePrev = null; this.tuning(carId, cat, true); };
+    }
+    /** the Car Service phone app (rde_carservice) */
+    carApp(body, tab) {
+      const w = this.g.world, R = w.ownedCars(), s = w.svc && w.svc.stage !== 'done' ? w.svc : null;
+      this.phoneApp = 'cars:' + tab;
+      const tabs = `<div class="cs-tabs">${[['start', 'Start'], ['garage', 'Garage'], ['pickup', 'Abholen']].map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-ct="${k}">${n}</button>`).join('')}</div>`;
+      let h = `<div class="cs"><div class="cs-head"><b>🚘 KRÄHENBURG CAR SERVICE</b><small>Premium-Lieferung & Abholung</small></div>${tabs}`;
+      if (tab === 'start') {
+        h += s ? `<div class="cs-card blue"><b>${s.kind === 'deliver' ? 'Lieferung läuft' : 'Abholung läuft'}</b><p>${{ driving: `Fahrer unterwegs · Ankunft in ~${w.serviceEta()} s`, parking: 'Fahrer parkt…', handover: 'Fahrer bringt dir die Schlüssel', walking: 'Fahrer läuft zu deinem Auto', leaving: 'Fahrer bringt den Wagen in die Garage' }[s.stage] || ''}</p><button class="btn red" data-cs="cancel">Service stornieren</button></div>`
+          : '<div class="cs-card"><b>Kein aktiver Auftrag</b><p>Dein Wagen kommt zu dir — oder wir parken ihn sicher in der Garage.</p></div>';
+        h += `<div class="cs-card"><b>Preise</b><div class="stat"><span>Lieferung</span><b style="color:#3b82f6">${U.money(K.SERVICE.deliver)}</b></div><div class="stat"><span>Abholung</span><b style="color:#10b981">${U.money(K.SERVICE.pickup)}</b></div><div class="stat"><span>Versicherung (Totalschaden)</span><b>${Math.round(K.SERVICE.insure * 100)}% vom Neupreis</b></div></div>`;
+      } else if (tab === 'garage') {
+        if (!R.length) h += '<div class="cs-card"><p>Du besitzt noch kein Auto. Autohaus Krähenburg, Mitte.</p></div>';
+        for (const r of R) {
+          const st = { stored: 'In der Garage', out: 'Geparkt in der Stadt', destroyed: 'Totalschaden' }[r.state] || r.state;
+          h += `<div class="cs-car"><div><b>${esc(r.name)}</b><small>${esc(r.plate)} · ${st}${r.state !== 'destroyed' ? ` · ⛽ ${Math.round(r.fuel != null ? r.fuel : 100)}%` : ''}</small></div>
+            ${r.state === 'stored' ? `<button class="btn" data-cs="deliver" data-id="${r.id}" ${s ? 'disabled' : ''}>Liefern · ${U.money(K.SERVICE.deliver)}</button>` : r.state === 'destroyed' ? `<button class="btn ghost" data-cs="insure" data-id="${r.id}">Versicherung · ${U.money(Math.round(K.CARMODELS[r.kind].price * K.SERVICE.insure / 10) * 10)}</button>` : `<button class="btn ghost" data-cs="locate" data-id="${r.id}">Orten</button>`}</div>`;
+        }
+      } else {
+        h += `<div class="cs-card green"><b>Auto abholen lassen</b><p>Ein Fahrer holt dein nächstes geparktes Auto (bis ca. 25 m Umkreis) und bringt es sicher in die Garage.</p><button class="btn" data-cs="pickup" ${s ? 'disabled' : ''}>Fahrzeug einlagern · ${U.money(K.SERVICE.pickup)}</button></div>`;
+      }
+      body.innerHTML = h + '</div>';
+      body.querySelectorAll('[data-ct]').forEach((b) => (b.onclick = () => this.carApp(body, b.dataset.ct)));
+      body.querySelectorAll('[data-cs]').forEach((b) => (b.onclick = () => {
+        const a = b.dataset.cs, id = +b.dataset.id;
+        if (a === 'deliver') w.serviceDeliver(id); else if (a === 'pickup') w.servicePickup(); else if (a === 'cancel') w.serviceCancel(); else if (a === 'insure') w.insureCar(id);
+        else if (a === 'locate') { const r = R.find((q) => q.id === id), c = r && w.worldCarOf(r); if (c) { this.g.waypoint = { x: c.x, y: c.y }; this.g.ui.feed('Wegpunkt zu deinem Auto gesetzt.'); } }
+        this.carApp(body, a === 'deliver' || a === 'pickup' ? 'start' : tab);
+      }));
     }
     gangSection() {
       const w = this.g.world, P = w.P, G = K.GANGS;
@@ -438,12 +553,12 @@
       if (this.g.waypoint) { const [mx, my] = toM(this.g.waypoint.x, this.g.waypoint.y); x.strokeStyle = '#ffd34d'; x.lineWidth = 4; x.beginPath(); x.arc(mx, my, s * 2.5, 0, 6.3); x.stroke(); }
       const p = w.player; const [px, py] = toM(p.x, p.y);
       x.save(); x.translate(px, py); x.rotate(p.angle); x.fillStyle = '#fff'; x.strokeStyle = '#000'; x.lineWidth = 3; x.beginPath(); x.moveTo(s * 3, 0); x.lineTo(-s * 2, -s * 2); x.lineTo(-s, 0); x.lineTo(-s * 2, s * 2); x.closePath(); x.stroke(); x.fill(); x.restore();
-      $('#mv-legend').innerHTML = '<div>🏠 Dein Besitz · 🏷️ Zu verkaufen<br>🔫 Waffen · 💀 Schwarzmarkt · 🛒 Späti<br>💊 Apotheke · 👔 Boutique · 🍔 Diner · 🍸 Bar<br>🏥 Klinik · 🚓 Polizei · 🎵 Club<br>🌱 Growshop · 🏧 Geldautomat · 🏦 Bank · 💎 Juwelier · <span style="color:#ff2030">●</span> Ziel</div><div>Reviere: ' + Object.entries(K.GANGS).map(([k, g]) => `<span style="color:${g.col}">■</span> ${g.name}`).join(' · ') + (w.P.gang ? ` · <span style="color:${w.P.gang.col}">■</span> ${U.esc(w.P.gang.name)}` : '') + ' · ⚔ Krieg</div>';
+      $('#mv-legend').innerHTML = '<div>🏠 Dein Besitz · 🏷️ Zu verkaufen<br>🔫 Waffen · 💀 Schwarzmarkt · 🛒 Späti<br>💊 Apotheke · 👔 Boutique · 🍔 Diner · 🍸 Bar<br>🏥 Klinik · 🚓 Polizei · 🎵 Club<br>🌱 Growshop · 🏧 Geldautomat · 🏦 Bank · 💎 Juwelier<br>⛽ Tankstelle · 🚗 Autohaus · 🔧 Werkstatt · <span style="color:#ff2030">●</span> Ziel</div><div>Reviere: ' + Object.entries(K.GANGS).map(([k, g]) => `<span style="color:${g.col}">■</span> ${g.name}`).join(' · ') + (w.P.gang ? ` · <span style="color:${w.P.gang.col}">■</span> ${U.esc(w.P.gang.name)}` : '') + ' · ⚔ Krieg</div>';
     }
 
     // ============================================================ title / pause / results
     controls() {
-      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Waffe wählen', 'H', 'Waffe / Fäuste wegstecken'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen']];
+      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Waffe wählen', 'H', 'Waffe / Fäuste wegstecken'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['Im Auto: B / N', 'Gurt an/aus · Motor an/aus', 'Im Auto: X / L', 'Tempomat · Licht (Abblend/Fern)'], ['Im Auto: Q / E', 'Blinker links / rechts (beide = Warnblinker)', 'Im Auto: Shift / T', 'Nitro · Werkstatt-Aktion'], ['Im Auto: LMB / RMB', 'Drive-by oder Bord-MG · Raketen', 'Im Auto: F / H', 'Aussteigen · Hupe'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen']];
       const h = `<div class="kbd-grid">${k.map((r) => `<kbd>${r[0]}</kbd><span>${r[1]}</span><kbd>${r[2]}</kbd><span>${r[3]}</span>`).join('')}</div>
         <div class="sec" style="margin-top:18px">So spielst du</div>
         <p style="font-size:13px;color:#cfc9be;line-height:1.6">Aufträge kommen aufs <b>Handy (P)</b>. Finde das Ziel — mit gekauftem Intel wird es markiert, sonst kennst du nur grob den Bereich. Nimm Verkleidungen von bewusstlosen oder toten Wachen (<b>T</b>), um in Sperrgebiete zu kommen. Wirf <b>Münzen</b>, um Wachen wegzulocken, und erledige Ziele lautlos von hinten (<b>F</b>) mit der Klaviersaite. Leichen versteckst du in Containern und Schränken (<b>E</b>). Zeugen rufen die Polizei — wechsle das Outfit ungesehen, um die Fahndung zu senken. Willst du nicht sterben, ergib dich mit <b>X</b>: weniger Haft, aber Knast ist Knast. Halt Passanten oder Ladenbesitzer mit gezogener Waffe (<b>RMB</b>) in Schach und raub sie aus, zieh Brieftaschen von hinten, durchwühl fremde Wohnungen, hack Geldautomaten. Mit einer Sturmhaube erkennt dich niemand. Im Growshop gibt es Samen und Töpfe — pflanz in deiner Bude, gieß, dünge, ernte und verkauf an Passanten (<b>T</b>) oder am Schwarzmarkt. Iss, trink, schlaf in deinem eigenen Bett, kauf Waffen, Häuser und Geschäfte. Krähenburg lebt — Tag und Nacht, Regen und Nebel.</p>`;

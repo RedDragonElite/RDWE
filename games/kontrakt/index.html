@@ -7,7 +7,7 @@
 <meta name="description" content="Ein Open-World-Assassinen-RPG in purem HTML, CSS und JavaScript. Red Dragon Elite.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -39,6 +39,12 @@
     </div>
   </div>
   <div id="crewhud"></div>
+  <div id="carhud" class="hidden"><canvas id="ch-cv" width="760" height="170"></canvas><div id="ch-warn"></div></div>
+  <div id="crack" class="hidden"></div>
+  <div id="pumppanel" class="hidden"><div class="pp-head"><b>NORDLICHT</b> <span>GASOLINE</span><em>№ 01</em></div>
+    <div class="pp-screen"><label>BETRAG</label><div class="seg"><s>888.88</s><span id="pp-amt">000.00</span></div><label>TANKFÜLLUNG</label><div class="seg"><s>888.88</s><span id="pp-pct">000.00</span></div>
+      <div class="pp-bar"><i id="pp-fill"></i></div><div class="pp-foot"><span>PREIS/% $1.60</span><span class="leds"><u></u><u></u><u></u></span></div></div>
+    <div class="pp-hose" id="pp-hose">SCHLAUCH AUSGEZOGEN</div><div class="pp-err" id="pp-err">NICHT GENUG GELD</div></div>
   <div id="weapon">
     <div id="w-slots"></div>
     <div id="w-main"><img id="w-icon" alt=""><div><div id="w-name">Fäuste</div><div id="w-ammo"></div></div></div>
@@ -117,6 +123,8 @@
 <script src="js/game/heists.js"></script>
 <script src="js/game/crew.js"></script>
 <script src="js/game/gangs.js"></script>
+<script src="js/game/autos.js"></script>
+<script src="js/game/carservice.js"></script>
 <script src="js/render/textures.js"></script>
 <script src="js/render/sprites.js"></script>
 <script src="js/render/fx.js"></script>

@@ -29,7 +29,7 @@
       const rpos = (t) => [(t.x + 0.5) * TILE, (t.y + 0.5) * TILE];
       for (const b of this.buildings) {
         if (b.keeperPos && b.shop) {
-          const outfit = { gun: 'leather', black: 'gang', food: 'casual', pharmacy: 'doctor', cloth: 'suitgrey', diner: 'waiter', bar: 'waiter', hospital: 'doctor', bank: 'suitgrey', jewel: 'suit' }[b.shop] || 'casual';
+          const outfit = { gun: 'leather', black: 'gang', food: 'casual', pharmacy: 'doctor', cloth: 'suitgrey', diner: 'waiter', bar: 'waiter', hospital: 'doctor', bank: 'suitgrey', jewel: 'suit', gas: 'casual', cars: 'suit', mech: 'mechanic' }[b.shop] || 'casual';
           const [x, y] = rpos(b.keeperPos);
           const k = this.spawnActor('keeper', x, y, { outfit, home: b.id, state: 'work', weapon: b.shop === 'gun' ? 'pump' : b.shop === 'black' ? 'p9' : 'fists', reserve: -1 });
           k.brain.post = { x, y }; k.armedKeeper = b.shop === 'gun' || b.shop === 'black'; k.shopB = b.id;

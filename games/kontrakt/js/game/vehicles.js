@@ -17,6 +17,7 @@
       const d = CARK[kind];
       const c = { id: this.nid(), kind, x, y, a, vx: 0, vy: 0, l: d.l, w: d.w, color: o.color || U.pick(d.colors), hp: 100, driver: null, ai: null, parked: !!o.parked, lightsOn: false, siren: false, brake: 0, honk: 0, steer: 0, thr: 0, fire: 0, dead: false, blockT: 0, skid: 0, crashCD: 0 };
       this.cars.push(c);
+      if (this.initCarState) this.initCarState(c);
       return c;
     },
     carOf(a) { return this.cars.find((c) => c.id === a.inCar) || { x: a.x, y: a.y }; },
@@ -35,7 +36,7 @@
       for (const c of this.cars) {
         if (c.dead) continue;
         const d = Math.hypot(c.x - p.x, c.y - p.y);
-        const mine = c.driver === 'player' || c.playerOwned;
+        const mine = c.driver === 'player' || c.playerOwned || c.owned || c.display || c.service;
         const busyUnit = c.unit && !['patrol', 'leave', 'abandoned'].includes(c.unit.mode);
         if (!mine && d > 60 * TILE && !busyUnit) { this.despawnCar(c); continue; }
         if (c.ai && c.driver && c.driver !== 'player' && c.kind !== 'police') n++;
@@ -61,7 +62,7 @@
         const d = Math.hypot(x - p.x, y - p.y);
         if (d < 24 * TILE || d > 50 * TILE) continue;
         if (this.cars.some((c) => !c.dead && Math.hypot(c.x - x, c.y - y) < 120)) continue;
-        const kd = kind || (Math.random() < 0.12 ? 'taxi' : Math.random() < 0.12 ? 'van' : Math.random() < 0.1 ? 'sport' : 'sedan');
+        const kd = kind || U.pickW([['sedan', 30], ['compact', 18], ['taxi', 8], ['van', 7], ['suv', 9], ['pickup', 7], ['coupe', 6], ['muscle', 4], ['sport', 4], ['ev', 4], ['super', 1]]);
         const c = this.spawnCar(kd, x, y, Math.atan2(dy, dx));
         c.ai = { fi: i, fj: j, ti: ni, tj: nj, stage: 'road', wp: null };
         c.vx = dx * 120; c.vy = dy * 120;
@@ -103,8 +104,12 @@
           if (c.fire <= 0) { this.explode(c.x, c.y, 150, 230, this.byId.get(c.lastHitBy) || null); c.dead = true; c.wreck = true; this.wrecks = (this.wrecks || []); this.wrecks.push({ x: c.x, y: c.y, a: c.a, l: c.l, w: c.w, t: this.t }); continue; }
         }
         let thr = 0, steer = 0, hb = false;
-        if (c.driver === 'player') { const inp = this.carInput || {}; thr = inp.thr || 0; steer = inp.steer || 0; hb = !!inp.hb; }
+        if (c.driver === 'player') {
+          const inp = this.carInput || {}; thr = inp.thr || 0; steer = inp.steer || 0; hb = !!inp.hb;
+          if (c.cruise && thr >= 0) { const vf = c.vf || 0; thr = vf < c.cruise - 6 ? 1 : vf > c.cruise + 12 ? -0.25 : 0.25; }
+        }
         else if (c.driver && !c.dead) { const dr = this.byId.get(c.driver); if (!dr || !dr.alive) { c.driver = null; } else [thr, steer, hb] = c.unit ? this.unitDrive(c, dt) : c.pursuit ? this.policeDrive(c, dt) : this.trafficDrive(c, dt); }
+        if (c.serviceLock) thr = 0;
         c.thr = thr; c.steer = U.lerp(c.steer, steer, Math.min(1, dt * 10));
         this.carPhysics(c, thr, c.steer, hb, dt);
       }
@@ -112,15 +117,17 @@
     },
     carPhysics(c, thr, steer, hb, dt) {
       const d = CARK[c.kind];
+      const m = this.carMods ? this.carMods(c) : { acc: 1, max: 1, grip: 1, brake: 1, pull: 0, pow: 1 };
       const fx = Math.cos(c.a), fy = Math.sin(c.a), sx = -fy, sy = fx;
       let vf = c.vx * fx + c.vy * fy, vs = c.vx * sx + c.vy * sy;
       const hpf = c.hp < 30 ? 0.6 : 1;
-      if (thr > 0) vf += d.acc * thr * dt * (vf < 0 ? 2.5 : 1) * hpf;
-      else if (thr < 0) { if (vf > 15) vf += 700 * thr * dt; else vf += d.acc * 0.6 * thr * dt; }
+      if (thr > 0) vf += d.acc * m.acc * thr * dt * (vf < 0 ? 2.5 : 1) * hpf;
+      else if (thr < 0) { if (vf > 15) vf += 700 * m.brake * thr * dt; else vf += d.acc * 0.6 * thr * dt * (m.pow > 0 ? 1 : 0); }
       else vf -= Math.sign(vf) * Math.min(Math.abs(vf), 90 * dt);
-      vf = U.clamp(vf, -160, d.max * hpf);
+      vf = U.clamp(vf, -160, Math.max(Math.abs(vf) * (thr > 0 ? 0 : 1), d.max * m.max * hpf));
       vf *= 1 - 0.18 * dt;
-      const grip = hb ? 1.4 : 8.5;
+      if (Math.abs(vf) > 30) steer = U.clamp(steer + m.pull, -1, 1);
+      const grip = hb ? 1.4 : 8.5 * m.grip;
       c.skid = Math.abs(vs) > 80 || (hb && Math.abs(vf) > 120) ? 1 : 0;
       vs *= Math.max(0, 1 - grip * dt);
       if (hb) vf *= 1 - 1.4 * dt;
@@ -133,12 +140,17 @@
       if (c.skid && c.speed > 60 && Math.random() < 0.6) this.emit('skid', { x: c.x, y: c.y, a: c.a, l: c.l, w: c.w, id: c.id });
       // integrate with tile collision
       const nx = c.x + c.vx * dt, ny = c.y + c.vy * dt;
+      if (this.carSmash) this.carSmash(c, nx, ny);
       if (!this.carBlocked(c, nx, ny, c.a)) { c.x = nx; c.y = ny; return; }
       const impact = c.speed;
+      // where did we hit? project the motion onto the body outline
+      const mvx = c.vx * fx + c.vy * fy, mvy = -c.vx * fy + c.vy * fx, mm = Math.hypot(mvx, mvy) || 1;
+      const sc = Math.min((c.l / 2) / Math.max(1e-3, Math.abs(mvx / mm)), (c.w / 2) / Math.max(1e-3, Math.abs(mvy / mm)));
+      const hitU = mvx / mm * sc, hitV = mvy / mm * sc;
       if (!this.carBlocked(c, nx, c.y, c.a)) { c.x = nx; c.vy *= -0.25; }
       else if (!this.carBlocked(c, c.x, ny, c.a)) { c.y = ny; c.vx *= -0.25; }
       else { c.vx *= -0.3; c.vy *= -0.3; if (this.carBlocked(c, c.x, c.y, c.a)) { c.a -= turn * dt; } }
-      if (impact > 130 && c.crashCD <= 0) { c.crashCD = 0.4; this.damageCar(c, impact * 0.06, null); this.emit('crash', { x: c.x + Math.cos(c.a) * c.l / 2, y: c.y + Math.sin(c.a) * c.l / 2, v: impact, player: c.driver === 'player' }); }
+      if (impact > 70 && c.crashCD <= 0) { c.crashCD = 0.4; if (this.carImpact) this.carImpact(c, hitU, hitV, impact); if (impact > 130) { this.damageCar(c, impact * 0.06, null); this.emit('crash', { x: c.x + fx * hitU - fy * hitV, y: c.y + fy * hitU + fx * hitV, v: impact, player: c.driver === 'player' }); if (this.crashBelt) this.crashBelt(c, impact); } }
     },
     carTileBlocked(x, y) {
       const tx = (x / TILE) | 0, ty = (y / TILE) | 0;
@@ -173,6 +185,11 @@
             if (-rv > 90 && a.crashCD <= 0) {
               a.crashCD = b.crashCD = 0.4;
               const dm = -rv * 0.07; this.damageCar(a, dm, b.driver === 'player' ? this.player : null); this.damageCar(b, dm, a.driver === 'player' ? this.player : null);
+              if (this.carImpact) for (const [q, cx, cy] of [[a, (ax + bx) / 2, (ay + by) / 2], [b, (ax + bx) / 2, (ay + by) / 2]]) {
+                const qx = cx - q.x, qy = cy - q.y, qf = Math.cos(q.a), qs = Math.sin(q.a);
+                this.carImpact(q, qx * qf + qy * qs, -qx * qs + qy * qf, -rv * 1.2);
+              }
+              if (this.crashBelt) { if (a.driver === 'player') this.crashBelt(a, -rv * 1.3); if (b.driver === 'player') this.crashBelt(b, -rv * 1.3); }
               this.emit('crash', { x: (ax + bx) / 2, y: (ay + by) / 2, v: -rv, player: a.driver === 'player' || b.driver === 'player' });
             }
           }
@@ -194,6 +211,7 @@
             a.vx = c.vx * 1.1 + (ly > 0 ? -fy : fy) * 120; a.vy = c.vy * 1.1 + (ly > 0 ? fx : -fx) * 120;
             this.emit('carHit', { x: a.x, y: a.y, v: c.speed });
             this.hurt(a, c.speed * 0.24, drv || null, { kind: 'car', dir: Math.atan2(c.vy, c.vx), blunt: false });
+            if (this.carImpact) this.carImpact(c, (c.vf || 0) >= 0 ? c.l / 2 : -c.l / 2, ly * 0.8, Math.min(140, c.speed * 0.45));
             if (a.alive) { a.stun = 1.2; if (a.kind !== 'player') this.knockout(a, drv && drv.kind === 'player' ? drv : null, 20); }
             c.vx *= 0.85; c.vy *= 0.85;
           } else {
@@ -207,6 +225,7 @@
     },
     damageCar(c, dmg, src) {
       if (c.dead) return;
+      if (c.tune && c.tune.armor) dmg *= 1 - c.tune.armor * 0.15;
       c.hp -= dmg;
       if (src) c.lastHitBy = src.id;
       if (c.hp <= 0 && c.fire <= 0) {
@@ -339,6 +358,9 @@
     },
     enterCar(c) {
       const a = this.player;
+      if (c.display) return this.notify(`Ausstellungsstück — ${K.CARMODELS[c.display].name} gibt es beim Verkäufer im Autohaus.`, 'bad');
+      if (c.serviceLock) return this.notify('Der Wagen ist gerade auf der Bühne.', 'bad');
+      if (c.service && this.svc && this.svc.car === c.id && this.serviceCancel) this.serviceCancel();
       if (c.driver && c.driver !== 'player') {
         const d = this.byId.get(c.driver);
         if (d) {
@@ -348,6 +370,10 @@
           if (d.kind === 'cop') { this.raiseWanted(2, 'assault'); this.alarm(d, a); }
         }
       } else if (c.kind === 'police' && !c.playerOwned) this.crimeEvent(a, 'theft', c.x, c.y, null);
+      else if (!c.owned && !c.playerOwned && !c.service) { c.hotwire = true; this.crimeEvent(a, 'theft', c.x, c.y, null); }
+      // a car someone was just driving keeps running; a parked one has to be started (or hot-wired)
+      if (!c.driver) { c.engineOn = false; c.crankT = null; }
+      c.belt = false;
       for (const id of c.passengers || []) { const p = this.byId.get(id); if (p) this.ejectFrom(c, p, p.kind !== 'cop'); }
       c.passengers = [];
       c.driver = 'player'; c.ai = null; c.pursuit = false; c.parked = false; c.siren = false;
@@ -358,7 +384,7 @@
       const a = this.player, c = this.carOf(a);
       if (!c || c.driver !== 'player') { a.inCar = null; return; }
       if (!force && c.speed > 120) return this.notify('Zu schnell zum Aussteigen!', 'bad');
-      a.inCar = null; c.driver = null; c.playerOwned = true;
+      a.inCar = null; c.driver = null; c.playerOwned = true; c.cruise = 0; c.boost = false;
       for (const s of [-1, 1]) {
         a.x = c.x - Math.sin(c.a) * (c.w / 2 + 14) * s; a.y = c.y + Math.cos(c.a) * (c.w / 2 + 14) * s;
         if (!this.blockedTile(this.tileIdx(a.x, a.y), a)) break;

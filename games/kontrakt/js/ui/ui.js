@@ -128,6 +128,8 @@
         e.prompt.innerHTML = ctx.slice(0, 3).map((c) => `<div class="${c.fn ? '' : 'off'}"><kbd>${c.key}</kbd>${U.esc(c.label)}${c.hold ? ' <small style="opacity:.6">(halten)</small>' : ''}</div>`).join('');
       });
       this.tracker();
+      this.carHud(w, p, P);
+      this.pumpPanel(w, P);
       // crew cards
       const R = (P.crew || []).filter((m) => m.state === 'active');
       const ck = R.map((m) => { const a = w.crewActor(m); return m.id + ':' + (a ? Math.ceil(a.hp / 5) + a.state + !!a.inCar : 'x'); }).join(',');
@@ -190,7 +192,7 @@
         const x = (b.x + b.w / 2) * TILE, y = (b.y + b.h / 2) * TILE;
         if (b.owned) out.push({ x, y, e: '🏠', c: '#5fd38d' });
         else if (b.property) out.push({ x, y, e: '🏷️', c: '#f2c86b' });
-        if (b.shop) out.push({ x, y, e: { gun: '🔫', black: '💀', food: '🛒', pharmacy: '💊', cloth: '👔', diner: '🍔', bar: '🍸', hospital: '🏥', grow: '🌱', bank: '🏦', jewel: '💎' }[b.shop] });
+        if (b.shop) out.push({ x, y, e: { gun: '🔫', black: '💀', food: '🛒', pharmacy: '💊', cloth: '👔', diner: '🍔', bar: '🍸', hospital: '🏥', grow: '🌱', bank: '🏦', jewel: '💎', gas: '⛽', cars: '🚗', mech: '🔧' }[b.shop] });
         if (b.type === 'police') out.push({ x, y, e: '🚓' });
         if (b.type === 'club') out.push({ x, y, e: '🎵' });
       }
@@ -207,6 +209,108 @@
         if (w.P.wars && w.P.wars[w.turfOwner(k)]) { x.globalAlpha = 0.9; x.fillStyle = '#ff3b4e'; x.font = `${Math.max(9, s * 5)}px sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('⚔', ox + (sp.bi * 26 + 13) * s, oy + (sp.bj * 26 + 13) * s); }
       }
       x.globalAlpha = 1;
+    }
+    /** rde_carhud-style dashboard */
+    carHud(w, p, P) {
+      const el = this.chEl || (this.chEl = document.getElementById('carhud'));
+      const c = p.inCar ? w.carOf(p) : null;
+      document.body.classList.toggle('driving', !!c);
+      if (!el) return;
+      el.classList.toggle('hidden', !c);
+      const crack = this.crackEl || (this.crackEl = document.getElementById('crack'));
+      if (!c || c.eng == null) { if (crack) crack.classList.add('hidden'); return; }
+      const cv = this.chCv || (this.chCv = document.getElementById('ch-cv'));
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      if (cv.width !== 760 * dpr) { cv.width = 760 * dpr; cv.height = 170 * dpr; }
+      const x = cv.getContext('2d');
+      x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, 760, 170);
+      const t = this.t, kmh = (c.speed || 0) * K.KMH, d = K.CARK[c.kind];
+      const ratio = Math.abs(c.vf || 0) / (d.max * 1.05);
+      const gear = (c.vf || 0) < -8 ? 'R' : kmh < 2 ? 'N' : String(Math.min(6, 1 + Math.floor(ratio * 6)));
+      const band = ratio * 6 - Math.floor(ratio * 6);
+      const rpm = !c.engineOn ? 0 : gear === 'N' ? 0.9 + Math.abs(c.thr || 0) * 3 : U.clamp(1.2 + band * 5.6 + Math.abs(c.thr || 0) * 0.6 + (c.boost ? 0.8 : 0), 0.9, 7.9);
+      this.rpmS = U.lerp(this.rpmS || 0, rpm, 0.2);
+      const panel = (X, Y, W, H) => { x.fillStyle = 'rgba(12,12,12,0.92)'; x.beginPath(); x.roundRect(X, Y, W, H, 14); x.fill(); x.strokeStyle = 'rgba(255,255,255,0.08)'; x.stroke(); };
+      const gauge = (cx, cy, r, v, max, step, label, red, unit, digital) => {
+        x.fillStyle = 'rgba(12,12,12,0.92)'; x.beginPath(); x.arc(cx, cy, r + 8, 0, 6.3); x.fill();
+        x.strokeStyle = 'rgba(255,255,255,0.1)'; x.lineWidth = 2; x.stroke();
+        const a0 = -Math.PI / 2 - 2.27, a1 = -Math.PI / 2 + 2.27, ang = (q) => a0 + (a1 - a0) * U.clamp(q / max, 0, 1);
+        if (red != null) { x.strokeStyle = 'rgba(239,68,68,0.85)'; x.lineWidth = 5; x.beginPath(); x.arc(cx, cy, r - 4, ang(red), a1); x.stroke(); }
+        x.strokeStyle = '#cfcfcf'; x.fillStyle = '#cfcfcf'; x.font = `600 ${r > 60 ? 11 : 9}px Inter, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+        for (let q = 0; q <= max + 1e-6; q += step / 2) {
+          const a = ang(q), major = Math.abs(q / step - Math.round(q / step)) < 1e-6;
+          x.lineWidth = major ? 2 : 1; x.beginPath(); x.moveTo(cx + Math.cos(a) * (r - (major ? 10 : 6)), cy + Math.sin(a) * (r - (major ? 10 : 6))); x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); x.stroke();
+          if (major) x.fillText(String(Math.round(q)), cx + Math.cos(a) * (r - 22), cy + Math.sin(a) * (r - 22));
+        }
+        const a = ang(v);
+        x.strokeStyle = '#ef4444'; x.lineWidth = 3; x.beginPath(); x.moveTo(cx - Math.cos(a) * 8, cy - Math.sin(a) * 8); x.lineTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6)); x.stroke();
+        x.fillStyle = '#1b1b1b'; x.beginPath(); x.arc(cx, cy, 6, 0, 6.3); x.fill(); x.strokeStyle = '#ef4444'; x.lineWidth = 2; x.stroke();
+        x.fillStyle = '#9a9a9a'; x.font = '600 9px Inter, sans-serif'; x.fillText(label, cx, cy + r * 0.42);
+        if (digital != null) { x.fillStyle = '#fff'; x.font = `700 ${r > 60 ? 18 : 13}px Inter, sans-serif`; x.fillText(digital, cx, cy + r * 0.66); if (unit) { x.fillStyle = '#888'; x.font = '600 8px Inter, sans-serif'; x.fillText(unit, cx, cy + r * 0.66 + 12); } }
+      };
+      gauge(82, 92, 66, kmh, 280, 40, 'KM/H', null, '', String(Math.round(kmh)));
+      gauge(226, 92, 66, this.rpmS, 8, 1, 'U/MIN ×1000', 7, '', null);
+      // centre panel
+      panel(306, 14, 178, 148);
+      const blinkOn = Math.floor(t / 0.55) % 2 === 0;
+      x.font = '700 22px Inter, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillStyle = (c.blink === -1 || c.blink === 2) && blinkOn ? '#fbbf24' : '#3a3a3a'; x.fillText('◀', 330, 38);
+      x.fillStyle = (c.blink === 1 || c.blink === 2) && blinkOn ? '#fbbf24' : '#3a3a3a'; x.fillText('▶', 460, 38);
+      x.fillStyle = gear === 'N' ? '#9a9a9a' : gear === 'R' ? '#fbbf24' : '#fff'; x.font = '800 40px Inter, sans-serif'; x.fillText(gear, 395, 46);
+      x.font = '600 10px Inter, sans-serif'; x.fillStyle = '#9a9a9a'; x.fillText(`ODO ${c.odo.toFixed(1)} km`, 395, 76);
+      const fuelCol = c.fuel < 10 ? '#ef4444' : c.fuel < 20 ? '#fbbf24' : '#4ade80';
+      x.fillStyle = K.carModel(c).ev ? '#60a5fa' : fuelCol; x.font = '700 12px Inter, sans-serif'; x.fillText(K.carModel(c).ev ? '⚡ ELEKTRO' : `⛽ ${Math.round(c.fuel)}%`, 395, 92);
+      const pill = (px, py, txt, col, on) => { x.fillStyle = on ? col : 'rgba(255,255,255,0.07)'; x.beginPath(); x.roundRect(px - 20, py - 8, 40, 16, 5); x.fill(); x.fillStyle = on ? '#111' : '#666'; x.font = '700 8px Inter, sans-serif'; x.fillText(txt, px, py + 0.5); };
+      const engCol = c.engineOn ? '#4ade80' : (Math.floor(t * 3) % 2 ? '#ef4444' : '#5a1a1a');
+      pill(330, 112, c.crankT > 0 ? 'START' : 'MOTOR', engCol, true);
+      pill(374, 112, 'GURT', c.belt ? '#4ade80' : '#ef4444', true);
+      pill(418, 112, 'TEMPO', '#60a5fa', !!c.cruise);
+      pill(462, 112, c.highBeam ? 'FERN' : 'LICHT', c.highBeam ? '#fbbf24' : '#4ade80', !!c.lightsOn);
+      ['VL', 'VR', 'HL', 'HR'].forEach((n, i) => { const h = c.tires[i]; pill(330 + i * 44, 134, n, h < 1 ? (Math.floor(t * 4) % 2 ? '#ef4444' : '#555') : h < 20 ? '#ef4444' : h < 70 ? '#fbbf24' : '#4ade80', true); });
+      if (c.tune && c.tune.nitro) { x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(318, 150, 154, 5); x.fillStyle = c.boost ? '#a855f7' : '#60a5fa'; x.fillRect(318, 150, 154 * c.nos / 100, 5); }
+      if (c.tune && c.tune.turbo) { x.fillStyle = '#9a9a9a'; x.font = '600 8px Inter, sans-serif'; x.fillText(`BOOST ${(Math.abs(c.thr || 0) * Math.min(1, kmh / 60) * 2.5).toFixed(1)} bar`, 395, 8); }
+      gauge(560, 104, 46, K.carModel(c).ev ? 100 : c.fuel, 100, 25, 'TANK', null, '', null);
+      gauge(676, 104, 46, c.temp, 150, 30, '°C', 110, '', String(Math.round(c.temp)));
+      // engine / body bars under the small gauges
+      const bar = (bx, v, label) => { x.fillStyle = 'rgba(12,12,12,0.92)'; x.fillRect(bx - 46, 156, 92, 10); x.fillStyle = v > 60 ? '#4ade80' : v > 30 ? '#fbbf24' : '#ef4444'; x.fillRect(bx - 45, 157, 90 * v / 100, 8); x.fillStyle = '#ddd'; x.font = '700 7px Inter, sans-serif'; x.fillText(label, bx, 161.5); };
+      bar(560, c.eng, 'MOTOR'); bar(676, c.bodyHP, 'KAROSSERIE');
+      // warnings
+      const warn = this.chWarn || (this.chWarn = document.getElementById('ch-warn'));
+      const wtxt = c.temp >= 110 ? `MOTOR ÜBERHITZT — ${Math.round(c.temp)}°C` : c.eng < 10 ? 'MOTORSCHADEN' : !K.carModel(c).ev && c.fuel < 8 ? (c.fuel <= 0 ? 'TANK LEER' : 'TANK FAST LEER') : c.leak ? 'TANK LECK — SPRIT LÄUFT AUS' : '';
+      if (warn.textContent !== wtxt) warn.textContent = wtxt;
+      warn.classList.toggle('on', !!wtxt);
+      // windshield crack overlay (5 levels)
+      if (crack) {
+        const lvl = Math.ceil((c.crack || 0) / 20);
+        crack.classList.toggle('hidden', lvl <= 0);
+        if (lvl > 0) { if (!this.crackURL) this.crackURL = this.makeCrack(); if (!crack.style.backgroundImage) crack.style.backgroundImage = `url(${this.crackURL})`; crack.style.opacity = (lvl / 5 * 0.55).toFixed(2); }
+      }
+    }
+    makeCrack() {
+      const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; const x = cv.getContext('2d');
+      x.strokeStyle = 'rgba(230,240,255,0.85)'; x.lineCap = 'round';
+      const burst = (ox, oy, n, len) => { for (let k = 0; k < n; k++) { let a = (k / n) * 6.3 + Math.random() * 0.4, px = ox, py = oy; x.lineWidth = 1.6; x.beginPath(); x.moveTo(px, py); for (let s = 0; s < 9; s++) { a += (Math.random() - 0.5) * 0.5; px += Math.cos(a) * len * (0.5 + Math.random()); py += Math.sin(a) * len * (0.5 + Math.random()); x.lineTo(px, py); } x.stroke(); } for (let r = 1; r < 4; r++) { x.lineWidth = 0.8; x.beginPath(); for (let k = 0; k <= 14; k++) { const a = k / 14 * 6.3, rr = r * len * 1.6 * (0.8 + Math.random() * 0.4); k ? x.lineTo(ox + Math.cos(a) * rr, oy + Math.sin(a) * rr) : x.moveTo(ox + Math.cos(a) * rr, oy + Math.sin(a) * rr); } x.stroke(); } };
+      burst(1050, 160, 16, 38); burst(260, 560, 11, 26);
+      return cv.toDataURL();
+    }
+    /** rde_fuel-style pump display */
+    pumpPanel(w, P) {
+      const el = this.ppEl || (this.ppEl = document.getElementById('pumppanel'));
+      if (!el) return;
+      const dt = 1 / 60;
+      if (this.pumpErrT > 0) this.pumpErrT -= dt;
+      if (this.pumpDone) this.pumpDone.t -= dt;
+      const show = !!P.nozzle || (this.pumpDone && this.pumpDone.t > 0);
+      el.classList.toggle('hidden', !show);
+      if (!show) return;
+      const f = P.fueling || (this.pumpDone && this.pumpDone.t > 0 ? this.pumpDone : null);
+      const car = P.fueling ? w.cars.find((q) => q.id === P.fueling.car) : null;
+      const amt = f ? f.cost : 0, pct = car ? car.fuel : f && f.pct != null ? f.pct : 0;
+      const a = U.clamp(amt, 0, 999.99).toFixed(2).padStart(6, '0'), b = U.clamp(pct, 0, 100).toFixed(2).padStart(6, '0');
+      if (this.ppA !== a) { this.ppA = a; document.getElementById('pp-amt').textContent = a; }
+      if (this.ppB !== b) { this.ppB = b; document.getElementById('pp-pct').textContent = b; document.getElementById('pp-fill').style.width = U.clamp(pct, 0, 100) + '%'; }
+      el.classList.toggle('on', !!P.fueling); el.classList.toggle('err', this.pumpErrT > 0);
+      document.getElementById('pp-hose').style.visibility = P.nozzle ? 'visible' : 'hidden';
     }
     minimap() {
       const w = this.g.world, x = this.mmx, S = 440, p = w.player;
@@ -242,6 +346,12 @@
         else if ((a.kind === 'guard' || a.kind === 'bodyguard' || a.kind === 'gang') && known) x.fillStyle = '#ffb000';
         else continue;
         x.beginPath(); x.arc(mx, my, 5, 0, 6.3); x.fill();
+      }
+      // your cars and the car service driver
+      x.font = '17px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      for (const car of w.cars) {
+        if (car.dead || car.driver === 'player') continue;
+        if (car.owned) { const [mx, my] = toM(car.x, car.y); if (mx < 0 || my < 0 || mx > S || my > S) continue; if (car.service) { x.fillStyle = '#3b82f6'; x.beginPath(); x.arc(mx, my, 8, 0, 6.3); x.fill(); } x.fillText('🚗', mx, my); }
       }
       for (const car of w.cars) if (car.kind === 'police' && !car.dead) { const [mx, my] = toM(car.x, car.y); x.fillStyle = Math.floor(this.t * 6) % 2 ? '#ff2a2a' : '#4f9bff'; x.fillRect(mx - 6, my - 6, 12, 12); }
       // waypoint
@@ -280,6 +390,7 @@
       switch (e.type) {
         case 'notify': this.feed(e.text, e.kind); break;
         case 'waypoint': this.g.waypoint = { x: e.x, y: e.y }; break;
+        case 'pump': if (e.broke) { this.pumpErrT = 1.8; } if (e.done) { this.pumpDone = { ...e.done, t: 1.5 }; } break;
         case 'turf': this.turfTex = null; break;
         case 'banner': this.banner(e.title, e.sub, e.kind); break;
         case 'wanted':

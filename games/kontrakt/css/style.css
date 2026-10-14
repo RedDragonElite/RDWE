@@ -304,3 +304,75 @@ body.wanted #hud::after { content: ''; position: fixed; inset: 0; pointer-events
 .tagside .caps .btn.on { background: #eee; color: #111; }
 #tg-cv { position: static; inset: auto; height: auto; flex: 1 1 420px; min-width: 260px; max-width: 768px; aspect-ratio: 3 / 1; border-radius: 10px; cursor: crosshair; touch-action: none; background: linear-gradient(#3a3d44, #2d3036), repeating-linear-gradient(0deg, transparent 0 31px, rgba(0,0,0,.25) 31px 32px), repeating-linear-gradient(90deg, transparent 0 63px, rgba(0,0,0,.25) 63px 64px); background-blend-mode: multiply; }
 @media (max-width: 700px) { .ganrow { grid-template-columns: 1fr 1fr; } .tagside { width: 100%; } }
+
+/* ---- cars: dealer, tuning, car service, pump, car hud ---- */
+.dealer { display: grid; grid-template-columns: 220px 1fr; gap: 14px; }
+.dl-list { display: grid; gap: 6px; align-content: start; max-height: 62vh; overflow: auto; }
+.dl-it { text-align: left; background: rgba(255,255,255,.04); border: 1px solid var(--line); color: #ddd; border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+.dl-it b { display: block; font: 600 14px var(--f-head); letter-spacing: 1px; }
+.dl-it small { color: #999; }
+.dl-it.on { border-color: #f59e0b; background: rgba(245,158,11,.1); }
+.dl-main canvas, .tn-left canvas { position: static; width: 100%; height: auto; border-radius: 10px; display: block; }
+.dl-main h3, .tn-left h3 { font: 600 22px var(--f-head); letter-spacing: 2px; margin: 10px 0 4px; }
+.dl-main h3 small, .tn-left h3 small { color: #f59e0b; font-size: 12px; margin-left: 8px; }
+.carstats { display: grid; gap: 4px; margin: 8px 0; }
+.carstats .sk { display: grid; grid-template-columns: 80px 1fr 90px; align-items: center; gap: 8px; font-size: 12px; color: #aaa; }
+.carstats .sk i { height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.carstats .sk i b { display: block; height: 100%; }
+.carstats .sk em { font-style: normal; color: #ddd; text-align: right; }
+.dealer .sw, .tune .sw { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+.dealer .sw i { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(255,255,255,.15); }
+.dealer .sw i.on { border-color: #fff; }
+.tune { display: grid; grid-template-columns: 360px 1fr; gap: 16px; }
+.tn-rep p { color: #aaa; font-size: 12px; margin: 4px 0 8px; }
+.tn-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.tn-cats button { background: rgba(255,255,255,.05); border: 1px solid var(--line); border-bottom: 3px solid var(--c); color: #ddd; padding: 7px 10px; border-radius: 8px; cursor: pointer; font: 600 13px var(--f-head); letter-spacing: 1px; }
+.tn-cats button.on { background: color-mix(in srgb, var(--c) 25%, transparent); color: #fff; }
+.tn-part { margin-bottom: 10px; }
+.tn-part .sub small { color: #888; text-transform: none; letter-spacing: 0; }
+.tn-opts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.tn-o { background: rgba(255,255,255,.04); border: 1px solid var(--line); color: #ddd; border-radius: 7px; padding: 6px 9px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+.tn-o i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 1px solid rgba(255,255,255,.3); }
+.tn-o small { color: #f59e0b; }
+.tn-o.cur { border-color: #5fd38d; color: #5fd38d; }
+.tn-o.pv { border-color: #f59e0b; background: rgba(245,158,11,.15); }
+.tn-buy { position: sticky; bottom: -14px; margin-top: 10px; display: flex; gap: 10px; align-items: center; justify-content: flex-end; background: rgba(12,12,16,.96); padding: 10px; border-top: 1px solid var(--line); }
+.tn-buy span { margin-right: auto; color: #ccc; }
+.cs { color: #e6edf3; }
+.cs-head { background: linear-gradient(135deg,#0f172a,#0d1117); border: 1px solid #1e293b; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.cs-head b { display: block; letter-spacing: 2px; font-size: 13px; }
+.cs-head small { color: #22d3ee; font-size: 11px; }
+.cs-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+.cs-tabs button { flex: 1; background: #0f172a; color: #94a3b8; border: 1px solid #1e293b; border-radius: 8px; padding: 6px; cursor: pointer; }
+.cs-tabs button.on { color: #fff; border-color: #3b82f6; }
+.cs-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 10px; margin-bottom: 8px; }
+.cs-card.blue { border-left: 3px solid #3b82f6; } .cs-card.green { border-left: 3px solid #10b981; }
+.cs-card p { color: #94a3b8; font-size: 12px; margin: 4px 0 8px; }
+.cs-car { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; }
+.cs-car small { display: block; color: #94a3b8; font-size: 11px; }
+#pumppanel { position: absolute; right: 24px; bottom: 190px; width: 256px; padding: 10px; border-radius: 10px; background: linear-gradient(160deg,#c9ced4,#8b939c 45%,#b8bec6); box-shadow: 0 10px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.6); color: #111; font-family: 'Share Tech Mono', ui-monospace, monospace; }
+.pp-head { background: #1f8a4c; border-bottom: 4px solid #f2c200; color: #fff; padding: 4px 8px; border-radius: 4px; font: 700 13px var(--f-head); letter-spacing: 2px; display: flex; gap: 6px; align-items: center; }
+.pp-head em { margin-left: auto; font-style: normal; font-size: 11px; opacity: .8; }
+.pp-screen { background: #060606; border-radius: 6px; margin-top: 8px; padding: 8px 10px; box-shadow: inset 0 2px 8px rgba(0,0,0,.9); }
+.pp-screen label { display: block; color: #6b6b6b; font-size: 10px; letter-spacing: 2px; }
+.seg { position: relative; font-size: 30px; line-height: 1.1; text-align: right; font-weight: 700; letter-spacing: 2px; }
+.seg s { position: absolute; right: 0; color: rgba(255,120,0,.08); text-decoration: none; }
+.seg span { color: #ff8a1a; text-shadow: 0 0 8px rgba(255,120,0,.8); position: relative; }
+.pp-bar { height: 6px; background: #222; border-radius: 3px; margin: 6px 0; overflow: hidden; }
+.pp-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg,#ff5a00,#ffb000); }
+.pp-foot { display: flex; justify-content: space-between; color: #888; font-size: 10px; }
+.leds u { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #3a1a00; margin-left: 3px; }
+#pumppanel.on .leds u { animation: led 1.02s infinite; } #pumppanel.on .leds u:nth-child(2) { animation-delay: .34s; } #pumppanel.on .leds u:nth-child(3) { animation-delay: .68s; }
+@keyframes led { 0%, 30% { background: #ff8a1a; box-shadow: 0 0 6px #ff8a1a; } 31%, 100% { background: #3a1a00; box-shadow: none; } }
+.pp-hose { margin-top: 6px; text-align: center; font-size: 10px; letter-spacing: 2px; background: #222; color: #ffb000; border-radius: 3px; padding: 2px; }
+.pp-err { display: none; margin-top: 6px; text-align: center; background: #b00020; color: #fff; font-weight: 700; padding: 3px; border-radius: 3px; animation: pulse .6s infinite alternate; }
+#pumppanel.err .pp-err { display: block; }
+#carhud { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); pointer-events: none; }
+#carhud canvas { position: static; width: 760px; height: 170px; }
+#ch-warn { position: absolute; left: 50%; top: -34px; transform: translateX(-50%); white-space: nowrap; background: rgba(239,68,68,.92); color: #fff; font: 700 13px var(--f-head); letter-spacing: 2px; padding: 4px 12px; border-radius: 6px; display: none; }
+#ch-warn.on { display: block; animation: pulse .5s infinite alternate; }
+#crack { position: absolute; inset: 0; pointer-events: none; background-repeat: no-repeat; background-size: cover; }
+body.driving #vitals { opacity: .55; }
+@media (max-width: 900px) { .dealer, .tune { grid-template-columns: 1fr; } #carhud canvas { width: 96vw; height: auto; } }
+@keyframes pulse { from { opacity: 1; } to { opacity: .55; } }
+body.driving #prompt { bottom: 205px; }

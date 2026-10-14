@@ -120,7 +120,8 @@
           }
           const car = this.bulletCar(x, y, p.car);
           if (car) {
-            this.damageCar(car, p.dmg * 0.35, this.byId.get(p.owner)); this.emit('impact', { x, y, a: Math.atan2(p.vy, p.vx), mat: 'metal' });
+            if (this.carHit) this.carHit(car, x, y, p.dmg, this.byId.get(p.owner), 'bullet'); else this.damageCar(car, p.dmg * 0.35, this.byId.get(p.owner));
+            this.emit('impact', { x, y, a: Math.atan2(p.vy, p.vx), mat: 'metal' });
             if (car.driver === 'player' && Math.random() < 0.3) this.hurt(this.player, p.dmg * 0.7, this.byId.get(p.owner), { kind: 'bullet', dir: Math.atan2(p.vy, p.vx), w: p.w });
             alive = false; break;
           }

@@ -1,7 +1,7 @@
 // AI behaviour scenarios: node tools/scenarios.mjs
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js','js/game/gangs.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
+for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js','js/game/gangs.js','js/game/autos.js','js/game/carservice.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
 const K = ctx.K, TILE = 32;
 let ok = 0, fail = 0;
 const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
@@ -154,7 +154,7 @@ console.log('8) crew: hire, call, follow, ride along, fight, clinic');
   // ride along
   const car = w.cars.find(c => !c.dead && c.kind !== 'police' && Math.hypot(c.x - p.x, c.y - p.y) < 30 * TILE) || w.spawnCar('police', p.x + 60, p.y, 0, { parked: true });
   if (car) {
-    car.driver = null; car.speed = 0; car.vx = car.vy = 0;
+    car.driver = null; car.speed = 0; car.vx = car.vy = 0; car.playerOwned = true;   // your own car — no theft
     for (const a of w.crewActors()) { a.x = car.x + 40; a.y = car.y + 10; }
     p.x = car.x; p.y = car.y + 30; w.enterCar(car); p.inCar = car.id; car.driver = 'player';
     let boarded = false; for (let i = 0; i < 60 * 12 && !boarded; i++) { run(w, 1); boarded = w.crewActors().every(a => a.inCar === car.id); }

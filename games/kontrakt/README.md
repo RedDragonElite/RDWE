@@ -162,6 +162,48 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Frieden kann man kaufen. Verliert eine Gang ihr letztes Revier, ist sie zerschlagen.
 - **Einnahmen:** Jeder eigene Block bringt $150 pro Tag. Dealen im eigenen Revier bringt +25%.
 
+### Autos: Autohaus, Tanken, Werkstatt, Car Service (nach rde_fuel, rde_mechanic, rde_carservice, rde_carhud)
+- **12 Modelle mit eigener Silhouette:** Brisa Mini, Vela Limousine, Kastenwagen, Hauler-Pickup, Corsa GT, Ranger-SUV, Bulldog V8, Volta E (elektrisch), Furia S und Spectre RS (234 km/h). Im Verkehr fahren alle Modelle mit.
+- **Autohaus Krähenburg** (Mitte):
+  - Showroom mit Verkäufer und Ausstellungswagen auf dem Hof.
+  - Katalog mit Werten (Spitze, Beschleunigung, Handling, Bremsen, Verbrauch) und Werksfarbe.
+  - Gekaufte Autos gehören dir und werden mit Zustand und Tuning gespeichert.
+- **Realistischer Schaden:**
+  - Die Karosserie verbeult genau dort, wo du einschlägst (28-Punkt-Verformung), dazu Kratzer, kaputte Scheinwerfer und Rückleuchten und eine gesprungene Scheibe.
+  - Motor, Karosserie, Tank und alle 4 Reifen haben eigene Werte.
+  - Reifen lassen sich zerschießen und schleifen dann Funken auf der Felge. Ein Tankleck lässt Sprit auslaufen.
+  - Ein sterbender Motor qualmt erst hell, dann dunkel, dann brennt er.
+- **Umfahren:** Laternen (das Licht geht aus), Hydranten (Wasserfontäne), Bänke, Mülleimer, Poller, Automaten und Schilder fallen um. Bäume und Wände halten.
+- **Tanken wie bei rde_fuel:**
+  - Zapfpistole nehmen (E). Der Schlauch spannt sich, wer zu weit läuft, verliert die Pistole.
+  - Am Tank einstecken (E) und das Zapfsäulen-Display mit 7-Segment-Anzeige beobachten.
+  - Bezahlt wird am Ende, bei „NICHT GENUG GELD“ stoppt die Säule.
+  - Benzinkanister, Ersatzreifen und Reparaturset gibt es im Kiosk.
+  - Leerer Tank: Der Motor stottert und geht aus. Der Volta E fährt elektrisch.
+- **Werkstatt „Schraubstock“ wie rde_mechanic:**
+  - In eine Bühne fahren, dann T drücken.
+  - Reparatur mit Preis und Dauer: Ein Mechaniker läuft zur Haube, Funken fliegen, alles wird Stück für Stück wieder heil.
+  - Tuning mit Vorschau, erst „✅ Kaufen“ oder „❌ Abbrechen“ macht es fest. Preise skalieren mit der Fahrzeugklasse.
+    - Leistung: Motor 1–4, Getriebe, Bremsen, Fahrwerk, Panzerung 1–4, Turbo, Sport-, Drift- oder kugelsichere Reifen, Nitro.
+    - Lack: 22 Farben in Klassik, Matt, Metallic, Spezial und Chrom, dazu Streifen und Felgen.
+    - Licht: Xenon und 14 Neon-Unterbodenfarben.
+    - Karosserie: Spoiler, Haube, Tönung, Hupen.
+    - Bordwaffen: MG und Raketen.
+- **Car Service (Handy-App):**
+  - Ein Fahrer liefert dein eingelagertes Auto an deinen Standort ($750), mit ETA, Tracking auf der Minimap, Hupe bei Ankunft und Schlüsselübergabe.
+  - Oder er holt ein geparktes Auto ab und bringt es in die Garage ($500).
+  - Totalschaden? Die Versicherung ersetzt ihn für 15% des Neupreises.
+- **Cockpit (rde_carhud):**
+  - Tacho bis 280 km/h, Drehzahl mit rotem Bereich, Gang (N/R/1–6), Kilometerzähler, Tank und Motortemperatur.
+  - Warnleuchten für Motor, Gurt, Tempomat und Licht, Reifenstatus VL/VR/HL/HR sowie NOS- und Boost-Anzeige.
+  - Banner bei Überhitzung und leerem Tank, Riss-Overlay für die Frontscheibe.
+- **Fahren:**
+  - Motor anlassen. Geklaute Autos musst du erst kurzschließen.
+  - Gurt (B): Ohne Gurt fliegst du ab ca. 75 km/h durch die Frontscheibe.
+  - Motortemperatur: Hitze kostet Leistung, über 140 °C gibt es einen Motorschaden.
+  - Außerdem Tempomat (X), Blinker (Q/E), Abblend- und Fernlicht (L) und Nitro (Shift).
+- **Fäuste wegstecken (H):** Hände unten, kein versehentlicher Schlag. Der erste Klick hebt die Fäuste.
+
 ### Leben, Wirtschaft, RPG
 - **Hunger, Durst, Energie, Ausdauer, Blutungen, Trunkenheit und Schmerzmittel.**
 - **Essen und Trinken** im Diner, in der Bar, im Späti und an Getränkeautomaten.
@@ -216,6 +258,10 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 | **B** | Crew-Menü & Gang | **V** | Crew: Ziel angreifen |
 | **E/T an Tresortür** | Keycard / Bohrer | **T an Vitrine** | Einschlagen |
 | **E am Tag-Spot** | Revier sprühen | **Z (Tag-Editor)** | Rückgängig |
+| **H** | Waffe / Fäuste wegstecken | **E an Zapfsäule** | Zapfpistole / Tanken |
+| **Im Auto B / N** | Gurt · Motor | **Im Auto X / L** | Tempomat · Licht |
+| **Im Auto Q / E** | Blinker | **Im Auto Shift / T** | Nitro · Werkstatt |
+| **Im Auto LMB / RMB** | Drive-by bzw. MG · Raketen | **Im Auto F** | Aussteigen |
 
 ---
 
@@ -229,7 +275,8 @@ games/kontrakt/
 ├── js/world/             citygen (Viertel, Gebäude, Räume, Möbel, Licht, Zonen), nav (A*, Sichtlinie, Raycasts)
 ├── js/game/              world (Physik, Türen, Zeit, Wetter, Licht, Lärm) + Mixins:
 │                         economy, combat, crime, ai, contracts, vehicles, player, underworld,
-│                         police (Einheiten, Einsatzregeln), criminals, heists, crew, gangs
+│                         police (Einheiten, Einsatzregeln), criminals, heists, crew, gangs,
+│                         autos (Modelle, Schaden, Sprit, Cockpit), carservice (Autohaus, Tanken, Werkstatt, App)
 ├── js/render/            textures, sprites (Menschen, Autos, Möbel), fx (Partikel, Decals),
 │                         renderer (Chunks, Dächer, Schatten, Sichtfeld, Lightmap, Wetter, Overlay), post (WebGL2)
 ├── js/audio/audio.js     prozedurale SFX, Ambience und generative Musik
@@ -241,6 +288,7 @@ games/kontrakt/
 - **Getrennte Simulation:** `K.World` läuft komplett ohne DOM, auch in Node.
   - `node tools/sim.mjs` spielt Laufen, Schießen, Auftrag, Takedown, Fahren, 5 Spielstunden und Speichern headless durch.
   - `node tools/scenarios.mjs` prüft die KI: Hausfriedensbruch, Verkleidung, Münzen-Ablenkung, Leichenfund, Zeugen mit Polizei, Klaviersaite.
+  - `node tools/crime.mjs` prüft Unterwelt, Überfälle, Gangs und Reviere; `node tools/cars.mjs` prüft Sprit, Crashs, Verformung, Gurt, Laternen, Reifen, Tuning, Autohaus, Zapfsäule, Werkstatt und Car Service.
 - **Speichern** in `localStorage`. Die Stadt wird aus dem Seed neu erzeugt, deshalb bleibt der Spielstand klein.
 
 *Red Dragon Elite · pure HTML · CSS · JavaScript*

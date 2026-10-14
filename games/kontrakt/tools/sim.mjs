@@ -1,7 +1,7 @@
 // headless simulation smoke test: node tools/sim.mjs
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, Date, JSON, globalThis: null, performance: { now: () => Date.now() } }; ctx.globalThis = ctx; vm.createContext(ctx);
-const files = ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js','js/game/gangs.js'];
+const files = ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js','js/game/gangs.js','js/game/autos.js','js/game/carservice.js'];
 for (const f of files) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
 const K = ctx.K;
 let ok = 0, fail = 0;
@@ -54,7 +54,7 @@ for (let i = 0; i < 600 && !done; i++) { w.update(dt, inp()); for (const e of w.
 check(!!done, 'contract finished');
 if (done) console.log('rating', done.rating, 'pay', done.pay, done.lines.map(l=>l.t+':'+l.v).join(' | '));
 // car: enter nearest car and drive
-const car = w.cars.find(c=>!c.dead); p.x = car.x; p.y = car.y + 30; w.rebuildGrid(); w.enterCar(car);
+const car = w.cars.find(c=>!c.dead && !c.display && c.driver); p.x = car.x; p.y = car.y + 30; w.rebuildGrid(); w.enterCar(car);
 const cx = car.x, cy = car.y;
 for (let i = 0; i < 180; i++) { w.update(dt, inp({ up: true })); w.events.length=0; }
 console.log('drove', Math.round(Math.hypot(car.x-cx, car.y-cy)), 'speed', Math.round(car.speed));

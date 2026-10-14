@@ -178,6 +178,16 @@
         case 'harvest': for (let k = 0; k < 4; k++) this.noise(g, t + k * 0.12, 0.15, 'highpass', 2500, null, 1, 0.3); break;
         case 'cough': for (let k = 0; k < 3; k++) this.noise(g, t + 0.2 + k * 0.22, 0.12, 'bandpass', 500, 250, 1.5, 0.5); break;
         case 'spray': this.noise(g, t, 0.45, 'highpass', 4500, 3500, 0.7, 0.22); this.tone(g, t, 0.05, 'square', 1200, null, 0.03); break;
+        case 'sputter': for (let k = 0; k < 3; k++) this.noise(g, t + k * 0.09, 0.06, 'lowpass', 300, 120, 1, 0.6); break;
+        case 'stall': this.tone(g, t, 0.6, 'sawtooth', 70, 25, 0.12); this.noise(g, t, 0.4, 'lowpass', 400, 80, 1, 0.4); break;
+        case 'crank': for (let k = 0; k < 6; k++) { this.tone(g, t + k * 0.16, 0.12, 'sawtooth', 55 + Math.random() * 10, 40, 0.12); this.noise(g, t + k * 0.16, 0.1, 'bandpass', 900, 500, 2, 0.15); } break;
+        case 'ignite': this.tone(g, t, 0.7, 'sawtooth', 50, 95, 0.18); this.noise(g, t, 0.5, 'lowpass', 700, 200, 1, 0.4); break;
+        case 'belt': this.tone(g, t, 0.04, 'square', 1800, null, 0.12); this.tone(g, t + 0.06, 0.05, 'square', 1200, null, 0.15); break;
+        case 'unbelt': this.tone(g, t, 0.05, 'square', 1100, null, 0.12); this.noise(g, t + 0.03, 0.15, 'bandpass', 2500, 1500, 2, 0.2); break;
+        case 'nozzle': this.tone(g, t, 0.05, 'square', 600, null, 0.14); this.noise(g, t + 0.04, 0.12, 'bandpass', 1600, 900, 2, 0.3); break;
+        case 'wrench': for (let k = 0; k < 3; k++) this.tone(g, t + k * 0.07, 0.05, 'triangle', 2200 + Math.random() * 800, null, 0.08); break;
+        case 'keys': for (let k = 0; k < 5; k++) this.tone(g, t + Math.random() * 0.2, 0.08, 'sine', 3500 + Math.random() * 2500, null, 0.06); break;
+        case 'rocket': this.noise(g, t, 0.9, 'bandpass', 1200, 300, 0.7, 0.8); this.tone(g, t, 0.6, 'sawtooth', 220, 90, 0.1); break;
         case 'drill': this.tone(g, t, 0.5, 'sawtooth', 820 + Math.random() * 60, 760, 0.07); this.noise(g, t, 0.5, 'bandpass', 3200, 2600, 4, 0.18); break;
         case 'vault': this.tone(g, t, 1.2, 'sine', 70, 40, 0.9); this.noise(g, t, 0.6, 'lowpass', 500, 120, 1, 0.8); this.tone(g, t + 0.5, 0.8, 'square', 180, 120, 0.06); this.send(g, 0.8); break;
         case 'heart': this.tone(g, t, 0.12, 'sine', 60, 40, 0.9); this.tone(g, t + 0.18, 0.12, 'sine', 55, 38, 0.7); break;
@@ -214,7 +224,14 @@
         case 'throw': { const g = this.out(e.x, e.y, 0.2, 300); if (g) this.noise(g, t, 0.15, 'bandpass', 800, 2000, 1, 0.5); break; }
         case 'crash': { const g = this.out(e.x, e.y, U.clamp(e.v / 300, 0.3, 1), 1400); if (!g) break; this.noise(g, t, 0.35, 'lowpass', 1500, 200, 0.7, 1.2); for (let k = 0; k < 5; k++) this.tone(g, t + Math.random() * 0.15, 0.2, 'triangle', 600 + Math.random() * 1500, null, 0.12); if (Math.random() < 0.5) this.noise(g, t + 0.05, 0.3, 'highpass', 3000, null, 1, 0.3); break; }
         case 'carHit': this.flesh(e.x, e.y, true); break;
-        case 'honk': { const g = this.out(e.x, e.y, 0.35, 1400); if (g) { this.tone(g, t, 0.45, 'square', 420, null, 0.12, 0.01); this.tone(g, t, 0.45, 'square', 530, null, 0.1, 0.01); } break; }
+        case 'honk': { const g = this.out(e.x, e.y, 0.35, 1400); if (!g) break;
+          if (e.horn === 1) [523, 659, 784].forEach((f, k) => this.tone(g, t + k * 0.12, 0.14, 'square', f, null, 0.1, 0.01));
+          else if (e.horn === 2) { this.tone(g, t, 0.8, 'sawtooth', 160, null, 0.16, 0.02); this.tone(g, t, 0.8, 'sawtooth', 200, null, 0.12, 0.02); }
+          else if (e.horn === 3) [392, 392, 392, 523, 659].forEach((f, k) => this.tone(g, t + [0, 0.12, 0.24, 0.36, 0.6][k], k > 2 ? 0.22 : 0.1, 'square', f, null, 0.09, 0.01));
+          else { this.tone(g, t, 0.45, 'square', 420, null, 0.12, 0.01); this.tone(g, t, 0.45, 'square', 530, null, 0.1, 0.01); }
+          break; }
+        case 'propSmash': { const g = this.out(e.x, e.y, 0.6, 1600); if (!g) break; this.noise(g, t, 0.3, 'lowpass', 1200, 200, 0.8, 1); if (e.k === 'lamp' || e.k === 'bollard' || e.k === 'hydrant') { for (let k = 0; k < 4; k++) this.tone(g, t + k * 0.03, 0.5, 'triangle', 300 + k * 410 + Math.random() * 90, null, 0.1); } if (e.k === 'lamp') this.noise(g, t + 0.05, 0.4, 'highpass', 3500, null, 1, 0.4); if (e.k === 'hydrant') this.noise(g, t + 0.1, 2.5, 'bandpass', 1800, 900, 0.8, 0.3); break; }
+        case 'tireBurst': { const g = this.out(e.x, e.y, 0.6, 1400); if (g) { this.noise(g, t, 0.12, 'lowpass', 2500, 300, 0.7, 1.4); this.noise(g, t + 0.05, 0.6, 'highpass', 2000, 800, 1, 0.3); } break; }
         case 'skid': if (this.rate('skid', 0.12)) { const g = this.out(e.x, e.y, 0.2, 800); if (g) this.noise(g, t, 0.2, 'bandpass', 1100, 900, 4, 0.6); } break;
         case 'carEnter': case 'carExit': { const g = this.out(null, null, 0.3); if (g) { this.tone(g, t, 0.1, 'sine', 120, 60, 0.6); this.noise(g, t, 0.08, 'lowpass', 600, null, 1, 0.5); } break; }
         case 'thunder': { const g = this.out(null, null, 0.9); if (g) { const d = e.delay || 0.5; this.noise(g, t + d, 3.5, 'lowpass', 300, 50, 0.7, 1.4, this.brown); this.noise(g, t + d + 0.2, 1.4, 'lowpass', 800, 100, 0.5, 0.6); } break; }
@@ -282,11 +299,15 @@
       set(this.sirenP.pan, U.clamp((sx - this.lx) / 700, -1, 1), 0.1);
       // engine
       const car = p.inCar ? w.carOf(p) : null;
-      if (car) {
-        const rpm = 1 + Math.abs(car.vf || 0) / 120 % 3.2 + Math.abs(car.thr) * 0.4;
+      if (car && car.engineOn !== false) {
+        const ratio = Math.abs(car.vf || 0) / ((K.CARK[car.kind] || { max: 450 }).max * 1.05), band = ratio * 6 - Math.floor(ratio * 6);
+        const rpm = 1 + band * 2.4 + Math.abs(car.thr) * 0.4 + (car.boost ? 0.8 : 0) + (car.kind === 'muscle' ? -0.3 : car.kind === 'super' ? 0.4 : 0);
+        if (K.CARMODELS && K.CARMODELS[car.kind] && K.CARMODELS[car.kind].ev) { set(this.engO.frequency, 180 + ratio * 900, 0.06); set(this.engO2.frequency, 90 + ratio * 450, 0.06); set(this.engF.frequency, 1200, 0.08); set(this.engG.gain, 0.02 + ratio * 0.03, 0.08); }
+        else {
         set(this.engO.frequency, 32 * rpm, 0.06); set(this.engO2.frequency, 16 * rpm, 0.06);
         set(this.engF.frequency, 300 + Math.abs(car.thr) * 900 + (car.speed || 0) * 0.8, 0.08);
-        set(this.engG.gain, 0.06 + Math.abs(car.thr) * 0.05, 0.08);
+        set(this.engG.gain, (0.06 + Math.abs(car.thr) * 0.05) * (car.sputter > 0 ? 0.2 : 1), 0.08);
+        }
       } else set(this.engG.gain, 0, 0.15);
       // critters
       const dist = w.districtAt(p.x, p.y);

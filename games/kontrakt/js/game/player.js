@@ -23,15 +23,18 @@
         if (!c || c.dead) { a.inCar = null; return; }
         this.carInput = { thr: (inp.up ? 1 : 0) - (inp.down ? 1 : 0), steer: (inp.right ? 1 : 0) - (inp.left ? 1 : 0), hb: !!inp.space };
         a.x = c.x; a.y = c.y; a.vx = c.vx; a.vy = c.vy; a.angle = aimAng; a.speed = 0;
-        if (pr.f || pr.e) this.exitCar();
-        if (pr.h && c.honk <= 0) { c.honk = 0.8; this.emit('honk', { x: c.x, y: c.y, player: true }); }
+        if (pr.f) this.exitCar();
+        if (pr.h && c.honk <= 0) { c.honk = 0.8; this.emit('honk', { x: c.x, y: c.y, player: true, horn: c.tune && c.tune.horn }); }
         if (c.kind === 'police' && pr.r) c.siren = !c.siren;
         const d = this.wdef(a);
-        if (d.type === 'gun' && (d.cls === 'pistol' || d.cls === 'smg') && (inp.fire || pr.fire)) { a.aim = aimAng; this.attack(a, aimAng, inp.fire, pr.fire); }
+        const carGun = this.driveControls ? this.driveControls(c, inp, pr) : false;
+        if (!carGun && d.type === 'gun' && (d.cls === 'pistol' || d.cls === 'smg') && (inp.fire || pr.fire)) { a.aim = aimAng; this.attack(a, aimAng, inp.fire, pr.fire); }
         if (pr.reload && d.type === 'gun') this.reload(a);
         this.switchWeapons(inp, pr);
         if (c.fire > 0) { this.exitCar(true); this.hurt(a, 10, null, { kind: 'explosion' }); }
         this.ctx = [{ key: 'F', label: 'Aussteigen' }];
+        if (this.carContext) this.carContext(c, (key, label, fn, hold, extra) => this.ctx.unshift({ key, label, fn, hold, ...extra }));
+        if (pr.t) { const ac = this.ctx.find((o) => o.key === 'T' && o.fn); if (ac) ac.fn(); }
         return;
       }
       this.carInput = null;
@@ -67,6 +70,7 @@
       a.sprint = !!inp.sprint && (mx || my) && P.stamina > 4 && !this.drag && !this.aiming;
       if (a.sprint) a.crouch = false;
       let sp = a.sprint ? 178 : a.crouch ? 58 : 98;
+      if (a.slowT > 0) { a.slowT -= dt; sp *= 0.35; }
       if (this.drag) sp = 52;
       if (this.aiming) sp *= 0.68;
       if (P.energy < 12) sp *= 0.82;
@@ -238,6 +242,7 @@
             const keeper = this.actors.find((k) => k.kind === 'keeper' && k.home === b.id && k.alive && k.ko <= 0 && k.state === 'work' && Math.hypot(k.x - k.brain.post.x, k.y - k.brain.post.y) < 40);
             if (!this.shopOpen(s)) add('E', `${s.name} — geschlossen (öffnet ${s.open[0]}:00)`, null);
             else if (!keeper) { if (!out.some((o) => o.label === 'Kasse ausräumen' || o.label === 'Kasse ist leer')) add('E', `${s.name} — niemand da`, null); }
+            else if (s.cars) add('E', 'Autohaus: Katalog & Kauf', () => { this.emit('ui', { open: 'dealer' }); this.bark(keeper, 'Suchen Sie etwas Schnelles? Oder etwas Unauffälliges?', 2.4); });
             else if (s.bank) add('E', 'Bankschalter: Konto', () => { this.emit('ui', { open: 'bank' }); this.bark(keeper, 'Guten Tag, was kann ich für Sie tun?', 2); });
             else add('E', b.shop === 'hospital' ? 'Klinik: Behandlung & Medizin' : `Einkaufen: ${s.name}`, () => { this.emit('ui', { open: 'shop', shop: b.shop, b: b.id }); this.bark(keeper, U.pick(K.LINES.keeper), 2); });
           } else if (p.k === 'safe' && b) {

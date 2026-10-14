@@ -61,7 +61,7 @@
       const cx = (x / 256) | 0, cy = (y / 256) | 0;
       for (let j = cy - 1; j <= cy + 1; j++) for (let i = cx - 1; i <= cx + 1; i++) {
         const arr = this.lgrid.get(i + ',' + j); if (!arr) continue;
-        for (const L of arr) { const d = Math.hypot(L.x - x, L.y - y); if (d < L.r) l += (1 - d / L.r) * 0.9 * L.i; }
+        for (const L of arr) { if (L.dead) continue; const d = Math.hypot(L.x - x, L.y - y); if (d < L.r) l += (1 - d / L.r) * 0.9 * L.i; }
       }
       const b = this.bldAt(x, y);
       if (b >= 0 && this.buildingLit(this.buildings[b])) l += 0.6;
@@ -265,6 +265,7 @@
       this.updateContracts(dt);
       this.updateSurvival(dt, minutes);
       this.updateUnderworld(dt, minutes);
+      if (this.updateAutos) this.updateAutos(dt);
       this.updatePopulation(dt);
       if (this.tick % 120 === 0) this.cleanup();
     }

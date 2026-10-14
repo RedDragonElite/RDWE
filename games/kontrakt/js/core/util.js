@@ -18,6 +18,7 @@
     rnd: (a = 1, b) => (b === undefined ? Math.random() * a : a + Math.random() * (b - a)),
     rint: (n) => (Math.random() * n) | 0,
     pick: (arr) => arr[(Math.random() * arr.length) | 0],
+    pickW: (list) => { let t = 0; for (const [, w] of list) t += w; let r = Math.random() * t; for (const [v, w] of list) { if ((r -= w) < 0) return v; } return list[0][0]; },
     chance: (p) => Math.random() < p,
     gauss() { return (Math.random() + Math.random() + Math.random() - 1.5) / 1.5; },
     /** segment (x0,y0)->(x1,y1) vs circle → t in 0..1 or -1 */

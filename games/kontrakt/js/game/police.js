@@ -243,6 +243,10 @@
       if (last && dw < 26) thr = vf > 10 ? -1 : 0;
       if (c.speed < 15 && thr > 0) { c.stuckT = (c.stuckT || 0) + dt; c.stuckTot = (c.stuckTot || 0) + dt; if (c.stuckT > 1.4) { thr = -1; if (c.stuckT > 2.4) { c.stuckT = 0; c.route = null; } } } else { c.stuckT = 0; if (c.speed > 60) c.stuckTot = 0; }
       if (c.stuckTot > 6) this.unstickCar(c, wx, wy);
+      // no real progress towards the target for a while → re-route / hop back onto the road (off-camera)
+      c.progT = (c.progT || 0) + dt;
+      if (c.bestD == null || d < c.bestD - 2 * TILE) { c.bestD = d; c.progT = 0; }
+      if (c.progT > 14 && u.mode !== 'pursuit') { c.progT = 0; c.bestD = null; c.route = null; this.unstickCar(c, wx, wy); }
       return [thr, thr < 0 && c.stuckT > 1.4 ? -steer : steer, turn > 1.3 && vf > 200];
     },
 
@@ -253,7 +257,7 @@
       if (Math.hypot(c.x - p.x, c.y - p.y) < 22 * TILE && K.los(this, p.x, p.y, c.x, c.y)) return;
       const tx = (c.x / TILE) | 0, ty = (c.y / TILE) | 0;
       let best = null, bd = 1e9;
-      for (let j = ty - 3; j <= ty + 3; j++) for (let i = tx - 3; i <= tx + 3; i++) {
+      for (let j = ty - 9; j <= ty + 9; j++) for (let i = tx - 9; i <= tx + 9; i++) {
         if (i < 0 || j < 0 || i >= this.W || j >= this.H || this.tiles[j * this.W + i] !== K.T.ROAD) continue;
         const x = (i + 0.5) * TILE, y = (j + 0.5) * TILE, a = Math.atan2(wy - y, wx - x);
         if (this.carBlocked(c, x, y, a)) continue;

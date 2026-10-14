@@ -69,6 +69,10 @@
       if (id === 'mask') return this.toggleMask();
       if (id === 'growkit' || id === 'seed') return this.plantSeed();
       if (id === 'can' || id === 'fert' || id === 'hackkit') { this.notify(id === 'hackkit' ? 'Stell dich an einen Geldautomaten.' : 'Stell dich an eine Pflanze.', 'bad'); return false; }
+      if (id === 'jerrycan') return this.useJerrycan();
+      if (id === 'spare') return this.useSpare();
+      if (id === 'jerryempty') { this.notify('An einer Zapfsäule füllen [T].', 'bad'); return false; }
+      if (id === 'repair' && this.useRepairKit) return this.useRepairKit();
       if (id === 'repair') {
         const c = this.carNear(a);
         if (!c) return this.notify('Kein Auto in der Nähe.', 'bad'), false;
@@ -285,6 +289,7 @@
     },
     // ------------------------------------------------------------ save
     serialize() {
+      if (this.syncOwned) this.syncOwned();
       const P = this.P, a = this.player;
       return {
         v: 1, seed: this.seed, time: this.time, weather: this.weather.kind,

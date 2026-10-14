@@ -383,6 +383,18 @@
         }
         K.drawBody(ctx, a, w);
       }
+      // knocked-over street furniture
+      for (const d of w.debris || []) if (d.x > vx0 - 60 && d.x < vx1 + 60 && d.y > vy0 - 60 && d.y < vy1 + 60) K.drawDebris(ctx, d, this.time);
+      // fuel hose from the pump to your hand
+      if (w.P.nozzle) {
+        const nz = w.P.nozzle, f = w.P.fueling && w.cars.find((q) => q.id === w.P.fueling.car);
+        const ex = f ? f.x - Math.cos(f.a) * f.l * 0.3 + Math.sin(f.a) * f.w * 0.5 : p.x, ey = f ? f.y - Math.sin(f.a) * f.l * 0.3 - Math.cos(f.a) * f.w * 0.5 : p.y;
+        const sag = Math.min(40, Math.hypot(ex - nz.x, ey - nz.y) * 0.15);
+        ctx.strokeStyle = '#111'; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(nz.x, nz.y); ctx.quadraticCurveTo((nz.x + ex) / 2, (nz.y + ey) / 2 + sag, ex, ey); ctx.stroke();
+        ctx.strokeStyle = '#2f3237'; ctx.lineWidth = 1.4; ctx.stroke();
+      }
+      // rockets
+      for (const r of w.rockets || []) { ctx.save(); ctx.translate(r.x, r.y); ctx.rotate(Math.atan2(r.vy, r.vx)); ctx.fillStyle = '#ddd'; ctx.fillRect(-7, -2, 14, 4); ctx.fillStyle = '#ff8a1a'; ctx.fillRect(-11, -1.5, 4, 3); ctx.restore(); }
       // wrecks & cars
       for (const wr of w.wrecks || []) { if (wr.x < vx0 - 80 || wr.x > vx1 + 80 || wr.y < vy0 - 80 || wr.y > vy1 + 80) continue; K.drawCar(ctx, { x: wr.x, y: wr.y, a: wr.a, l: wr.l, w: wr.w, color: '#1a1714', wreck: true, kind: 'sedan', hp: 0 }, this.time, { sx: sun.dx * 6, sy: sun.dy * 6 }); }
       for (const c of w.cars) {
@@ -527,10 +539,25 @@
     }
     drawTall(ctx, vx0, vy0, vx1, vy1) {
       const w = this.w, p = w.player, wind = w.weather.wind;
+      // fuel-station & workshop canopies (fade when you are under them)
+      for (const cn of w.city.canopies || []) {
+        const X = cn.x * TILE, Y = cn.y * TILE, Wd = cn.w * TILE, H = cn.h * TILE;
+        if (X > vx1 || X + Wd < vx0 || Y > vy1 || Y + H < vy0) continue;
+        const pc = p.inCar ? w.carOf(p) : p, under = pc.x > X && pc.x < X + Wd && pc.y > Y && pc.y < Y + H;
+        cn.a = U.lerp(cn.a == null ? 1 : cn.a, under ? 0.18 : 0.92, 0.12);
+        ctx.globalAlpha = cn.a;
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(X + 10, Y + 14, Wd, H);
+        ctx.fillStyle = cn.col; ctx.fillRect(X, Y, Wd, H);
+        ctx.fillStyle = 'rgba(0,0,0,0.08)'; for (let i = 0; i < Wd; i += 16) ctx.fillRect(X + i, Y, 1, H);
+        ctx.fillStyle = cn.stripe; ctx.fillRect(X, Y, Wd, 6); ctx.fillRect(X, Y + H - 6, Wd, 6);
+        ctx.fillStyle = '#fff'; ctx.font = '700 22px Oswald, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(cn.label, X + Wd / 2, Y + H / 2);
+        ctx.globalAlpha = 1;
+      }
       const gx0 = Math.floor(vx0 / CPX) - 1, gx1 = Math.floor(vx1 / CPX) + 1, gy0 = Math.floor(vy0 / CPX) - 1, gy1 = Math.floor(vy1 / CPX) + 1;
       for (let gx = gx0; gx <= gx1; gx++) for (let gy = gy0; gy <= gy1; gy++) {
         const arr = this.tallGrid.get(gx * 1000 + gy); if (!arr) continue;
         for (const pr of arr) {
+          if (pr.broken) continue;
           const cx = (pr.x + pr.w / 2) * TILE, cy = (pr.y + pr.h / 2) * TILE;
           const under = Math.hypot(cx - p.x, cy - p.y) < (pr.k === 'tree' ? 22 : 18);
           K.drawTallProp(ctx, pr, this.time, wind, under ? 0.4 : pr.k === 'bush' ? 0.95 : 1);
@@ -622,6 +649,7 @@
       const inside = w.bldAt(w.player.x, w.player.y);
       if (nightK > 0.05) {
         for (const L of w.lights) {
+          if (L.dead) continue;
           if (L.x < vx0 - pad || L.x > vx1 + pad || L.y < vy0 - pad || L.y > vy1 + pad) continue;
           let i = L.i * nightK;
           if (L.kind === 'room') {
@@ -653,11 +681,18 @@
       for (const c of w.cars) {
         if (c.dead || c.x < vx0 - 300 || c.x > vx1 + 300 || c.y < vy0 - 300 || c.y > vy1 + 300) continue;
         if (c.lightsOn) {
-          l.save(); l.translate(c.x + Math.cos(c.a) * c.l / 2, c.y + Math.sin(c.a) * c.l / 2); l.rotate(c.a);
-          l.globalAlpha = 0.85 * nightK; l.drawImage(K.coneSprite(), 0, -70, 260, 140);
-          l.restore();
+          const ok = c.lightsOK || [1, 1, 1, 1], n = ok[0] + ok[1];
+          if (n) {
+            const hi = c.highBeam ? 1.55 : 1;
+            l.save(); l.translate(c.x + Math.cos(c.a) * c.l / 2, c.y + Math.sin(c.a) * c.l / 2); l.rotate(c.a);
+            l.globalAlpha = 0.85 * nightK * (n / 2); l.drawImage(K.coneSprite(), 0, -70 * hi * 0.9, 260 * hi, 140 * hi * 0.9);
+            if (c.tune && c.tune.xenon) { l.globalAlpha = 0.35 * nightK; l.drawImage(K.lightSprite(U.hex2rgb(c.tune.xenon)), 20, -60, 200, 120); }
+            l.restore();
+          }
           l.globalAlpha = 0.5 * nightK; const rs = K.lightSprite(c.brake ? [255, 30, 30] : [180, 20, 20]); l.drawImage(rs, c.x - Math.cos(c.a) * c.l / 2 - 26, c.y - Math.sin(c.a) * c.l / 2 - 26, 52, 52);
         }
+        if (c.tune && c.tune.neon) { l.globalAlpha = 0.75; l.drawImage(K.lightSprite(U.hex2rgb(c.tune.neon)), c.x - 70, c.y - 70, 140, 140); }
+        if (c.blink && Math.floor(this.time / 0.55) % 2 === 0) { l.globalAlpha = 0.6; l.drawImage(K.lightSprite([255, 170, 30]), c.x - 30, c.y - 30, 60, 60); }
         if (c.siren) { const on = Math.floor(this.time * 6) % 2; l.globalAlpha = 0.9; l.drawImage(K.lightSprite(on ? [255, 40, 40] : [40, 90, 255]), c.x - 110, c.y - 110, 220, 220); }
       }
       // flashlight
@@ -685,7 +720,7 @@
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.18 * this.wet;
         for (const L of w.lights) {
-          if (L.kind !== 'lamp' && L.kind !== 'neon') continue;
+          if ((L.kind !== 'lamp' && L.kind !== 'neon') || L.dead) continue;
           if (L.x < vx0 || L.x > vx1 || L.y < vy0 || L.y > vy1 + 100) continue;
           ctx.drawImage(K.lightSprite(L.c), L.x - 14, L.y + 4, 28, 90);
         }
@@ -722,7 +757,7 @@
       ctx.globalCompositeOperation = 'lighter';
       if (nightK > 0.1) {
         for (const L of w.lights) {
-          if (L.kind === 'room' || L.x < vx0 - 40 || L.x > vx1 + 40 || L.y < vy0 - 40 || L.y > vy1 + 40) continue;
+          if (L.dead || L.kind === 'room' || L.x < vx0 - 40 || L.x > vx1 + 40 || L.y < vy0 - 40 || L.y > vy1 + 40) continue;
           const r = L.kind === 'neon' ? 34 : L.kind === 'pool' ? 0 : 18;
           if (!r) continue;
           ctx.globalAlpha = 0.55 * nightK; ctx.drawImage(K.lightSprite(L.c), L.x - r, L.y - r, r * 2, r * 2);
@@ -940,6 +975,15 @@
           break;
         case 'glass': fx.glass(e.x, e.y, 14); fx.decal('glass', e.x, e.y); break;
         case 'sparks': fx.sparks(e.x, e.y, Math.random() * 6.3, 4); break;
+        case 'carSmoke': fx.smoke(e.x, e.y, 1, e.k >= 3 ? 1 : 0); if (e.k >= 3 && Math.random() < 0.3) fx.fire(e.x, e.y, 1); break;
+        case 'exhaustFlame': fx.fire(e.x, e.y, 2); fx.light(e.x, e.y, 70, [180, 120, 255], 0.6, 0.1); break;
+        case 'geyser': fx.add({ k: 'smoke', x: e.x + U.rnd(-4, 4), y: e.y + U.rnd(-4, 4), vx: U.rnd(-40, 40), vy: U.rnd(-90, -30), life: 0.7, max: 0.7, size: 3, grow: 10, col: [170, 210, 255], a: 0.7 }); if (Math.random() < 0.1) fx.decal('drop', e.x + U.rnd(-30, 30), e.y + U.rnd(-30, 30), { s: 2, col: 'water' }); break;
+        case 'tireBurst': fx.sparks(e.x, e.y, Math.random() * 6.3, 8); fx.dust(e.x, e.y, 4, [60, 60, 60]); break;
+        case 'propSmash': this.invalidateTile(e.tx, e.ty); fx.sparks(e.x, e.y, Math.random() * 6.3, e.k === 'lamp' ? 14 : 6); if (e.k === 'lamp') { fx.glass(e.x, e.y, 10); fx.decal('glass', e.x, e.y); } if (e.player) this.cam.shake = Math.min(1, this.cam.shake + 0.25); break;
+        case 'keys': fx.float(e.x, e.y - 30, '🔑 Schlüssel', '#ffd34d'); for (let k = 0; k < 8; k++) fx.sparks(e.x, e.y - 10, Math.random() * 6.3, 1, [255, 230, 140]); break;
+        case 'rocketTrail': fx.smoke(e.x, e.y, 1, 0); break;
+        case 'fuelDrip': fx.decal('drop', e.x, e.y, { s: 1.5, col: 'oil' }); break;
+        case 'carJolt': this.cam.shake = Math.min(1, this.cam.shake + e.v / 700); break;
         case 'spraymist': { const h = parseInt((e.col || '#ffffff').slice(1), 16); fx.dust(e.x + U.rnd(-14, 14), e.y + U.rnd(-6, 6), 1, [(h >> 16) & 255, (h >> 8) & 255, h & 255]); break; }
         case 'turf': this.tagCache = null; break;
         case 'hurt': {

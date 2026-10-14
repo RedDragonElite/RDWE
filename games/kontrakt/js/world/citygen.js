@@ -21,10 +21,10 @@
   const PLAN = {
     '0,0': ['house', 'grow', 'house', 'house'], '1,0': ['bar', 'house', 'house', 'food'], '2,0': ['diner', 'house', 'flat', 'house'],
     '3,0': ['cloth', 'flat', 'food', 'flat'], '0,1': ['house', 'house', 'house', 'house'], '1,1': ['house', 'flat', 'house', 'house'],
-    '2,1': ['flat', 'jeweler', 'pharmacy', 'house'], '3,1': ['office'], '4,1': ['police'], '2,2': ['gun', 'flat', 'flat', 'food'],
+    '2,1': ['flat', 'jeweler', 'pharmacy', 'house'], '3,1': ['office'], '4,1': ['police'], '2,2': ['gun', 'flat', 'flat', 'food'], '0,2': ['gas'],
     '3,2': ['hotel'], '4,2': ['office'], '5,2': ['club'], '2,3': ['bank'], '4,3': ['flat', 'diner', 'flat', 'flat'],
-    '5,3': ['office', 'flat'], '3,4': ['hospital'], '4,4': ['flat', 'flat'], '6,3': ['warehouse', 'warehouse'],
-    '5,4': ['warehouse', 'warehouse'], '6,4': ['warehouse', 'warehouse'], '4,5': ['warehouse', 'warehouse'], '5,5': ['warehouse', 'warehouse'], '6,5': ['warehouse', 'warehouse'],
+    '5,3': ['office', 'flat'], '3,4': ['hospital'], '4,4': ['autohaus'], '6,3': ['warehouse', 'warehouse'],
+    '5,4': ['werkstatt'], '6,4': ['warehouse', 'warehouse'], '4,5': ['gas'], '5,5': ['warehouse', 'warehouse'], '6,5': ['warehouse', 'warehouse'],
     '4,6': ['black'],
   };
 
@@ -36,6 +36,7 @@
     bench: { s: 1 }, tree: { s: 1, tall: 1 }, bush: { s: 0, bush: 1, tall: 1 }, lamp: { s: 1, tall: 1 }, vending: { s: 3, inter: 'vending' }, trash: { s: 1 },
     fountain: { s: 1 }, piano: { s: 1 }, hbed: { s: 1 }, locker: { s: 3, hide: 1, inter: 'hide' }, sign: { s: 0, inter: 'buy' }, dj: { s: 1 }, dance: { s: 0, low: 1 },
     boat: { s: 0 }, hydrant: { s: 1 }, umbrella: { s: 1, tall: 1 }, cell: { s: 1 }, bollard: { s: 1 }, crane: { s: 0, tall: 1 }, desk2: { s: 1 }, atm: { s: 3, inter: 'atm' },
+    pump: { s: 1, inter: 'pump' }, gassign: { s: 1, tall: 1 }, lift: { s: 0, low: 1 }, toolbox: { s: 1 }, tires: { s: 1 }, flag: { s: 1, tall: 1 }, cone: { s: 0 },
     deposit: { s: 3, inter: 'deposit' }, showcase: { s: 1, inter: 'showcase' }, cart: { s: 1 },
   };
 
@@ -49,7 +50,7 @@
     const clear = new Uint8Array(N);   // keep free of props (door approaches)
     const pmap = new Int32Array(N).fill(-1); // prop index per tile
     const doors = new Map();
-    const buildings = [], props = [], lights = [], zones = [];
+    const buildings = [], props = [], lights = [], zones = [], canopies = [], carSpots = [], bays = [], pumps = [];
     const idx = (x, y) => y * W + x;
     const inb = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
     const set = (x, y, t) => { if (inb(x, y)) tiles[idx(x, y)] = t; };
@@ -271,6 +272,7 @@
         else if (T0 === 'hospital') role = front ? 'reception' : 'ward';
         else if (T0 === 'diner') role = front ? 'dining' : 'kitchen';
         else if (T0 === 'bar') role = front ? 'bar' : 'storage';
+        else if (T0 === 'autohaus') role = 'showroom';
         else if (T0 === 'bank') role = front ? 'banklobby' : vault && r === vault.r ? 'vault' : 'office';
         else if (T0 === 'club') role = front ? 'dance' : 'vip';
         else role = front ? 'shop' : 'storage';
@@ -299,6 +301,7 @@
           case 'bar': placeCounter(b, r, 'barc', { shop: 1 }) || Bf('barc', 4, 'wall', { extra: { shop: 1 } }); B('pooltable', 2, 1, 'center'); B('table', 1, 1, 'center'); B('stool', 1, 1, 'center'); addPois(b, r, 'sit', 5); break;
           case 'dance': B('dance', Math.min(4, r.w - 2), Math.min(4, r.h - 2), 'center'); Bf('barc', 3, 'wall'); B('dj', 2, 1, 'wall'); addPois(b, r, 'dance', 6); break;
           case 'banklobby': placeCounter(b, r, 'counter', { shop: 1 }) || Bf('counter', 3, 'wall', { extra: { shop: 1 } }); Bf('bench', 2, 'wall'); B('plant', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('rug', 3, 2, 'center'); addPois(b, r, 'stand', 4); break;
+          case 'showroom': placeCounter(b, r, 'counter', { shop: 1 }) || Bf('counter', 3, 'wall', { extra: { shop: 1 } }); Bf('sofa', 2, 'wall'); B('table', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('rug', 3, 2, 'center'); addPois(b, r, 'stand', 3); break;
           case 'vault':
             // no windows into the vault
             for (let j = r.y - 1; j <= r.y + r.h; j++) for (let i = r.x - 1; i <= r.x + r.w; i++) if (get(i, j) === T.WINDOW) set(i, j, T.WALL);
@@ -493,6 +496,55 @@
       return [b];
     }
 
+    /** filling station: kiosk, two pump islands under a lit canopy, price pylon */
+    function gasStation(lot, d) {
+      fill(lot.x, lot.y, lot.w, lot.h, T.CONC);
+      const b = makeBuilding(lot.x + 5, lot.y + 1, 8, 6, 'gas', ['S'], { district: d, depth: 0 });
+      furnish(b);
+      canopies.push({ x: lot.x + 2, y: lot.y + 9, w: 14, h: 8, col: '#d9d9d4', stripe: '#1f8a4c', label: 'NORDLICHT' });
+      for (const [k, y] of [[0, lot.y + 11], [1, lot.y + 14]]) for (let i = 0; i < 3; i++) {
+        const x = lot.x + 4 + i * 4, p = addProp('pump', x, y, 1, 1, { extra: { pump: pumps.length, bldG: b.id } });
+        if (p) pumps.push({ x, y, id: p.id, bld: b.id });
+        void k;
+      }
+      for (let i = 0; i < 4; i++) lights.push({ x: (lot.x + 4 + i * 3.5) * TILE, y: (lot.y + 12.5) * TILE, r: 170, c: [235, 245, 255], i: 0.9, kind: 'lamp' });
+      addProp('gassign', lot.x + lot.w - 1, lot.y + lot.h - 1);
+      lights.push({ x: (b.doors[0].x + 0.5) * TILE, y: (b.doors[0].y + 1.5) * TILE, r: 90, c: [90, 255, 160], i: 0.9, kind: 'neon' });
+      b.gas = true;
+      return [b];
+    }
+    /** car dealership: glass showroom with a sales desk, display lot with spots */
+    function dealership(lot, d) {
+      fill(lot.x, lot.y, lot.w, lot.h, T.PLAZA);
+      const b = makeBuilding(lot.x + 2, lot.y + 1, 14, 7, 'autohaus', ['S'], { district: d, depth: 0 });
+      // glass front: windows all along the street side
+      for (let i = b.x + 1; i < b.x + b.w - 1; i++) if (get(i, b.y + b.h - 1) === T.WALL) set(i, b.y + b.h - 1, T.WINDOW);
+      furnish(b);
+      for (let k = 0; k < 4; k++) carSpots.push({ x: lot.x + 2.5 + k * 4.2, y: lot.y + 11, a: Math.PI / 2, bld: b.id, display: k });
+      b.delivery = { x: lot.x + 9, y: lot.y + 15.5, a: 0 };
+      for (const x of [lot.x, lot.x + lot.w - 1]) addProp('flag', x, lot.y + 9);
+      lamp(lot.x + 1, lot.y + 16, [235, 240, 255], 200); lamp(lot.x + lot.w - 2, lot.y + 16, [235, 240, 255], 200);
+      lights.push({ x: (lot.x + 9) * TILE, y: (lot.y + 11.5) * TILE, r: 260, c: [235, 240, 255], i: 0.9, kind: 'lamp' });
+      return [b];
+    }
+    /** workshop: office with counter + three open service bays with lifts under a roof */
+    function workshop(lot, d) {
+      fill(lot.x, lot.y, lot.w, lot.h, T.CONC);
+      const b = makeBuilding(lot.x + 1, lot.y + 1, 6, 7, 'werkstatt', ['S'], { district: d, depth: 0 });
+      furnish(b);
+      canopies.push({ x: lot.x + 8, y: lot.y + 1, w: 10, h: 8, col: '#3a3d44', stripe: '#c87a00', label: 'WERKSTATT' });
+      for (let k = 0; k < 3; k++) {
+        const bx = lot.x + 8 + k * 3.33;
+        addProp('lift', Math.floor(bx + 0.5), lot.y + 3, 2, 4);
+        bays.push({ x: bx, y: lot.y + 1, w: 3.33, h: 8, cx: bx + 1.66, cy: lot.y + 5, bld: b.id, i: k });
+        lights.push({ x: (bx + 1.66) * TILE, y: (lot.y + 4) * TILE, r: 150, c: [255, 240, 210], i: 0.9, kind: 'lamp' });
+      }
+      addProp('toolbox', lot.x + 8, lot.y + 9); addProp('toolbox', lot.x + 17, lot.y + 9);
+      addProp('tires', lot.x + 1, lot.y + 10); addProp('tires', lot.x + 2, lot.y + 10); addProp('tires', lot.x + 1, lot.y + 11);
+      for (let k = 0; k < 4; k++) addProp('cone', lot.x + 9 + k * 2, lot.y + 10);
+      return [b];
+    }
+
     // ---------------------------------------------------------- blocks
     const blocks = [];
     for (let bj = 0; bj < NB; bj++) for (let bi = 0; bi < NB; bi++) {
@@ -506,10 +558,10 @@
       else if (d === 'hill') bl = villa(lot, d, false);
       else if (d === 'res' && !plan) bl = residential(lot, d);
       else if (d === 'docks') bl = docks(lot, plan, d);
-      else if (d === 'ind') bl = industrial(lot, plan || ['warehouse', 'warehouse'], d);
+      else if (d === 'ind' && !(plan && ['gas', 'werkstatt'].includes(plan[0]))) bl = industrial(lot, plan || ['warehouse', 'warehouse'], d);
       else {
         const pl = plan || (d === 'old' ? ['house', 'house', 'flat', 'house'] : ['flat', 'office']);
-        bl = pl.length === 1 ? single(lot, pl[0], d) : pl.length === 2 ? halves(lot, pl, d) : quad(lot, pl, d);
+        bl = pl[0] === 'gas' ? gasStation(lot, d) : pl[0] === 'autohaus' ? dealership(lot, d) : pl[0] === 'werkstatt' ? workshop(lot, d) : pl.length === 1 ? single(lot, pl[0], d) : pl.length === 2 ? halves(lot, pl, d) : quad(lot, pl, d);
       }
       blocks.push({ bi, bj, d, ox, oy, b: bl });
       // sidewalk furniture
@@ -571,7 +623,7 @@
     for (let j = 0; j <= NB; j++) for (let i = 0; i <= NB; i++) roadNodes.push({ i, j, x: (i * P + 2) * TILE, y: (j * P + 2) * TILE });
 
     const world = {
-      W, H, N, P, R, NB, seed, tiles, solid, bmap, zmap, pmap, doors, buildings, props, lights, zones, blocks, walk, roadNodes,
+      W, H, N, P, R, NB, seed, tiles, solid, bmap, zmap, pmap, doors, buildings, props, lights, zones, blocks, walk, roadNodes, canopies, carSpots, bays, pumps,
       districtAt(x, y) { // tile coords
         if (y >= W) return 'sea';
         if (x % P < R || y % P < R) return 'road';
