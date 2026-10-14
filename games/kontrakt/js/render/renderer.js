@@ -454,6 +454,13 @@
         const d = w.doors.get(j * w.W + i); if (!d) continue;
         const X = i * TILE, Y = j * TILE, o = d.open;
         ctx.save();
+        if (d.vault) {   // heavy steel vault door with a wheel
+          const vo = d.vaultOpen ? 1 : 0;
+          ctx.fillStyle = d.blown ? '#2a2a2c' : '#7d848c';
+          if (d.horiz) { ctx.translate(X, Y + TILE / 2); ctx.rotate(vo * 1.5); ctx.fillRect(0, -5, TILE, 10); ctx.fillStyle = '#c9a227'; ctx.beginPath(); ctx.arc(TILE / 2, 0, 3.5, 0, 6.3); ctx.fill(); }
+          else { ctx.translate(X + TILE / 2, Y); ctx.rotate(-vo * 1.5); ctx.fillRect(-5, 0, 10, TILE); ctx.fillStyle = '#c9a227'; ctx.beginPath(); ctx.arc(0, TILE / 2, 3.5, 0, 6.3); ctx.fill(); }
+          ctx.restore(); continue;
+        }
         const col = d.locked ? '#4a2a1a' : '#6b4426';
         ctx.fillStyle = col;
         if (d.horiz) { ctx.translate(X + 4, Y + TILE / 2); ctx.rotate(o * 1.45); ctx.fillRect(0, -2.5, TILE - 8, 5); }
@@ -895,6 +902,7 @@
           if (e.mat !== 'metal') fx.decal('hole', e.x, e.y);
           break;
         case 'glass': fx.glass(e.x, e.y, 14); fx.decal('glass', e.x, e.y); break;
+        case 'sparks': fx.sparks(e.x, e.y, Math.random() * 6.3, 4); break;
         case 'hurt': {
           const a = e.a != null ? e.a : Math.random() * 6.3;
           if (e.kind === 'bullet' || e.kind === 'melee' || e.kind === 'explosion' || e.kind === 'car') {

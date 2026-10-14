@@ -74,7 +74,7 @@
       // shop hold-up
       let b = B.shop != null ? this.buildings[B.shop] : null;
       if (!b) {
-        const cands = this.buildings.filter((q) => q.shop && q.counter && !['gun', 'black', 'hospital'].includes(q.shop) && this.shopOpen(K.SHOPS[q.shop]) && q.tillDay !== this.today() && Math.hypot((q.x + q.w / 2) * TILE - a.x, (q.y + q.h / 2) * TILE - a.y) < 45 * TILE);
+        const cands = this.buildings.filter((q) => q.shop && q.counter && !['gun', 'black', 'hospital', 'bank'].includes(q.shop) && this.shopOpen(K.SHOPS[q.shop]) && q.tillDay !== this.today() && Math.hypot((q.x + q.w / 2) * TILE - a.x, (q.y + q.h / 2) * TILE - a.y) < 45 * TILE);
         if (!cands.length) { B.plan = 'mug'; return; }
         b = U.pick(cands); B.shop = b.id;
       }

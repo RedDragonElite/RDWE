@@ -335,6 +335,14 @@
       case 'piano': sh(); x.fillStyle = '#0c0c0e'; x.beginPath(); x.moveTo(X + 3, Y + 4); x.lineTo(X + Wd - 3, Y + 4); x.quadraticCurveTo(X + Wd - 3, Y + H - 2, X + Wd * 0.4, Y + H - 4); x.lineTo(X + 3, Y + H - 4); x.closePath(); x.fill(); x.fillStyle = '#eee'; x.fillRect(X + 4, Y + 4, Wd * 0.45, 3); break;
       case 'lamp': x.fillStyle = '#26282c'; circ(x, cx, cy, 4); x.fill(); break;
       case 'atm': sh(); x.fillStyle = '#3a3f46'; rr(x, X + 4, Y + 4, Wd - 8, H - 8, 2); x.fill(); x.fillStyle = '#1b5fb5'; x.fillRect(X + 8, Y + 7, Wd - 16, 7); x.fillStyle = '#b8c0c8'; for (let k = 0; k < 6; k++) x.fillRect(X + 9 + (k % 3) * 5, Y + 17 + Math.floor(k / 3) * 4, 3, 2.5); x.fillStyle = '#e0b000'; x.fillRect(X + 8, Y + H - 9, Wd - 16, 2); break;
+      case 'deposit': sh(); x.fillStyle = '#8b9199'; x.fillRect(X + 2, Y + 2, Wd - 4, H - 4); x.strokeStyle = '#5a6068'; x.lineWidth = 1;
+        for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) { x.strokeRect(X + 4 + i * (Wd - 8) / 3, Y + 4 + j * (H - 8) / 3, (Wd - 8) / 3 - 1, (H - 8) / 3 - 1); x.fillStyle = '#c9a227'; x.fillRect(X + 4 + i * (Wd - 8) / 3 + 3, Y + 4 + j * (H - 8) / 3 + 3, 1.5, 1.5); }
+        break;
+      case 'showcase': sh(); x.fillStyle = '#2b2622'; rr(x, X + 3, Y + 3, Wd - 6, H - 6, 2); x.fill(); x.fillStyle = 'rgba(170,215,235,0.45)'; x.fillRect(X + 5, Y + 5, Wd - 10, H - 10);
+        x.fillStyle = '#7a1f2a'; x.fillRect(X + 7, Y + 7, Wd - 14, H - 14);
+        for (let k = 0; k < 5; k++) { x.fillStyle = k % 2 ? '#f2d35b' : '#e8f4ff'; circ(x, X + 9 + ((k * 7) % (Wd - 18)), Y + 10 + ((k * 5) % (H - 18)), 1.6); x.fill(); }
+        x.strokeStyle = 'rgba(255,255,255,0.5)'; x.beginPath(); x.moveTo(X + 6, Y + 12); x.lineTo(X + 12, Y + 6); x.stroke(); break;
+      case 'cart': sh(); x.fillStyle = '#5a5f66'; rr(x, X + 6, Y + 6, Wd - 12, H - 12, 2); x.fill(); x.fillStyle = '#3f8f4f'; x.fillRect(X + 9, Y + 9, Wd - 18, H - 18); x.fillStyle = '#c9a227'; x.fillRect(X + 11, Y + 12, 6, 3); break;
       case 'tree': x.fillStyle = '#4a3220'; circ(x, cx, cy, 5); x.fill(); break;
       case 'umbrella': x.fillStyle = '#ddd'; circ(x, cx, cy, 2); x.fill(); break;
     }

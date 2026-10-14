@@ -177,7 +177,7 @@
         const x = (b.x + b.w / 2) * TILE, y = (b.y + b.h / 2) * TILE;
         if (b.owned) out.push({ x, y, e: '🏠', c: '#5fd38d' });
         else if (b.property) out.push({ x, y, e: '🏷️', c: '#f2c86b' });
-        if (b.shop) out.push({ x, y, e: { gun: '🔫', black: '💀', food: '🛒', pharmacy: '💊', cloth: '👔', diner: '🍔', bar: '🍸', hospital: '🏥', grow: '🌱' }[b.shop] });
+        if (b.shop) out.push({ x, y, e: { gun: '🔫', black: '💀', food: '🛒', pharmacy: '💊', cloth: '👔', diner: '🍔', bar: '🍸', hospital: '🏥', grow: '🌱', bank: '🏦', jewel: '💎' }[b.shop] });
         if (b.type === 'police') out.push({ x, y, e: '🚓' });
         if (b.type === 'club') out.push({ x, y, e: '🎵' });
       }

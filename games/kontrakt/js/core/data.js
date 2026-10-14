@@ -72,7 +72,7 @@
     silencer: { name: 'Schalldämpfer', g: 'silencer', price: 2200, w: 0.3, desc: 'Benutzen: montiert auf die aktive Waffe (P9, MP-K, K-47, Jäger).' },
     wallet:   { name: 'Brieftasche', e: '👛', price: 0, w: 0.1, sellOnly: true },
     watch:    { name: 'Goldene Uhr', e: '⌚', price: 0, sell: 450, w: 0.1, sellOnly: true },
-    keycard:  { name: 'Schlüsselkarte', g: 'keycard', price: 0, w: 0.01, quest: true },
+    keycard:  { name: 'Schlüsselkarte', g: 'keycard', price: 0, w: 0.01, quest: true, desc: 'Öffnet eine Tresortür — leise. Bankdirektoren tragen so etwas.' },
     // street & crime
     cig:      { name: 'Zigaretten', e: '🚬', energy: 8, hp: -1, price: 7, w: 0.05, desc: 'Beruhigt die Nerven.' },
     fries:    { name: 'Pommes', e: '🍟', food: 22, water: -5, price: 4, w: 0.3 },
@@ -82,6 +82,10 @@
     jewelry:  { name: 'Schmuck', e: '💍', price: 0, sell: 320, w: 0.1, sellOnly: true, hot: true },
     laptop:   { name: 'Laptop', e: '💻', price: 0, sell: 380, w: 2, sellOnly: true, hot: true },
     phone:    { name: 'Fremdes Handy', e: '📱', price: 0, sell: 140, w: 0.2, sellOnly: true, hot: true },
+    drill:    { name: 'Thermobohrer', e: '🛠️', price: 2800, w: 4, desc: 'Bohrt Tresortüren auf [T halten, ~20 s]. Laut.' },
+    gold:     { name: 'Goldbarren', e: '🥇', price: 0, sell: 2400, w: 1, sellOnly: true, hot: true },
+    diamond:  { name: 'Diamant', e: '💎', price: 0, sell: 1700, w: 0.01, sellOnly: true, hot: true },
+    ring:     { name: 'Verlobungsring', e: '💍', price: 2400, sell: 700, w: 0.01, desc: 'Funkelt. Teuer. Völlig legal.' },
     cash:     { name: 'Bargeldbündel', e: '💵', price: 0, sell: 250, w: 0.1, sellOnly: true },
     // grow & deal
     seed:     { name: 'Hanfsamen', e: '🌱', price: 18, w: 0.01, desc: 'Mit Pflanztopf in eigener Immobilie anpflanzen.' },
@@ -130,7 +134,7 @@
   // ------------------------------------------------------------------ shops
   K.SHOPS = {
     gun: { name: 'Waffen Krause & Söhne', open: [9, 21], keeper: 'guard', till: 1800, items: ['p9', 'magnum', 'mpk', 'pump', 'k47', 'knife', 'bat', 'crowbar', 'machete', 'a:9mm', 'a:45', 'a:357', 'a:12g', 'a:762', 'vest', 'silencer'] },
-    black: { name: 'Schwarzmarkt „Der Kran“', open: [20, 6], keeper: 'gang', buysAll: true, items: ['silber', 'jaeger', 'katana', 'wire', 'syringe', 'sedative', 'c4', 'grenade', 'lockpick', 'a:45', 'a:308', 'a:762', 'o:police', 'o:guard', 'silencer', 'hackkit', 'mask', 'seed'] },
+    black: { name: 'Schwarzmarkt „Der Kran“', open: [20, 6], keeper: 'gang', buysAll: true, items: ['silber', 'jaeger', 'katana', 'wire', 'syringe', 'sedative', 'c4', 'grenade', 'lockpick', 'a:45', 'a:308', 'a:762', 'o:police', 'o:guard', 'silencer', 'hackkit', 'drill', 'mask', 'seed'] },
     food: { name: 'Späti 24/7', open: [0, 24], keeper: 'civ', till: 450, items: ['apple', 'sandwich', 'pizza', 'fries', 'water', 'cola', 'coffee', 'energy', 'beer', 'cig', 'coin', 'flashlight', 'bandage', 'mask'] },
     grow: { name: 'Grünes Glück Gartenbedarf', open: [8, 20], keeper: 'civ', till: 700, items: ['seed', 'growkit', 'fert', 'can', 'water'] },
     pharmacy: { name: 'Stadt-Apotheke', open: [7, 22], keeper: 'medic', till: 650, items: ['bandage', 'medkit', 'pills', 'energy', 'water', 'sedative'] },
@@ -138,6 +142,8 @@
     diner: { name: 'Diner „Zur Laterne“', open: [6, 23], keeper: 'staff', eat: true, till: 500, items: ['fries', 'burger', 'steak', 'doener', 'pizza', 'coffee', 'cola', 'water'] },
     bar: { name: 'Bar „Blauer Engel“', open: [17, 4], keeper: 'staff', eat: true, till: 800, items: ['beer', 'whiskey', 'cola', 'water', 'sandwich', 'cig'] },
     hospital: { name: 'St. Marien Klinik', open: [0, 24], keeper: 'medic', heal: 250, items: ['medkit', 'bandage', 'pills'] },
+    bank: { name: 'Krähenburger Sparkasse', open: [8, 18], keeper: 'civ', till: 6500, bank: true, items: [] },
+    jewel: { name: 'Juwelier Goldmann', open: [10, 19], keeper: 'civ', till: 1500, items: ['ring'] },
   };
 
   // ------------------------------------------------------------------ buildings
@@ -159,6 +165,8 @@
     bar:       { name: 'Bar „Blauer Engel“', floor: 'WOOD', roof: 'gable', colors: ['#2a3550'], shop: 'bar' },
     club:      { name: 'Club „Nachtfalter“', floor: 'CONC', roof: 'flat', colors: ['#24182e'], restricted: ['guard', 'vip', 'staff'] },
     black:     { name: 'Hafenschuppen', floor: 'CONC', roof: 'metal', colors: ['#3b3226'], shop: 'black' },
+    bank:      { name: 'Krähenburger Sparkasse', floor: 'MARBLE', roof: 'flat', colors: ['#4d463a'], shop: 'bank', restricted: ['staff', 'guard'] },
+    jeweler:   { name: 'Juwelier Goldmann', floor: 'MARBLE', roof: 'flat', colors: ['#2e2a26'], shop: 'jewel' },
     grow:      { name: 'Grünes Glück Gartenbedarf', floor: 'WOOD', roof: 'gable', colors: ['#3d6b34'], shop: 'grow' },
   };
 
@@ -181,6 +189,7 @@
     theft:     { name: 'Diebstahl', sev: 1, jail: 60 },
     burglary:  { name: 'Einbruch', sev: 1, jail: 120 },
     robbery:   { name: 'Raubüberfall', sev: 2, jail: 240 },
+    heist:     { name: 'Bankraub', sev: 3, jail: 720 },
     drugs:     { name: 'Drogenhandel', sev: 1, jail: 150 },
     murder:    { name: 'Mord', sev: 2, jail: 600 },
     copkill:   { name: 'Polizistenmord', sev: 3, jail: 1200 },

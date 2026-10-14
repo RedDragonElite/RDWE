@@ -21,8 +21,8 @@
   const PLAN = {
     '0,0': ['house', 'grow', 'house', 'house'], '1,0': ['bar', 'house', 'house', 'food'], '2,0': ['diner', 'house', 'flat', 'house'],
     '3,0': ['cloth', 'flat', 'food', 'flat'], '0,1': ['house', 'house', 'house', 'house'], '1,1': ['house', 'flat', 'house', 'house'],
-    '2,1': ['flat', 'house', 'pharmacy', 'house'], '3,1': ['office'], '4,1': ['police'], '2,2': ['gun', 'flat', 'flat', 'food'],
-    '3,2': ['hotel'], '4,2': ['office'], '5,2': ['club'], '2,3': ['office'], '4,3': ['flat', 'diner', 'flat', 'flat'],
+    '2,1': ['flat', 'jeweler', 'pharmacy', 'house'], '3,1': ['office'], '4,1': ['police'], '2,2': ['gun', 'flat', 'flat', 'food'],
+    '3,2': ['hotel'], '4,2': ['office'], '5,2': ['club'], '2,3': ['bank'], '4,3': ['flat', 'diner', 'flat', 'flat'],
     '5,3': ['office', 'flat'], '3,4': ['hospital'], '4,4': ['flat', 'flat'], '6,3': ['warehouse', 'warehouse'],
     '5,4': ['warehouse', 'warehouse'], '6,4': ['warehouse', 'warehouse'], '4,5': ['warehouse', 'warehouse'], '5,5': ['warehouse', 'warehouse'], '6,5': ['warehouse', 'warehouse'],
     '4,6': ['black'],
@@ -36,6 +36,7 @@
     bench: { s: 1 }, tree: { s: 1, tall: 1 }, bush: { s: 0, bush: 1, tall: 1 }, lamp: { s: 1, tall: 1 }, vending: { s: 3, inter: 'vending' }, trash: { s: 1 },
     fountain: { s: 1 }, piano: { s: 1 }, hbed: { s: 1 }, locker: { s: 3, hide: 1, inter: 'hide' }, sign: { s: 0, inter: 'buy' }, dj: { s: 1 }, dance: { s: 0, low: 1 },
     boat: { s: 0 }, hydrant: { s: 1 }, umbrella: { s: 1, tall: 1 }, cell: { s: 1 }, bollard: { s: 1 }, crane: { s: 0, tall: 1 }, desk2: { s: 1 }, atm: { s: 3, inter: 'atm' },
+    deposit: { s: 3, inter: 'deposit' }, showcase: { s: 1, inter: 'showcase' }, cart: { s: 1 },
   };
 
   K.generateCity = function (seed) {
@@ -226,6 +227,7 @@
       if (!p) return null;
       if (!reachableOK(b)) { removeProp(p); return null; }
       b.counter = p; b.keeperPos = { x: kx, y: ky };
+      clear[idx(kx, ky)] = 1;   // nothing may block the keeper's spot
       return p;
     }
     function roomLight(b, r, c, i = 0.85) {
@@ -239,8 +241,22 @@
       }
     }
 
+    /** the bank's vault: a back room with no outside door and as few inner doors as possible */
+    function pickVault(b) {
+      const doorsOf = (r) => b.doors.filter((d) => [[d.x + 1, d.y], [d.x - 1, d.y], [d.x, d.y + 1], [d.x, d.y - 1]].some(([i, j]) => i >= r.x && i < r.x + r.w && j >= r.y && j < r.y + r.h));
+      let best = null;
+      for (const r of b.rooms) {
+        if (r.front) continue;
+        const ds = doorsOf(r); if (ds.some((d) => d.outer) || !ds.length) continue;
+        const sc = ds.length * 10 - r.w * r.h * 0.1;
+        if (!best || sc < best.sc) best = { r, ds, sc };
+      }
+      return best;
+    }
+
     function furnish(b) {
       const T0 = b.type, rooms = b.rooms;
+      const vault = T0 === 'bank' ? pickVault(b) : null;
       const warm = [255, 206, 150], cool = [190, 220, 255], neutral = [240, 235, 225];
       rooms.forEach((r, ri) => {
         const front = r.front, area = r.w * r.h;
@@ -255,6 +271,7 @@
         else if (T0 === 'hospital') role = front ? 'reception' : 'ward';
         else if (T0 === 'diner') role = front ? 'dining' : 'kitchen';
         else if (T0 === 'bar') role = front ? 'bar' : 'storage';
+        else if (T0 === 'bank') role = front ? 'banklobby' : vault && r === vault.r ? 'vault' : 'office';
         else if (T0 === 'club') role = front ? 'dance' : 'vip';
         else role = front ? 'shop' : 'storage';
         r.role = role;
@@ -281,14 +298,21 @@
           case 'dining': placeCounter(b, r, 'counter', { shop: 1 }) || Bf('counter', 3, 'wall', { extra: { shop: 1 } }); for (let k = 0; k < area / 9; k++) { B('table', 1, 1, 'center'); } B('plant', 1, 1, 'wall'); addPois(b, r, 'sit', 5); break;
           case 'bar': placeCounter(b, r, 'barc', { shop: 1 }) || Bf('barc', 4, 'wall', { extra: { shop: 1 } }); B('pooltable', 2, 1, 'center'); B('table', 1, 1, 'center'); B('stool', 1, 1, 'center'); addPois(b, r, 'sit', 5); break;
           case 'dance': B('dance', Math.min(4, r.w - 2), Math.min(4, r.h - 2), 'center'); Bf('barc', 3, 'wall'); B('dj', 2, 1, 'wall'); addPois(b, r, 'dance', 6); break;
+          case 'banklobby': placeCounter(b, r, 'counter', { shop: 1 }) || Bf('counter', 3, 'wall', { extra: { shop: 1 } }); Bf('bench', 2, 'wall'); B('plant', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('rug', 3, 2, 'center'); addPois(b, r, 'stand', 4); break;
+          case 'vault':
+            // no windows into the vault
+            for (let j = r.y - 1; j <= r.y + r.h; j++) for (let i = r.x - 1; i <= r.x + r.w; i++) if (get(i, j) === T.WINDOW) set(i, j, T.WALL);
+            for (let k = 0; k < Math.max(4, area / 3); k++) B('deposit', 1, 1, 'wall'); B('cart', 1, 1, 'center'); break;
           case 'vip': Bf('sofa', 2, 'wall'); Bf('sofa', 2, 'wall'); B('table', 1, 1, 'center'); B('safe', 1, 1, 'wall'); addPois(b, r, 'sit', 3); break;
           default: { // shop
             const c = placeCounter(b, r, 'counter', { shop: 1 }) || Bf('counter', 3, 'wall', { extra: { shop: 1 } });
-            for (let k = 0; k < 3; k++) B(T0 === 'gun' ? 'rack' : 'shelf', 1, 1, 'wall');
+            if (T0 === 'jeweler') { for (let k = 0; k < 3; k++) B('showcase', 1, 1, 'center'); for (let k = 0; k < 2; k++) B('showcase', 1, 1, 'wall'); }
+            else for (let k = 0; k < 3; k++) B(T0 === 'gun' ? 'rack' : 'shelf', 1, 1, 'wall');
             if (c) b.counter = c;
             addPois(b, r, 'stand', 3);
           }
         }
+        if (role === 'vault') { roomLight(b, r, [255, 236, 190], 0.7); return; }
         const lc = role === 'dance' ? [200, 90, 255] : role === 'vip' ? [255, 80, 120] : ['office', 'lobby', 'ward', 'reception', 'desk', 'cells', 'armory', 'shop'].includes(role) ? cool : role === 'storage' ? neutral : warm;
         roomLight(b, r, lc, role === 'dance' ? 1 : 0.85);
       });
@@ -328,7 +352,12 @@
           if (into && (!d.outer || !d.main || wholeBuilding)) { d.locked = true; d.access = rr; zmap[d.i] = zid; }
         }
         b.zone = zid;
-        z.guards = { villa: 0, office: 2, club: 2, police: 0, warehouse: rng.chance(0.5) ? 2 : 0, hotel: 1, diner: 0 }[T0] ?? 1;
+        if (vault) {
+          for (const d of vault.ds) { d.locked = true; d.access = ['vault']; d.vault = true; zmap[d.i] = zid; }
+          z.patrol = z.patrol.filter((p) => !(p.x >= vault.r.x && p.x < vault.r.x + vault.r.w && p.y >= vault.r.y && p.y < vault.r.y + vault.r.h));
+          b.vault = vault.r;
+        }
+        z.guards = { villa: 0, office: 2, club: 2, bank: 2, police: 0, warehouse: rng.chance(0.5) ? 2 : 0, hotel: 1, diner: 0 }[T0] ?? 1;
         if (!z.patrol.length) z.patrol.push({ x: b.x + (b.w >> 1), y: b.y + (b.h >> 1) });
       }
       if (T0 === 'house' || T0 === 'flat') {
@@ -345,10 +374,10 @@
 
     function single(lot, type, d) {
       fill(lot.x, lot.y, lot.w, lot.h, T.PLAZA);
-      const dims = { office: [14, 13], hotel: [16, 12], police: [13, 12], hospital: [14, 12], club: [13, 12] }[type] || [12, 12];
+      const dims = { bank: [14, 12], office: [14, 13], hotel: [16, 12], police: [13, 12], hospital: [14, 12], club: [13, 12] }[type] || [12, 12];
       const [bw, bh] = dims;
       const bx = lot.x + ((lot.w - bw) >> 1), by = lot.y + 2;
-      const b = makeBuilding(bx, by, bw, bh, type, ['S', 'N'], { district: d, depth: 2, frontDeep: true });
+      const b = makeBuilding(bx, by, bw, bh, type, type === 'bank' ? ['S'] : ['S', 'N'], { district: d, depth: 2, frontDeep: true });
       furnish(b);
       // plaza decor
       for (const [x, y] of [[lot.x, lot.y + lot.h - 1], [lot.x + lot.w - 1, lot.y + lot.h - 1], [lot.x, lot.y], [lot.x + lot.w - 1, lot.y]]) addProp('tree', x, y);

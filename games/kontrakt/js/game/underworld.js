@@ -212,6 +212,7 @@
           add('E', 'Taschendiebstahl', () => this.pickpocket(civ), 1.1, { tick: () => { if (Math.hypot(civ.x - a.x, civ.y - a.y) > 46) { this.action = null; this.notify('Zu weit weg.', 'bad'); } } });
         if (civ.kind === 'civ' && !civ.dealt && (P.inv.bud || 0) >= 2 && !['flee', 'cower', 'hostile', 'fight', 'report'].includes(civ.state)) add('T', 'Gras anbieten (2g)', () => this.offerDrugs(civ));
       }
+      if (this.heistContext && this.heistContext(add)) return false;
       // shop till during a hold-up
       const shopB = a.inCar ? null : this.buildings[this.bldAt(a.x, a.y)];
       if (shopB && shopB.shop && shopB.counter) {
@@ -219,7 +220,7 @@
         const c = shopB.counter, cx = (c.x + c.w / 2) * TILE, cy = (c.y + c.h / 2) * TILE;
         if (k && k.state === 'cower' && Math.hypot(cx - a.x, cy - a.y) < 3 * TILE) {
           if (shopB.tillDay === this.today()) add('E', 'Kasse ist leer', null);
-          else add('E', 'Kasse ausräumen', () => this.robTill(shopB, k), 3.2, { tick: () => { if (k.state !== 'cower') { k.state = 'cower'; k.brain.cowerT = 4; k.brain.cowerBy = 0; } } });
+          else add('E', shopB.type === 'bank' ? 'Bankschalter ausräumen' : 'Kasse ausräumen', () => this.robTill(shopB, k), 3.2, { tick: () => { if (k.state !== 'cower') { k.state = 'cower'; k.brain.cowerT = 4; k.brain.cowerBy = 0; } } });
         }
       }
       // plants
@@ -288,6 +289,7 @@
       this.notify(`Kasse geleert: +${U.money(cash)}`, 'money'); this.emit('sfx', { s: 'cash' }); this.addXP(25, 'Überfall');
       this.crimeEvent(this.player, 'robbery', this.player.x, this.player.y, keeper);
       keeper.reportT = 0.01; keeper.reportType = 'robbery'; keeper.reportX = this.player.x; keeper.reportY = this.player.y;
+      if (b.type === 'bank') { this.crimeEvent(this.player, 'heist', this.player.x, this.player.y, keeper); this.heistAlarm(b, 6); return; }
       // silent alarm under the counter
       const x = this.player.x, y = this.player.y;
       this.later(9, () => { this.raiseWanted(2, 'robbery'); this.policeInvestigate(x, y); this.emit('notify', { text: 'Stiller Alarm ausgelöst — Polizei unterwegs!', kind: 'bad' }); });
@@ -412,6 +414,7 @@
       this.updatePlants(min);
       this.updateHoldup(dt);
       if (this.updateCriminals) this.updateCriminals(dt);
+      if (this.updateHeists) this.updateHeists(dt);
       if (P.surrender) {
         P.surrenderT += dt;
         if (this.wanted <= 0 && !this.actors.some((c) => c.kind === 'cop' && c.state === 'arrest')) P.surrender = false;

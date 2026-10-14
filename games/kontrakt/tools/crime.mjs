@@ -1,7 +1,7 @@
 // underworld systems: node tools/crime.mjs
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
+for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
 const K = ctx.K, TILE = 32;
 let ok = 0, fail = 0;
 const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
@@ -60,7 +60,7 @@ console.log('3) pickpocketing and hold-ups');
   const m1 = w.P.money; w.robTill(b, k);
   check(w.P.money > m1 && b.tillDay === w.today(), `till robbed (+$${w.P.money - m1})`);
   run(w, 60 * 11);
-  check(w.wanted >= 2, `silent alarm → 2 stars (wanted=${w.wanted} jail=${!!w.P.jail})`);
+  check(w.wanted >= 2 || w.P.jail, `silent alarm → 2 stars or already arrested (wanted=${w.wanted} jail=${!!w.P.jail})`);
 }
 console.log('4) grow, water, fertilise, harvest, deal');
 {
@@ -97,6 +97,50 @@ console.log('5) masks, bank and ATMs');
   check(w.P.money === 200 && w.P.bank === 800, 'deposit');
   check(w.buy('knife', 'gun') && w.P.money === 0 && w.P.bank === 650, 'card pays the rest at a legal shop');
   check(!w.buy('silber', 'black'), 'black market wants cash');
+}
+console.log('9) heists: bank vault (keycard, C4) and the jeweler');
+{
+  const w = new K.World({ seed: 9 }); w.time = 11 * 60; w.godMode = true; w.thugT = 1e9;
+  const p = w.player, bank = w.buildings.find((b) => b.type === 'bank');
+  const dir = w.actors.find((a) => a.director && a.home === bank.id);
+  check(dir && dir.loot === 'keycard', 'the bank director carries the vault keycard');
+  const vd = bank.doors.find((d) => d.vault);
+  check(vd && vd.locked && !w.hasAccess(dir, vd), 'vault door is sealed, even for staff');
+  // stand at the vault door with a keycard
+  const side = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([a, c]) => [vd.x + a, vd.y + c]).find(([i, j]) => w.bldAt((i + .5) * TILE, (j + .5) * TILE) === bank.id && !(bank.vault && i >= bank.vault.x && i < bank.vault.x + bank.vault.w && j >= bank.vault.y && j < bank.vault.y + bank.vault.h));
+  p.x = (side[0] + 0.5) * TILE; p.y = (side[1] + 0.5) * TILE; w.rebuildGrid();
+  for (const a of w.actors) if (a.kind === 'guard' || a.kind === 'staff') w.removeActor(a);
+  let acts = w.contextActions();
+  check(acts.some((o) => o.label.startsWith('Tresortür —')), 'needs a card, drill or C4');
+  w.addItem('keycard'); acts = w.contextActions();
+  const card = acts.find((o) => o.label.includes('Schlüsselkarte'));
+  check(!!card, 'keycard prompt'); card.fn();
+  check(!vd.locked && !w.P.inv.keycard, 'vault open, card used');
+  check(w.wanted === 0, `no alarm yet (time lock delay, wanted=${w.wanted})`);
+  const box = w.props.find((q) => q && q.k === 'deposit' && q.bld === bank.id);
+  const m0 = w.P.money; w.lootDeposit(box);
+  check(w.P.money > m0 && box.lootDay === w.today(), `deposit box looted (+$${w.P.money - m0})`);
+  run(w, 60 * 37);
+  check(w.wanted >= 3, `time-lock alarm → 3 stars (wanted=${w.wanted})`);
+  check(w.cars.some((c) => c.unit && c.unit.mode !== 'patrol'), 'police units respond to the bank');
+}
+{
+  const w = new K.World({ seed: 10 }); w.time = 11 * 60; w.godMode = true; w.thugT = 1e9;
+  const bank = w.buildings.find((b) => b.type === 'bank'), vd = bank.doors.find((d) => d.vault);
+  w.explode((vd.x + 0.5) * TILE, (vd.y + 1.2) * TILE, 70, 10, w.player);
+  check(!vd.locked && vd.blown, 'C4 blows the vault door');
+}
+{
+  const w = new K.World({ seed: 11 }); w.time = 12 * 60; w.godMode = true; w.thugT = 1e9;
+  const p = w.player, jw = w.buildings.find((b) => b.type === 'jeweler');
+  const sc = w.props.find((q) => q && q.k === 'showcase' && q.bld === jw.id);
+  p.x = (sc.x + 0.5) * TILE; p.y = (sc.y + 1.5) * TILE; if (w.blockedTile(w.tileIdx(p.x, p.y), p)) p.y = (sc.y - 0.5) * TILE;
+  w.rebuildGrid();
+  const acts = w.contextActions(), sm = acts.find((o) => o.label === 'Vitrine einschlagen');
+  check(!!sm, 'showcase prompt'); if (sm) sm.fn();
+  check((w.P.inv.jewelry || 0) >= 2, `jewelry grabbed (${w.P.inv.jewelry})`);
+  run(w, 60 * 8);
+  check(w.wanted >= 2, `jeweler alarm → 2 stars (wanted=${w.wanted})`);
 }
 console.log(`\n${ok} ok, ${fail} failed`);
 process.exit(fail ? 1 : 0);

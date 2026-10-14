@@ -327,6 +327,7 @@
         if (tx < 0 || ty < 0 || tx >= this.W || ty >= this.H) continue;
         const k = ty * this.W + tx; if (this.tiles[k] === T.WINDOW && !this.brokenGlass(k) && Math.hypot(i, j) < 3.2) this.breakGlass(k, (tx + 0.5) * TILE, (ty + 0.5) * TILE);
       }
+      if (this.blastDoors) this.blastDoors(x, y, R);
       if (src && src.kind === 'player') this.crimeEvent(src, 'murder', x, y, null, true);
     },
 

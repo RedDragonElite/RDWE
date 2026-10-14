@@ -210,7 +210,7 @@
       }
       // doors
       const door = !this.drag && this.lockedDoorNear();
-      if (door) {
+      if (door && !door.vault) {
         const hasPick = P.inv.lockpick > 0, hasBar = P.weapons.some((w) => w.id === 'crowbar');
         const b = this.buildings[door.bld];
         if (door.access && door.access.includes('owner') && b && !b.owned) add('E', 'Verschlossen — Immobilie zu verkaufen', null);
@@ -231,6 +231,7 @@
             const keeper = this.actors.find((k) => k.kind === 'keeper' && k.home === b.id && k.alive && k.ko <= 0 && k.state === 'work' && Math.hypot(k.x - k.brain.post.x, k.y - k.brain.post.y) < 40);
             if (!this.shopOpen(s)) add('E', `${s.name} — geschlossen (öffnet ${s.open[0]}:00)`, null);
             else if (!keeper) { if (!out.some((o) => o.label === 'Kasse ausräumen' || o.label === 'Kasse ist leer')) add('E', `${s.name} — niemand da`, null); }
+            else if (s.bank) add('E', 'Bankschalter: Konto', () => { this.emit('ui', { open: 'bank' }); this.bark(keeper, 'Guten Tag, was kann ich für Sie tun?', 2); });
             else add('E', b.shop === 'hospital' ? 'Klinik: Behandlung & Medizin' : `Einkaufen: ${s.name}`, () => { this.emit('ui', { open: 'shop', shop: b.shop, b: b.id }); this.bark(keeper, U.pick(K.LINES.keeper), 2); });
           } else if (p.k === 'safe' && b) {
             if (b.owned) add('E', 'Waffenkammer & Lager', () => this.emit('ui', { open: 'stash', prop: b.property }));

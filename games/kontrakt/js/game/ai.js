@@ -29,7 +29,7 @@
       const rpos = (t) => [(t.x + 0.5) * TILE, (t.y + 0.5) * TILE];
       for (const b of this.buildings) {
         if (b.keeperPos && b.shop) {
-          const outfit = { gun: 'leather', black: 'gang', food: 'casual', pharmacy: 'doctor', cloth: 'suitgrey', diner: 'waiter', bar: 'waiter', hospital: 'doctor' }[b.shop] || 'casual';
+          const outfit = { gun: 'leather', black: 'gang', food: 'casual', pharmacy: 'doctor', cloth: 'suitgrey', diner: 'waiter', bar: 'waiter', hospital: 'doctor', bank: 'suitgrey', jewel: 'suit' }[b.shop] || 'casual';
           const [x, y] = rpos(b.keeperPos);
           const k = this.spawnActor('keeper', x, y, { outfit, home: b.id, state: 'work', weapon: b.shop === 'gun' ? 'pump' : b.shop === 'black' ? 'p9' : 'fists', reserve: -1 });
           k.brain.post = { x, y }; k.armedKeeper = b.shop === 'gun' || b.shop === 'black'; k.shopB = b.id;
@@ -46,6 +46,11 @@
         if (b.type === 'hotel') { spawnStaff(b.rooms[1], 'waiter'); spawnStaff(b.rooms[2], 'waiter'); }
         if (b.type === 'hospital') { spawnStaff(b.rooms[1], 'doctor'); spawnStaff(b.rooms[2], 'doctor'); }
         if (b.type === 'office') spawnStaff(b.rooms[1], 'suitgrey', 'staff');
+        if (b.type === 'bank') {   // the director carries the vault keycard
+          let m = null; const offs = b.rooms.filter((r) => r.role === 'office');
+          for (let k = 0; k < 12 && !m && offs.length; k++) m = spawnStaff(offs[k % offs.length], 'suit', 'staff');
+          if (m) { m.loot = 'keycard'; m.director = true; m.name = 'Direktor ' + U.pick(['Brandt', 'Vogel', 'Hartmann', 'Seidel']); }
+        }
         if (b.type === 'club') { for (let k = 0; k < 5; k++) { const s = spawnStaff(b.rooms[0], U.pick(K.CIV_OUTFITS), 'civ'); if (s) { s.state = 'dance'; s.home = b.id; s.resident = true; } } spawnStaff(roomOf('vip'), 'waiter'); }
         if (b.type === 'villa' && b.zone != null) { spawnStaff(roomOf('kitchen') || b.rooms[1], 'chef'); spawnStaff(b.rooms[0], 'waiter'); }
         if (b.type === 'police') {
@@ -64,6 +69,10 @@
           g.acc = 2.2; g.brain.pi = k;
           if (b.type === 'warehouse') g.kind = 'gang';
           // the first guard at villas / clubs stands at the gate/door
+          if (k === 0 && b.type === 'bank') {   // one guard watches the hall
+            const md = b.doors[0], ii = this.nav.nearestFree((md.y - md.oy * 2) * this.W + md.x - md.ox * 2 + 2, g, 3);
+            if (ii >= 0) { [g.x, g.y] = tc(ii, this.W); g.state = 'post'; g.brain.post = { x: g.x, y: g.y }; g.brain.face = -Math.PI / 2; g.zoneLobby = true; }
+          }
           if (k === 0 && (b.type === 'villa' || b.type === 'club')) {
             const e = b.type === 'villa' && z.garden ? { x: z.garden.x + 8, y: z.garden.y + z.garden.h - 3 } : { x: b.entrance.x, y: b.entrance.y };
             const ii = this.nav.nearestFree(e.y * this.W + e.x, g, 3);

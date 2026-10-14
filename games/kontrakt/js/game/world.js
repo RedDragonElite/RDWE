@@ -109,6 +109,7 @@
         if (d.access.includes('owner')) { const b = this.buildings[d.bld]; return !!(b && b.owned); }
         return d.access.includes(this.role(a));
       }
+      if (d.vault) return false;   // nobody strolls into the vault
       if (a.kind === 'target' || a.kind === 'bodyguard') return true;
       return d.access.includes(this.role(a)) || (a.home === d.bld);
     }

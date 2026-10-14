@@ -177,6 +177,8 @@
         case 'pour': this.noise(g, t, 0.6, 'bandpass', 900, 500, 3, 0.35); for (let k = 0; k < 5; k++) this.tone(g, t + k * 0.1, 0.06, 'sine', 400 + Math.random() * 300, 250, 0.08); break;
         case 'harvest': for (let k = 0; k < 4; k++) this.noise(g, t + k * 0.12, 0.15, 'highpass', 2500, null, 1, 0.3); break;
         case 'cough': for (let k = 0; k < 3; k++) this.noise(g, t + 0.2 + k * 0.22, 0.12, 'bandpass', 500, 250, 1.5, 0.5); break;
+        case 'drill': this.tone(g, t, 0.5, 'sawtooth', 820 + Math.random() * 60, 760, 0.07); this.noise(g, t, 0.5, 'bandpass', 3200, 2600, 4, 0.18); break;
+        case 'vault': this.tone(g, t, 1.2, 'sine', 70, 40, 0.9); this.noise(g, t, 0.6, 'lowpass', 500, 120, 1, 0.8); this.tone(g, t + 0.5, 0.8, 'square', 180, 120, 0.06); this.send(g, 0.8); break;
         case 'heart': this.tone(g, t, 0.12, 'sine', 60, 40, 0.9); this.tone(g, t + 0.18, 0.12, 'sine', 55, 38, 0.7); break;
         case 'wanted': this.tone(g, t, 0.15, 'square', 880, null, 0.08); this.tone(g, t + 0.18, 0.15, 'square', 660, null, 0.08); break;
         case 'stinger': this.tone(g, t, 1.2, 'sawtooth', 110, 55, 0.12, 0.01); this.noise(g, t, 0.8, 'lowpass', 400, 80, 1, 0.6, this.brown); break;
@@ -201,6 +203,7 @@
         case 'impact': { const g = this.out(e.x, e.y, 0.25, 700); if (!g) break; if (e.mat === 'metal') { this.tone(g, t, 0.25, 'sine', 2400 + Math.random() * 800, 1800, 0.25); this.noise(g, t, 0.04, 'highpass', 3000, null, 1, 0.5); } else { this.noise(g, t, 0.06, 'bandpass', e.mat === 'wood' ? 900 : 1600, null, 1.5, 0.7); if (Math.random() < 0.25) { this.tone(g, t, 0.18, 'sine', 3200, 1400, 0.12); } } break; }
         case 'glass': { const g = this.out(e.x, e.y, 0.5, 1000); if (!g) break; this.noise(g, t, 0.3, 'highpass', 2500, null, 1, 0.8); for (let k = 0; k < 8; k++) this.tone(g, t + Math.random() * 0.25, 0.1, 'sine', 3000 + Math.random() * 4000, null, 0.12); break; }
         case 'explosion': this.explosion(e.x, e.y); break;
+        case 'alarmbell': { const g = this.out(e.x, e.y, 0.35 * e.v, 2600); if (!g) break; for (let k = 0; k < 10; k++) this.tone(g, t + k * 0.06, 0.05, 'square', 2300 + (k & 1) * 150, null, 0.12); for (let k = 0; k < 2; k++) this.tone(g, t + k * 0.6, 0.55, 'sawtooth', 880, 660, 0.05); break; }
         case 'step': if (Math.abs(e.x - this.lx) < 500 && Math.abs(e.y - this.ly) < 500) this.step(e.x, e.y, e.surf, e.run, e.player, e.crouch); break;
         case 'door': if (this.rate('door', 0.15)) { const g = this.out(e.x, e.y, 0.18, 400); if (g) { this.tone(g, t, 0.08, 'sine', 160, 100, 0.5); this.noise(g, t, 0.15, 'bandpass', 600, 300, 2, 0.2); } } break;
         case 'scream': this.scream(e.x, e.y, e.female); break;

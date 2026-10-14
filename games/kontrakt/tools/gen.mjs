@@ -20,3 +20,16 @@ for (const b of w.buildings.filter(b => b.shop)) {
   if (!ok) { bad++; console.log('counter unreachable', b.type); }
 }
 console.log('shop counters bad:', bad);
+// the bank needs a sealed vault with deposit boxes; the jeweler needs showcases
+let hbad = 0;
+for (const seed of [1, 7, 42, 777, 1234, 9999, 31337, 5, 66, 808]) {
+  const g = seed === 777 ? w : ctx.K.generateCity(seed);
+  const bank = g.buildings.find(b => b.type === 'bank'), jw = g.buildings.find(b => b.type === 'jeweler');
+  const vd = bank ? bank.doors.filter(d => d.vault) : [];
+  const boxes = bank && bank.vault ? g.props.filter(p => p && p.k === 'deposit' && p.bld === bank.id).length : 0;
+  const cases = jw ? g.props.filter(p => p && p.k === 'showcase' && p.bld === jw.id).length : 0;
+  const ok = bank && bank.vault && vd.length && !vd.some(d => d.outer) && boxes >= 3 && bank.counter && jw && cases >= 3 && jw.counter;
+  if (!ok) { hbad++; console.log('heist layout bad seed', seed, { vault: !!(bank && bank.vault), vd: vd.length, boxes, cases }); }
+}
+console.log('heist layouts bad:', hbad);
+process.exitCode = bad || hbad ? 1 : 0;
