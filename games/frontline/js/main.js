@@ -458,6 +458,28 @@
     }
   }
 
+  // ---- page-wide input hygiene (registered once, independent of the running game)
+  // no browser context menu anywhere (Windows fires it on mouse-up, when the command wheel is already under the cursor)
+  window.addEventListener('contextmenu', (e) => {
+    if (!e.target.closest('input[type=text], input:not([type]), textarea')) e.preventDefault();
+  }, { capture: true });
+  // no middle-click autoscroll
+  window.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); }, { capture: true });
+  // F11 → real element fullscreen (hides browser chrome and any scrollbars)
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {});
+    else document.exitFullscreen?.();
+  };
+  BW.toggleFullscreen = toggleFullscreen;
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); }
+  }, { capture: true });
+  document.addEventListener('fullscreenchange', () => {
+    document.documentElement.classList.toggle('is-fullscreen', !!document.fullscreenElement);
+    const b = document.getElementById('btn-full');
+    if (b) b.textContent = document.fullscreenElement ? '🗗' : '⛶';
+  });
+
   // feed "ansehen" links
   document.addEventListener('click', (e) => {
     const a = e.target.closest('.feed-go');

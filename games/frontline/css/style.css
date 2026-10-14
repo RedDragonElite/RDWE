@@ -15,7 +15,8 @@
   --display: 'Orbitron', 'Rajdhani', sans-serif;
   --emoji: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
 }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--txt); font-family: var(--font); user-select: none; -webkit-user-select: none; }
 button, input, select { font: inherit; color: inherit; }
 .hidden { display: none !important; }
@@ -144,7 +145,7 @@ button, input, select { font: inherit; color: inherit; }
 .dtab { flex: 1; padding: 5px 8px; border-radius: 8px; border: 1px solid transparent; background: rgba(255,255,255,0.04); cursor: pointer; font-weight: 700; font-size: 13px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); transition: all .15s; }
 .dtab:hover { color: var(--txt); background: rgba(255,255,255,0.08); }
 .dtab.on { color: var(--txt); border-color: var(--line-hi); background: linear-gradient(180deg, rgba(255,42,61,0.25), rgba(255,42,61,0.05)); }
-#dock-cards { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; padding-top: 2px; }
+#dock-cards { display: flex; gap: 6px; overflow-x: auto; padding-top: 2px; overscroll-behavior: contain; }
 .card { position: relative; flex: 0 0 106px; padding: 8px 4px 6px; text-align: center; cursor: pointer; border-radius: 12px; background: linear-gradient(170deg, rgba(36,42,66,0.85), rgba(14,17,28,0.85));
   border: 1px solid var(--line); transition: transform .12s, border-color .15s, box-shadow .2s; }
 .card:hover { transform: translateY(-3px); border-color: var(--line-hi); }

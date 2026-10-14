@@ -97,8 +97,11 @@
       on($('btn-mute'), 'click', () => g.toggleMute());
       on($('btn-pause'), 'click', () => g.togglePause());
       on($('btn-speed'), 'click', () => g.cycleSpeed());
-      on($('btn-full'), 'click', () => {
-        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.();
+      on($('btn-full'), 'click', () => BW.toggleFullscreen());
+      // scrollbars are hidden → let the mouse wheel scroll the card row sideways
+      on($('dock-cards'), 'wheel', (e) => {
+        const el = $('dock-cards');
+        if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { el.scrollLeft += e.deltaY; e.preventDefault(); }
       });
       document.querySelectorAll('.rail-btn').forEach(b => on(b, 'click', () => { g.audio.play('click'); g.panels.toggle(b.dataset.panel); }));
       on($('modal-close'), 'click', () => g.panels.close());
