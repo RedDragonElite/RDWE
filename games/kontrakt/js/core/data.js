@@ -73,6 +73,22 @@
     wallet:   { name: 'Brieftasche', e: '👛', price: 0, w: 0.1, sellOnly: true },
     watch:    { name: 'Goldene Uhr', e: '⌚', price: 0, sell: 450, w: 0.1, sellOnly: true },
     keycard:  { name: 'Schlüsselkarte', g: 'keycard', price: 0, w: 0.01, quest: true },
+    // street & crime
+    cig:      { name: 'Zigaretten', e: '🚬', energy: 8, hp: -1, price: 7, w: 0.05, desc: 'Beruhigt die Nerven.' },
+    fries:    { name: 'Pommes', e: '🍟', food: 22, water: -5, price: 4, w: 0.3 },
+    mask:     { name: 'Sturmhaube', g: 'mask', price: 80, w: 0.1, desc: 'Benutzen: aufsetzen/abnehmen. Zeugen erkennen dich nicht — Maske ungesehen ab = Fahndung weg. Wirkt verdächtig.' },
+    hackkit:  { name: 'Hack-Gerät', e: '📟', price: 1600, w: 0.4, desc: 'Knackt Geldautomaten [E halten].' },
+    repair:   { name: 'Reparaturset', e: '🔧', price: 240, w: 1.2, desc: 'Am Auto benutzen: repariert es vollständig.' },
+    jewelry:  { name: 'Schmuck', e: '💍', price: 0, sell: 320, w: 0.1, sellOnly: true, hot: true },
+    laptop:   { name: 'Laptop', e: '💻', price: 0, sell: 380, w: 2, sellOnly: true, hot: true },
+    phone:    { name: 'Fremdes Handy', e: '📱', price: 0, sell: 140, w: 0.2, sellOnly: true, hot: true },
+    cash:     { name: 'Bargeldbündel', e: '💵', price: 0, sell: 250, w: 0.1, sellOnly: true },
+    // grow & deal
+    seed:     { name: 'Hanfsamen', e: '🌱', price: 18, w: 0.01, desc: 'Mit Pflanztopf in eigener Immobilie anpflanzen.' },
+    growkit:  { name: 'Pflanztopf + Erde', g: 'pot', price: 55, w: 2, desc: 'Benutzen in deiner Immobilie: pflanzt einen Samen.' },
+    fert:     { name: 'Dünger', e: '⚗️', price: 25, w: 0.5, desc: 'An Pflanze [T]: schnelleres Wachstum, bessere Qualität.' },
+    can:      { name: 'Gießkanne', g: 'can', price: 30, w: 0.8, desc: 'Unbegrenzt Wasser für deine Pflanzen.' },
+    bud:      { name: 'Gras (g)', e: '🌿', price: 0, sell: 9, w: 0.002, drug: true, high: 0.35, food: -8, energy: -6, desc: 'Verkaufen: Passanten ansprechen [E] oder Schwarzmarkt. Benutzen: high.' },
   };
   for (const k in K.ITEMS) K.ITEMS[k].id = k;
 
@@ -93,6 +109,7 @@
     doctor:   { name: 'Arzt', body: '#e9f3f6', trim: '#2aa1b8', pants: '#99b9c4', role: 'medic', disguise: true },
     gang:     { name: 'Hafen-Crew', body: '#5b0f14', trim: '#111', pants: '#1b1b1b', hat: 'band', hatC: '#b3121b', role: 'gang', disguise: true },
     bouncer:  { name: 'Türsteher', body: '#111', trim: '#555', pants: '#111', role: 'guard', disguise: true, hat: 'ear' },
+    prisoner: { name: 'Häftlingskleidung', body: '#e86a12', trim: '#2b2b2b', pants: '#e86a12', role: 'prisoner' },
     under:    { name: 'Unterwäsche', body: '#d8cfc0', trim: '#d8cfc0', pants: '#a7b4c6', role: 'none', bare: true },
     // civilian looks
     civ1: { body: '#7a3b3b', trim: '#ddd', pants: '#333a46', role: 'civ' },
@@ -112,13 +129,14 @@
 
   // ------------------------------------------------------------------ shops
   K.SHOPS = {
-    gun: { name: 'Waffen Krause & Söhne', open: [9, 21], keeper: 'guard', items: ['p9', 'magnum', 'mpk', 'pump', 'k47', 'knife', 'bat', 'crowbar', 'machete', 'a:9mm', 'a:45', 'a:357', 'a:12g', 'a:762', 'vest', 'silencer'] },
-    black: { name: 'Schwarzmarkt „Der Kran“', open: [20, 6], keeper: 'gang', buysAll: true, items: ['silber', 'jaeger', 'katana', 'wire', 'syringe', 'sedative', 'c4', 'grenade', 'lockpick', 'a:45', 'a:308', 'a:762', 'o:police', 'o:guard', 'silencer'] },
-    food: { name: 'Späti 24/7', open: [0, 24], keeper: 'civ', items: ['apple', 'sandwich', 'pizza', 'water', 'cola', 'coffee', 'energy', 'beer', 'coin', 'flashlight', 'bandage'] },
-    pharmacy: { name: 'Stadt-Apotheke', open: [7, 22], keeper: 'medic', items: ['bandage', 'medkit', 'pills', 'energy', 'water', 'sedative'] },
-    cloth: { name: 'Boutique Noir', open: [10, 20], keeper: 'civ', items: ['o:suitgrey', 'o:casual', 'o:hoodie', 'o:leather', 'o:tux', 'o:suit'] },
-    diner: { name: 'Diner „Zur Laterne“', open: [6, 23], keeper: 'staff', eat: true, items: ['burger', 'steak', 'doener', 'pizza', 'coffee', 'cola', 'water'] },
-    bar: { name: 'Bar „Blauer Engel“', open: [17, 4], keeper: 'staff', eat: true, items: ['beer', 'whiskey', 'cola', 'water', 'sandwich'] },
+    gun: { name: 'Waffen Krause & Söhne', open: [9, 21], keeper: 'guard', till: 1800, items: ['p9', 'magnum', 'mpk', 'pump', 'k47', 'knife', 'bat', 'crowbar', 'machete', 'a:9mm', 'a:45', 'a:357', 'a:12g', 'a:762', 'vest', 'silencer'] },
+    black: { name: 'Schwarzmarkt „Der Kran“', open: [20, 6], keeper: 'gang', buysAll: true, items: ['silber', 'jaeger', 'katana', 'wire', 'syringe', 'sedative', 'c4', 'grenade', 'lockpick', 'a:45', 'a:308', 'a:762', 'o:police', 'o:guard', 'silencer', 'hackkit', 'mask', 'seed'] },
+    food: { name: 'Späti 24/7', open: [0, 24], keeper: 'civ', till: 450, items: ['apple', 'sandwich', 'pizza', 'fries', 'water', 'cola', 'coffee', 'energy', 'beer', 'cig', 'coin', 'flashlight', 'bandage', 'mask'] },
+    grow: { name: 'Grünes Glück Gartenbedarf', open: [8, 20], keeper: 'civ', till: 700, items: ['seed', 'growkit', 'fert', 'can', 'water'] },
+    pharmacy: { name: 'Stadt-Apotheke', open: [7, 22], keeper: 'medic', till: 650, items: ['bandage', 'medkit', 'pills', 'energy', 'water', 'sedative'] },
+    cloth: { name: 'Boutique Noir', open: [10, 20], keeper: 'civ', till: 1200, items: ['mask', 'o:suitgrey', 'o:casual', 'o:hoodie', 'o:leather', 'o:tux', 'o:suit'] },
+    diner: { name: 'Diner „Zur Laterne“', open: [6, 23], keeper: 'staff', eat: true, till: 500, items: ['fries', 'burger', 'steak', 'doener', 'pizza', 'coffee', 'cola', 'water'] },
+    bar: { name: 'Bar „Blauer Engel“', open: [17, 4], keeper: 'staff', eat: true, till: 800, items: ['beer', 'whiskey', 'cola', 'water', 'sandwich', 'cig'] },
     hospital: { name: 'St. Marien Klinik', open: [0, 24], keeper: 'medic', heal: 250, items: ['medkit', 'bandage', 'pills'] },
   };
 
@@ -141,6 +159,7 @@
     bar:       { name: 'Bar „Blauer Engel“', floor: 'WOOD', roof: 'gable', colors: ['#2a3550'], shop: 'bar' },
     club:      { name: 'Club „Nachtfalter“', floor: 'CONC', roof: 'flat', colors: ['#24182e'], restricted: ['guard', 'vip', 'staff'] },
     black:     { name: 'Hafenschuppen', floor: 'CONC', roof: 'metal', colors: ['#3b3226'], shop: 'black' },
+    grow:      { name: 'Grünes Glück Gartenbedarf', floor: 'WOOD', roof: 'gable', colors: ['#3d6b34'], shop: 'grow' },
   };
 
   // purchasable properties (assigned to buildings by citygen)
@@ -152,6 +171,24 @@
     { id: 'barkauf', name: 'Bar „Blauer Engel“', price: 90000, btype: 'bar', district: 'old', income: 1500, desc: 'Gehört dir die Bar, gehört dir die Nacht. +1.500$/Tag.' },
     { id: 'villa', name: 'Villa Sonnenhang', price: 240000, btype: 'villa', district: 'hill', income: 0, desc: 'Das Endgame. Pool, Personal, Ruhe.' },
   ];
+
+  // ------------------------------------------------------------------ crimes: severity (stars) and jail minutes per count
+  K.CRIMES = {
+    weapon:    { name: 'Bedrohung mit Waffe', sev: 1, jail: 40 },
+    trespass:  { name: 'Hausfriedensbruch', sev: 1, jail: 30 },
+    assault:   { name: 'Körperverletzung', sev: 1, jail: 70 },
+    shots:     { name: 'Schüsse in der Öffentlichkeit', sev: 1, jail: 60 },
+    theft:     { name: 'Diebstahl', sev: 1, jail: 60 },
+    burglary:  { name: 'Einbruch', sev: 1, jail: 120 },
+    robbery:   { name: 'Raubüberfall', sev: 2, jail: 240 },
+    drugs:     { name: 'Drogenhandel', sev: 1, jail: 150 },
+    murder:    { name: 'Mord', sev: 2, jail: 600 },
+    copkill:   { name: 'Polizistenmord', sev: 3, jail: 1200 },
+    explosion: { name: 'Sprengstoffanschlag', sev: 2, jail: 400 },
+    jailbreak: { name: 'Gefängnisausbruch', sev: 3, jail: 480 },
+    resist:    { name: 'Widerstand gegen die Staatsgewalt', sev: 2, jail: 90 },
+    masked:    { name: 'Vermummung', sev: 1, jail: 20 },
+  };
 
   // ------------------------------------------------------------------ skills
   K.SKILLS = {

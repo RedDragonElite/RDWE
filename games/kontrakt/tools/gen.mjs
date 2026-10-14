@@ -1,7 +1,7 @@
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
 for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
-const t0=Date.now(); const w = ctx.K.generateCity(4242); console.log('gen ms', Date.now()-t0);
+const t0=Date.now(); const w = ctx.K.generateCity(777); console.log('gen ms', Date.now()-t0);
 console.log('W',w.W,'H',w.H,'buildings',w.buildings.length,'props',w.props.filter(Boolean).length,'lights',w.lights.length,'zones',w.zones.length,'walk',w.walk.length);
 const c={}; for(const b of w.buildings) c[b.type]=(c[b.type]||0)+1; console.log(c);
 console.log('props', Object.entries(w.props.filter(Boolean).reduce((a,p)=>(a[p.k]=(a[p.k]||0)+1,a),{})).map(e=>e.join(':')).join(' '));

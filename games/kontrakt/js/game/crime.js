@@ -2,14 +2,15 @@
 (function (K) {
   'use strict';
   const U = K.U, TILE = K.TILE;
-  const SEV = { weapon: 1, trespass: 1, assault: 1, shots: 1, theft: 1, burglary: 1, murder: 2, copkill: 3, explosion: 2, body: 0 };
-  const WHAT = { weapon: 'Bewaffnete Person', trespass: 'Hausfriedensbruch', assault: 'Körperverletzung', shots: 'Schüsse gemeldet', theft: 'Autodiebstahl', burglary: 'Einbruch', murder: 'Mord', copkill: 'Polizistenmord', explosion: 'Explosion' };
+  const SEV = { weapon: 1, trespass: 1, assault: 1, shots: 1, theft: 1, burglary: 1, murder: 2, copkill: 3, explosion: 2, body: 0, robbery: 2, drugs: 1, jailbreak: 3, resist: 2, masked: 1 };
+  const WHAT = { weapon: 'Bewaffnete Person', trespass: 'Hausfriedensbruch', assault: 'Körperverletzung', shots: 'Schüsse gemeldet', theft: 'Autodiebstahl', burglary: 'Einbruch', murder: 'Mord', copkill: 'Polizistenmord', explosion: 'Explosion', robbery: 'Raubüberfall', drugs: 'Drogenhandel', jailbreak: 'Gefängnisausbruch', resist: 'Widerstand', masked: 'Vermummte Person' };
   K.CRIME_SEV = SEV;
 
   K.mixin({
     initCrime() {
       this.wanted = 0;
-      this.heat = { x: 0, y: 0, seenT: 0, spawnT: 0 };
+      this.heat = { x: 0, y: 0, seenT: 0, spawnT: 0, anon: false };
+      this.charges = {};
     },
     /** player committed something at (x,y) — find who saw it */
     crimeEvent(perp, type, x, y, victim, force) {
@@ -29,6 +30,11 @@
       n.wit = { type, t: this.t, sev, x, y };
       n.knowsPlayer = true;
       if (type !== 'shots' || n.kind === 'cop') this.note('witness', { n, type });
+      if (type === 'drugs' && n.kind !== 'cop') {
+        // most people look away from a deal; some snitch
+        if (Math.random() < 0.22 && !n.reportT) { n.reportT = 5 + Math.random() * 5; n.reportType = 'drugs'; n.reportX = x; n.reportY = y; }
+        return;
+      }
       switch (n.kind) {
         case 'cop':
           this.raiseWanted(Math.max(sev, type === 'shots' || type === 'weapon' ? 1 : sev), type);
@@ -55,7 +61,17 @@
       this.raiseWanted(SEV[type] || 1, type);
     },
     raiseWanted(level, type) {
+      const P = this.P;
+      // already behind bars: crimes in the cell just add time
+      if (P.jail && !P.jail.escaped) {
+        const add = (K.CRIMES[type] && K.CRIMES[type].jail) || 60;
+        P.jail.until += add; this.addCharge(type);
+        this.notify(`${(K.CRIMES[type] || { name: type }).name}: +${Math.round(add / 60 * 10) / 10}h Haft`, 'bad');
+        return;
+      }
       const prev = this.wanted;
+      if (prev <= 0) this.heat.anon = !!P.masked; else if (!P.masked) this.heat.anon = false;
+      this.addCharge(type);
       let w = Math.max(prev, level);
       if (prev >= 2 && (type === 'murder' || type === 'copkill') && level >= 2) w = Math.min(5, prev + (type === 'copkill' ? 1 : 0.5));
       w = Math.min(5, w);
@@ -80,6 +96,7 @@
       const before = Math.floor(this.wanted);
       this.wanted = Math.max(0, this.wanted - 2);
       for (const c of this.actors) if (c.kind === 'cop' || c.kind === 'guard') { c.knowsPlayer = false; c.susp = 0; }
+      if (this.wanted <= 0) { this.charges = {}; this.heat.anon = false; }
       if (Math.floor(this.wanted) < before) { this.emit('wanted', { level: Math.floor(this.wanted), prev: before, why: 'Identität gewechselt' }); }
     },
     updateCrime(dt) {
@@ -98,7 +115,7 @@
         this.wanted = Math.max(0, Math.floor(this.wanted) - 1);
         this.heat.seenT = 0;
         this.emit('wanted', { level: this.wanted, prev, why: this.wanted ? 'Spur verwischt' : 'Fahndung eingestellt' });
-        if (!this.wanted) for (const c of this.actors) if (c.kind === 'cop' && c.state !== 'station') { c.state = 'patrol'; c.path = null; }
+        if (!this.wanted) { this.charges = {}; this.heat.anon = false; for (const c of this.actors) if (c.kind === 'cop' && c.state !== 'station') { c.state = 'patrol'; c.path = null; } }
       }
       // dispatch
       const want = [0, 3, 5, 8, 11, 15][Math.floor(this.wanted)];

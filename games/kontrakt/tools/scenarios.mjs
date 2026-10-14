@@ -1,7 +1,7 @@
 // AI behaviour scenarios: node tools/scenarios.mjs
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
+for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
 const K = ctx.K, TILE = 32;
 let ok = 0, fail = 0;
 const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
@@ -15,17 +15,25 @@ function villaSetup(seed) {
 }
 console.log('1) trespassing in a villa garden gets you warned, then shot at');
 {
-  const { w, z, guards } = villaSetup(11);
-  const g = guards.find(g => g.state === 'patrol') || guards[0];
-  // stand 3 tiles in front of the guard, inside the garden
-  const p = w.player; g.brain.waitT = 30; g.state = 'patrol';
-  for (let k = 0; k < 40; k++) { const a = Math.random() * 6.28; const x = g.x + Math.cos(g.angle) * 90, y = g.y + Math.sin(g.angle) * 90; if (w.zoneAt(x, y) === z.id && !w.blockedTile(w.tileIdx(x, y), p)) { p.x = x; p.y = y; break; } g.angle = a; }
-  w.P.slot = 0; p.wi = w.curWeapon();
-  console.log('   in zone:', w.zoneAt(p.x, p.y) === z.id, 'dist', Math.round(Math.hypot(p.x - g.x, p.y - g.y)));
-  let warned = false, hostile = false;
-  for (let i = 0; i < 60 * 12 && !hostile; i++) { run(w, 1); if (g.state === 'warn') warned = true; if (g.state === 'hostile') hostile = true; }
-  check(warned, 'guard warns the trespasser');
-  check(hostile, 'guard turns hostile when you stay');
+  let res = null;
+  for (const seed of [11, 21, 31, 41, 51]) {
+    const { w, z, guards } = villaSetup(seed);
+    const p = w.player; w.P.slot = 0; p.wi = w.curWeapon();
+    let g = null;
+    for (const cand of guards) {
+      for (let k = 0; k < 16 && !g; k++) {
+        const a = k * 0.39, x = cand.x + Math.cos(a) * 90, y = cand.y + Math.sin(a) * 90;
+        if (w.zoneAt(x, y) === z.id && !w.blockedTile(w.tileIdx(x, y), p) && K.los(w, cand.x, cand.y, x, y)) { p.x = x; p.y = y; cand.angle = a; cand.state = 'post'; cand.brain.post = { x: cand.x, y: cand.y }; cand.brain.face = a; g = cand; }
+      }
+      if (g) break;
+    }
+    if (!g) continue;
+    let warned = false, hostile = false;
+    for (let i = 0; i < 60 * 14 && !hostile; i++) { run(w, 1); if (g.state === 'warn') warned = true; if (g.state === 'hostile') hostile = true; }
+    res = { warned, hostile }; break;
+  }
+  check(res && res.warned, 'guard warns the trespasser');
+  check(res && res.hostile, 'guard turns hostile when you stay');
 }
 console.log('2) a guard disguise lets you walk past ordinary guards');
 {
@@ -46,7 +54,7 @@ console.log('3) a thrown coin lures a guard away');
   const g = guards[1] || guards[0];
   g.state = 'patrol'; g.brain.waitT = 30;
   let tx = g.x + 90, ty = g.y + 20;
-  for (const [dx, dy] of [[90, 20], [-90, 20], [20, 90], [20, -90], [60, 60], [-60, -60]]) { if (K.los(w, g.x, g.y, g.x + dx, g.y + dy) && !w.blockedTile(w.tileIdx(g.x + dx, g.y + dy), g)) { tx = g.x + dx; ty = g.y + dy; break; } }
+  for (const [dx, dy] of [[90, 20], [-90, 20], [20, 90], [20, -90], [60, 60], [-60, -60], [-60, 60], [60, -60]]) { const pth = K.los(w, g.x, g.y, g.x + dx, g.y + dy) && !w.blockedTile(w.tileIdx(g.x + dx, g.y + dy), g) && w.nav.find(g, g.x, g.y, g.x + dx, g.y + dy); if (pth && pth.length < 7) { tx = g.x + dx; ty = g.y + dy; break; } }
   w.player.x = g.x - 400; w.player.y = g.y - 400; w.player.hidden = true;
   w.rebuildGrid(); w.noise(tx, ty, 7, 'coin', null);
   check(g.state === 'investigate', `guard investigates the noise (state=${g.state})`);

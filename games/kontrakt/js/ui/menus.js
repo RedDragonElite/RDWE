@@ -99,6 +99,9 @@
           h += `<div class="skill"><i>${s.e}</i><div class="sk-n">${s.name}<small>${s.desc}</small></div><div class="pips">${[0, 1, 2, 3, 4].map((n) => `<u class="${n < lv ? 'on' : ''}"></u>`).join('')}</div><button data-sk="${k}" ${P.sp > 0 && lv < 5 ? '' : 'disabled'}>+</button></div>`;
         }
         const S = P.stats;
+        const R = P.record || {}, rk = Object.keys(R);
+        h += `<div class="ph-h" style="margin-top:16px;font-size:15px">STRAFREGISTER</div>` + (rk.length ? rk.map((k) => `<div class="stat"><span>${K.CRIMES[k] ? K.CRIMES[k].name : k}</span><b>${R[k]}×</b></div>`).join('') : '<div class="stat"><span>Weiße Weste.</span><b>—</b></div>');
+        if (P.deal && P.deal.sold) h += `<div class="ph-h" style="margin-top:16px;font-size:15px">GESCHÄFTE</div><div class="stat"><span>Dealer-Ruf</span><b>${P.deal.rep}</b></div><div class="stat"><span>Verkauft</span><b>${P.deal.sold} g</b></div><div class="stat"><span>Pflanzen</span><b>${(P.plants || []).length}</b></div>`;
         h += `<div class="ph-h" style="margin-top:16px;font-size:15px">STATISTIK</div>` + [['Aufträge erfüllt', S.contracts], ['Lautlose Assassinen', S.silent], ['Verdient', U.money(S.earned)], ['Ausgeschaltet', S.kills], ['Kopfschüsse', S.headshots], ['Takedowns', S.takedowns], ['Zivile Opfer', S.civKills], ['Tage in Krähenburg', U.day(w.time)]].map(([a, b]) => `<div class="stat"><span>${a}</span><b>${b}</b></div>`).join('');
         body.innerHTML = h;
       } else if (app === 'estate') {
@@ -116,7 +119,7 @@
         body.innerHTML = '<div class="ph-h">NACHRICHTEN</div>' + `<div class="msg"><small>Vesna · Zentrale</small>Willkommen zurück in Krähenburg. Deine Bude in der Altstadt steht bereit. Aufträge kommen aufs Handy. Bleib unsichtbar.</div>` + log.slice(0, 40).map((l) => `<div class="msg"><small>${l.t}</small>${esc(l.text)}</div>`).join('');
       } else if (app === 'bank') {
         let inc = 0; for (const id of P.owned) inc += w.propertyDef(id).income || 0;
-        body.innerHTML = `<div class="ph-h">KONTO</div><div class="card"><div class="sub">Bargeld</div><h4 style="font-size:30px;color:#9ff0b8">${U.money(P.money)}</h4></div>
+        body.innerHTML = `<div class="ph-h">KONTO</div><div class="card"><div class="sub">Bargeld</div><h4 style="font-size:30px;color:#9ff0b8">${U.money(P.money)}</h4></div><div class="card"><div class="sub">Konto · Sparkasse</div><h4 style="font-size:26px;color:#7fb7a0">${U.money(P.bank || 0)}</h4><p>Ein- und Auszahlen am Geldautomaten.</p></div>
           <div class="card"><div class="sub">Passives Einkommen</div><h4>${U.money(inc)} / Tag</h4><p>Zahlt jeden Morgen um 08:00 aus.</p></div>
           <div class="card"><div class="sub">Verdient mit Aufträgen</div><h4>${U.money(P.stats.earned)}</h4></div>`;
       } else if (app === 'map') { this.closePhone(); this.openMap(); return; }
@@ -154,6 +157,29 @@
       else if (e.open === 'wardrobe') this.wardrobe();
       else if (e.open === 'sleep') this.sleep(e.prop);
       else if (e.open === 'property') this.property(e.id);
+      else if (e.open === 'bank') this.bank();
+    }
+    bank() {
+      const w = this.g.world, P = w.P;
+      const h = `<div class="cols"><div class="card"><div class="sub">Bargeld</div><h4 style="font-size:30px;color:#9ff0b8">${U.money(P.money)}</h4><p>Bargeld verlierst du beim Tod (15%). Schwarzmarkt und Dealer nehmen nur Bares.</p>
+        <div class="btns"><button class="btn" data-dep="100">+100 einzahlen</button><button class="btn" data-dep="1000">+1.000</button><button class="btn red" data-dep="1e12">Alles einzahlen</button></div></div>
+        <div class="card"><div class="sub">Konto · Krähenburger Sparkasse</div><h4 style="font-size:30px;color:#7fb7a0">${U.money(P.bank || 0)}</h4><p>Auftragshonorare und Geschäftseinnahmen landen hier. Legale Läden nehmen Karte.</p>
+        <div class="btns"><button class="btn" data-wd="100">100 abheben</button><button class="btn" data-wd="1000">1.000</button><button class="btn" data-wd="5000">5.000</button><button class="btn ghost" data-wd="1e12">Alles</button></div></div></div>`;
+      const b = this.panel('GELDAUTOMAT', h, 'bank');
+      b.querySelectorAll('[data-dep]').forEach((x) => (x.onclick = () => { w.bankDeposit(+x.dataset.dep); this.bank(); }));
+      b.querySelectorAll('[data-wd]').forEach((x) => (x.onclick = () => { w.bankWithdraw(+x.dataset.wd); this.bank(); }));
+    }
+    showJail(e) {
+      const el = $('#dead');
+      const h = Math.floor(e.min / 60), m = e.min % 60;
+      el.innerHTML = `<div class="res-box"><div class="k">AMTSGERICHT KRÄHENBURG · SCHNELLVERFAHREN</div><h1 style="color:#ff9a4a">${h}h ${String(m).padStart(2, '0')}m HAFT</h1><h3>${e.surrendered ? 'Geständig und kooperativ — 30% Strafnachlass' : 'Festgenommen'}</h3>
+        ${e.charges.map((c, i) => `<div class="ln" style="animation-delay:${0.2 + i * 0.15}s"><span>${esc(c.name)}${c.n > 1 ? ' ×' + c.n : ''}</span><b>${Math.round(c.min / 6) / 10}h</b></div>`).join('')}
+        ${e.lost.length ? `<div class="ln" style="animation-delay:${0.3 + e.charges.length * 0.15}s"><span>Beschlagnahmt</span><b style="font-size:12px;max-width:60%;text-align:right">${esc(e.lost.join(', '))}</b></div>` : ''}
+        <div class="tot" style="color:#ff9a4a"><span>KAUTION</span><span>${U.money(e.bail)}</span></div>
+        <p style="color:#999;font-size:12px">In der Zelle läuft die Zeit 14× schneller. Zahl die Kaution mit <b>K</b> oder knack die Zellentür mit <b>E</b>, wenn kein Wärter hinsieht.</p>
+        <div class="btns" style="justify-content:center;margin-top:12px"><button class="btn" id="dead-ok">In die Zelle</button></div></div>`;
+      el.classList.remove('hidden'); this.sync();
+      el.querySelector('#dead-ok').onclick = () => { el.classList.add('hidden'); this.sync(); this.g.fadeIn(); };
     }
     inventory() {
       const w = this.g.world, P = w.P;
@@ -174,7 +200,7 @@
         const it = K.ITEMS[k];
         const usable = !it.sellOnly && !it.quest && k !== 'lockpick';
         const stats = [it.food ? `Hunger +${it.food}` : '', it.water ? `Durst +${it.water}` : '', it.energy ? `Energie +${it.energy}` : '', it.hp ? `HP +${it.hp}` : '', it.desc || ''].filter(Boolean).join(' · ');
-        h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(it.name)}<small>${esc(stats)}</small></div><div class="q">×${P.inv[k]}</div>${usable ? `<button class="btn" data-use="${k}">Benutzen</button>` : ''}<button class="btn ghost" data-drop="${k}">✕</button></div>`;
+        h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(it.name)}<small>${esc(stats)}</small></div><div class="q">×${P.inv[k]}</div>${usable ? `<button class="btn" data-use="${k}">${k === 'mask' ? (P.masked ? 'Abnehmen' : 'Aufsetzen') : k === 'growkit' || k === 'seed' ? 'Pflanzen' : k === 'bud' ? 'Rauchen' : 'Benutzen'}</button>` : ''}<button class="btn ghost" data-drop="${k}">✕</button></div>`;
       }
       h += `</div><div class="sec" style="margin-top:14px">Outfit</div><div class="it"><div class="ic">👔</div><div class="nm">${esc(K.OUTFITS[P.outfit].name)}<small>${K.OUTFITS[P.outfit].disguise ? 'Verkleidung — Zugang: ' + K.OUTFITS[P.outfit].role : 'Zivil'}</small></div></div>
         <div class="sec" style="margin-top:14px">Status</div>
@@ -203,7 +229,7 @@
         }
       } else {
         P.weapons.forEach((x, i) => { if (!i) return; const v = Math.round((W8[x.id].price || 0) * 0.4) * (x.n || 1); h += `<div class="it"><div class="ic">${icon(x.id)}</div><div class="nm">${esc(W8[x.id].name)}</div><div class="pr">${U.money(v)}</div><button class="btn" data-sellw="${i}">Verkaufen</button></div>`; });
-        for (const k in P.inv) { const v = w.priceOf(k, true); if (!v) continue; h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)} ×${P.inv[k]}</div><div class="pr">${U.money(v)}</div><button class="btn" data-selli="${k}">Verkaufen</button></div>`; }
+        if (s.buysAll) for (const k in P.inv) { const v = w.priceOf(k, true); if (!v) continue; const n = P.inv[k]; h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)} ×${n}<small>${K.ITEMS[k].hot ? 'Hehlerware' : K.ITEMS[k].drug ? 'Großhandel — sicherer als die Straße, aber billiger' : ''}</small></div><div class="pr">${U.money(v)}${n > 1 ? '/Stk' : ''}</div><button class="btn" data-selli="${k}">1</button>${n > 1 ? `<button class="btn red" data-sellall="${k}">Alle ${U.money(v * n)}</button>` : ''}</div>`; }
       }
       h += '</div>';
       const b = this.panel(s.name, h, 'shop');
@@ -212,6 +238,7 @@
       b.querySelectorAll('[data-eat]').forEach((x) => (x.onclick = () => { w.eatHere(x.dataset.eat); this.shop(id, bid, tab); }));
       b.querySelectorAll('[data-sellw]').forEach((x) => (x.onclick = () => { w.sellWeapon(+x.dataset.sellw); this.shop(id, bid, 'sell'); }));
       b.querySelectorAll('[data-selli]').forEach((x) => (x.onclick = () => { w.sellItem(x.dataset.selli); this.shop(id, bid, 'sell'); }));
+      b.querySelectorAll('[data-sellall]').forEach((x) => (x.onclick = () => { w.sellItem(x.dataset.sellall, 1e9); this.shop(id, bid, 'sell'); }));
       const hb = b.querySelector('[data-heal]'); if (hb) hb.onclick = () => { w.heal(); this.shop(id, bid, tab); };
     }
     stash(propId) {
@@ -290,15 +317,15 @@
       if (this.g.waypoint) { const [mx, my] = toM(this.g.waypoint.x, this.g.waypoint.y); x.strokeStyle = '#ffd34d'; x.lineWidth = 4; x.beginPath(); x.arc(mx, my, s * 2.5, 0, 6.3); x.stroke(); }
       const p = w.player; const [px, py] = toM(p.x, p.y);
       x.save(); x.translate(px, py); x.rotate(p.angle); x.fillStyle = '#fff'; x.strokeStyle = '#000'; x.lineWidth = 3; x.beginPath(); x.moveTo(s * 3, 0); x.lineTo(-s * 2, -s * 2); x.lineTo(-s, 0); x.lineTo(-s * 2, s * 2); x.closePath(); x.stroke(); x.fill(); x.restore();
-      $('#mv-legend').innerHTML = '🏠 Dein Besitz · 🏷️ Zu verkaufen<br>🔫 Waffen · 💀 Schwarzmarkt · 🛒 Späti<br>💊 Apotheke · 👔 Boutique · 🍔 Diner · 🍸 Bar<br>🏥 Klinik · 🚓 Polizei · 🎵 Club · <span style="color:#ff2030">●</span> Ziel';
+      $('#mv-legend').innerHTML = '🏠 Dein Besitz · 🏷️ Zu verkaufen<br>🔫 Waffen · 💀 Schwarzmarkt · 🛒 Späti<br>💊 Apotheke · 👔 Boutique · 🍔 Diner · 🍸 Bar<br>🏥 Klinik · 🚓 Polizei · 🎵 Club<br>🌱 Growshop · 🏧 Geldautomat · <span style="color:#ff2030">●</span> Ziel';
     }
 
     // ============================================================ title / pause / results
     controls() {
-      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Waffe wählen', 'H', 'Waffe holstern'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild']];
+      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Waffe wählen', 'H', 'Waffe holstern'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen']];
       const h = `<div class="kbd-grid">${k.map((r) => `<kbd>${r[0]}</kbd><span>${r[1]}</span><kbd>${r[2]}</kbd><span>${r[3]}</span>`).join('')}</div>
         <div class="sec" style="margin-top:18px">So spielst du</div>
-        <p style="font-size:13px;color:#cfc9be;line-height:1.6">Aufträge kommen aufs <b>Handy (P)</b>. Finde das Ziel — mit gekauftem Intel wird es markiert, sonst kennst du nur grob den Bereich. Nimm Verkleidungen von bewusstlosen oder toten Wachen (<b>T</b>), um in Sperrgebiete zu kommen. Wirf <b>Münzen</b>, um Wachen wegzulocken, und erledige Ziele lautlos von hinten (<b>F</b>) mit der Klaviersaite. Leichen versteckst du in Containern und Schränken (<b>E</b>). Zeugen rufen die Polizei — wechsle das Outfit ungesehen, um die Fahndung zu senken. Iss, trink, schlaf in deinem eigenen Bett, kauf Waffen, Häuser und Geschäfte. Krähenburg lebt — Tag und Nacht, Regen und Nebel.</p>`;
+        <p style="font-size:13px;color:#cfc9be;line-height:1.6">Aufträge kommen aufs <b>Handy (P)</b>. Finde das Ziel — mit gekauftem Intel wird es markiert, sonst kennst du nur grob den Bereich. Nimm Verkleidungen von bewusstlosen oder toten Wachen (<b>T</b>), um in Sperrgebiete zu kommen. Wirf <b>Münzen</b>, um Wachen wegzulocken, und erledige Ziele lautlos von hinten (<b>F</b>) mit der Klaviersaite. Leichen versteckst du in Containern und Schränken (<b>E</b>). Zeugen rufen die Polizei — wechsle das Outfit ungesehen, um die Fahndung zu senken. Willst du nicht sterben, ergib dich mit <b>X</b>: weniger Haft, aber Knast ist Knast. Halt Passanten oder Ladenbesitzer mit gezogener Waffe (<b>RMB</b>) in Schach und raub sie aus, zieh Brieftaschen von hinten, durchwühl fremde Wohnungen, hack Geldautomaten. Mit einer Sturmhaube erkennt dich niemand. Im Growshop gibt es Samen und Töpfe — pflanz in deiner Bude, gieß, dünge, ernte und verkauf an Passanten (<b>T</b>) oder am Schwarzmarkt. Iss, trink, schlaf in deinem eigenen Bett, kauf Waffen, Häuser und Geschäfte. Krähenburg lebt — Tag und Nacht, Regen und Nebel.</p>`;
       if (!$('#title').classList.contains('hidden')) this.titlePanel('STEUERUNG', h);
       else this.panel('STEUERUNG', h, 'help');
     }

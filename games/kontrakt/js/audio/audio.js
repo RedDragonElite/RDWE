@@ -172,6 +172,11 @@
         case 'safe': this.tone(g, t, 0.5, 'sine', 120, 60, 0.7); for (let k = 0; k < 5; k++) this.tone(g, t + 0.1 + k * 0.05, 0.03, 'square', 2000, null, 0.08); break;
         case 'vend': this.tone(g, t, 0.2, 'sine', 140, 70, 0.6); this.noise(g, t + 0.25, 0.3, 'bandpass', 1200, 600, 2, 0.3); break;
         case 'dry': this.tone(g, t, 0.02, 'square', 2600, null, 0.18); break;
+        case 'cell': this.tone(g, t, 0.6, 'square', 90, 55, 0.25); this.noise(g, t, 0.5, 'bandpass', 700, 300, 2, 0.6); this.tone(g, t + 0.05, 1.2, 'sine', 420, 400, 0.15); this.send(g, 0.8); break;
+        case 'pick': for (let k = 0; k < 2; k++) this.tone(g, t + k * 0.05, 0.015, 'square', 3200 + Math.random() * 1500, null, 0.07); break;
+        case 'pour': this.noise(g, t, 0.6, 'bandpass', 900, 500, 3, 0.35); for (let k = 0; k < 5; k++) this.tone(g, t + k * 0.1, 0.06, 'sine', 400 + Math.random() * 300, 250, 0.08); break;
+        case 'harvest': for (let k = 0; k < 4; k++) this.noise(g, t + k * 0.12, 0.15, 'highpass', 2500, null, 1, 0.3); break;
+        case 'cough': for (let k = 0; k < 3; k++) this.noise(g, t + 0.2 + k * 0.22, 0.12, 'bandpass', 500, 250, 1.5, 0.5); break;
         case 'heart': this.tone(g, t, 0.12, 'sine', 60, 40, 0.9); this.tone(g, t + 0.18, 0.12, 'sine', 55, 38, 0.7); break;
         case 'wanted': this.tone(g, t, 0.15, 'square', 880, null, 0.08); this.tone(g, t + 0.18, 0.15, 'square', 660, null, 0.08); break;
         case 'stinger': this.tone(g, t, 1.2, 'sawtooth', 110, 55, 0.12, 0.01); this.noise(g, t, 0.8, 'lowpass', 400, 80, 1, 0.6, this.brown); break;

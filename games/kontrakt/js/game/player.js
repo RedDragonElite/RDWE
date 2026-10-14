@@ -36,6 +36,13 @@
       }
       this.carInput = null;
 
+      // -------------------------------------------------------- surrender
+      if (pr.x) this.toggleSurrender();
+      if (P.surrender) {
+        if (inp.up || inp.down || inp.left || inp.right || pr.fire) this.cancelSurrender(true);
+        else { this.moveActor(a, 0, 0, dt, 14); this.ctx = [{ key: 'X', label: 'Doch nicht ergeben (Widerstand!)' }]; return; }
+      }
+
       // -------------------------------------------------------- locked states
       if (this.td) { this.updateTakedown(dt); a.vx *= 0.5; a.vy *= 0.5; this.ctx = []; return; }
       if (this.action) {
@@ -80,7 +87,7 @@
 
       // -------------------------------------------------------- context
       this.ctx = this.contextActions();
-      for (const k of ['e', 't', 'f']) {
+      for (const k of ['e', 't', 'f', 'k']) {
         if (!pr[k]) continue;
         const act = this.ctx.find((c) => c.key.toLowerCase() === k && c.fn);
         if (!act) continue;
@@ -181,6 +188,7 @@
     contextActions() {
       const out = [], a = this.player, P = this.P;
       const add = (key, label, fn, hold, extra) => out.push({ key, label, fn, hold, ...extra });
+      if (this.underworldContext(add)) return out;
       // bodies
       if (this.drag) {
         const spot = this.hideSpot();
@@ -216,12 +224,12 @@
           if (p.k === 'sign') {
             const d = this.propertyDef(p.property);
             if (d && !P.owned.includes(d.id)) add('E', `Immobilie: ${d.name} — ${U.money(d.price)}`, () => this.emit('ui', { open: 'property', id: d.id }));
-          } else if (p.k === 'vending') add('E', 'Automat: Cola ($3)', () => { if (P.money < 3) return this.notify('Kein Kleingeld.', 'bad'); P.money -= 3; this.addItem('cola'); this.emit('sfx', { s: 'vend' }); this.notify('Cola gezogen.'); });
+          } else if (p.k === 'vending') add('E', 'Automat: Cola ($3)', () => { if (!this.pay(3)) return this.notify('Kein Kleingeld.', 'bad'); this.addItem('cola'); this.emit('sfx', { s: 'vend' }); this.notify('Cola gezogen.'); });
           else if ((p.k === 'counter' || p.k === 'barc') && b && b.shop && b.counter === p) {
             const s = K.SHOPS[b.shop];
             const keeper = this.actors.find((k) => k.kind === 'keeper' && k.home === b.id && k.alive && k.ko <= 0 && k.state === 'work' && Math.hypot(k.x - k.brain.post.x, k.y - k.brain.post.y) < 40);
             if (!this.shopOpen(s)) add('E', `${s.name} — geschlossen (öffnet ${s.open[0]}:00)`, null);
-            else if (!keeper) add('E', `${s.name} — niemand da`, null);
+            else if (!keeper) { if (!out.some((o) => o.label === 'Kasse ausräumen' || o.label === 'Kasse ist leer')) add('E', `${s.name} — niemand da`, null); }
             else add('E', b.shop === 'hospital' ? 'Klinik: Behandlung & Medizin' : `Einkaufen: ${s.name}`, () => { this.emit('ui', { open: 'shop', shop: b.shop, b: b.id }); this.bark(keeper, U.pick(K.LINES.keeper), 2); });
           } else if (p.k === 'safe' && b) {
             if (b.owned) add('E', 'Waffenkammer & Lager', () => this.emit('ui', { open: 'stash', prop: b.property }));

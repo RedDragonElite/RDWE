@@ -61,7 +61,7 @@
         stars: $('#stars'), heat: $('#heat i'), tracker: $('#tracker'), hp: $('.bar.hp i'), hpT: $('#hp-t'), armor: $('.bar.armor i'), stam: $('.bar.stam i'),
         food: $('#n-food'), water: $('#n-water'), energy: $('#n-energy'), bleed: $('#n-bleed'), drunk: $('#n-drunk'),
         wName: $('#w-name'), wAmmo: $('#w-ammo'), wIcon: $('#w-icon'), wSlots: $('#w-slots'), stance: $('#stance'),
-        prompt: $('#prompt'), feed: $('#feed'), banner: $('#banner'), mm: $('#mm'),
+        prompt: $('#prompt'), feed: $('#feed'), banner: $('#banner'), mm: $('#mm'), bank: $('#bank'), jail: $('#jailbox'),
       };
       this.mmx = this.el.mm.getContext('2d');
       this.cache = {};
@@ -89,6 +89,8 @@
       const z = w.zoneAt(p.x, p.y);
       const place = b >= 0 ? `${dname} · ${w.buildings[b].name}` : dname;
       this.set('place', place + (z >= 0 ? '|z' + (w.zones[z].roles.includes(w.role(p)) ? 'ok' : 'no') : ''), () => { e.district.innerHTML = U.esc(place) + (z >= 0 ? (w.zones[z].roles.includes(w.role(p)) ? ' <span style="color:#5fd38d">· ZUGANG (Verkleidung)</span>' : ' <span style="color:#ff3b4e">· SPERRGEBIET</span>') : ''); });
+      this.set('bank', P.bank || 0, (v) => (e.bank.textContent = `Konto ${U.money(v)}${P.deal && P.deal.rep ? ` · Dealer-Ruf ${P.deal.rep}` : ''}`));
+      this.jailbox(P, w);
       if (this.set('money', P.money, (v) => (e.money.textContent = U.money(v)))) { e.money.classList.add('bump'); clearTimeout(this.mt); this.mt = setTimeout(() => e.money.classList.remove('bump'), 250); }
       // wanted
       const wl = Math.floor(w.wanted);
@@ -130,6 +132,16 @@
       this.minimap();
     }
 
+    jailbox(P, w) {
+      const J = P.jail, el = this.el.jail;
+      if (!J && !P.surrender && !P.masked) { this.set('jail', '', () => el.classList.add('hidden')); return; }
+      let h;
+      if (P.surrender) h = '<b>🙌 ERGEBEN</b><span>Halt still. Die Polizei nimmt dich fest. Bewegen = Widerstand.</span>';
+      else if (J && J.escaped) h = '<b>⛓ AUF DER FLUCHT</b><span>Wechsle die Kleidung und tauch unter.</span>';
+      else if (J) { const left = Math.max(0, J.until - w.time); h = `<b>⛓ HAFT · ${Math.floor(left / 60)}h ${String(Math.floor(left % 60)).padStart(2, '0')}m</b><span><kbd>K</kbd> Kaution ${U.money(J.bail)} · <kbd>E</kbd> an der Zellentür: Ausbruch (wenn kein Wärter hinsieht)</span><i style="width:${(1 - left / J.total) * 100}%"></i>`; }
+      else h = '<b>🎭 VERMUMMT</b><span>Zeugen erkennen dich nicht. Maske ungesehen abnehmen (Inventar) = Fahndung weg.</span>';
+      this.set('jail', h, (v) => { el.classList.remove('hidden'); el.innerHTML = v; });
+    }
     tracker() {
       const w = this.g.world, c = w.contract, el = this.el.tracker;
       if (!c || (c.status !== 'active' && c.status !== 'killed')) { this.set('trk', '', () => el.classList.add('hidden')); return; }
@@ -165,10 +177,11 @@
         const x = (b.x + b.w / 2) * TILE, y = (b.y + b.h / 2) * TILE;
         if (b.owned) out.push({ x, y, e: '🏠', c: '#5fd38d' });
         else if (b.property) out.push({ x, y, e: '🏷️', c: '#f2c86b' });
-        if (b.shop) out.push({ x, y, e: { gun: '🔫', black: '💀', food: '🛒', pharmacy: '💊', cloth: '👔', diner: '🍔', bar: '🍸', hospital: '🏥' }[b.shop] });
+        if (b.shop) out.push({ x, y, e: { gun: '🔫', black: '💀', food: '🛒', pharmacy: '💊', cloth: '👔', diner: '🍔', bar: '🍸', hospital: '🏥', grow: '🌱' }[b.shop] });
         if (b.type === 'police') out.push({ x, y, e: '🚓' });
         if (b.type === 'club') out.push({ x, y, e: '🎵' });
       }
+      for (const p of w.props) if (p && p.k === 'atm') out.push({ x: (p.x + 0.5) * TILE, y: (p.y + 0.5) * TILE, e: '🏧', small: true });
       return out;
     }
     minimap() {
@@ -192,7 +205,7 @@
       }
       // POIs
       x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-      for (const q of this.pois) { const [mx, my] = toM(q.x, q.y); if (mx < -20 || my < -20 || mx > S + 20 || my > S + 20) continue; x.fillText(q.e, mx, my); }
+      for (const q of this.pois) { const [mx, my] = toM(q.x, q.y); if (mx < -20 || my < -20 || mx > S + 20 || my > S + 20) continue; x.font = q.small ? '15px sans-serif' : '22px sans-serif'; x.fillText(q.e, mx, my); }
       // people
       for (const a of w.actors) {
         if (!a.alive || a.removed || a.hidden || a === p || a.inCar) continue;
@@ -256,6 +269,9 @@
         case 'slept': this.feed(`Ausgeschlafen (${e.hours}h). Spiel gespeichert.`, 'good'); break;
         case 'weather': this.feed({ clear: 'Der Himmel klart auf.', cloudy: 'Wolken ziehen auf.', rain: 'Es beginnt zu regnen. Regen dämpft Geräusche.', storm: 'Unwetter! Der Sturm verschluckt jeden Schuss.', fog: 'Nebel legt sich über die Stadt. Sichtweiten sinken.' }[e.kind], 'info'); break;
         case 'bodyFound': if (w.contract && w.contract.status === 'active') this.feed('Eine Leiche wurde gefunden.', 'bad'); break;
+        case 'jailed': g.menus.showJail(e); break;
+        case 'released': this.banner(e.how === 'bail' ? 'KAUTION GEZAHLT' : 'ENTLASSEN', 'Deine Schusswaffen und Drogen sind weg. Neue Chance, Krähenburg.', 'gold', 3.5); break;
+        case 'surrender': this.feed('Du ergibst dich. Nicht bewegen!', 'bad'); break;
         case 'carEnter': this.feed(e.kind === 'police' ? 'Polizeiwagen gekapert. [R] Sirene' : 'Fahrzeug übernommen. [Leertaste] Handbremse · [H] Hupe · [F] aussteigen'); break;
       }
     }

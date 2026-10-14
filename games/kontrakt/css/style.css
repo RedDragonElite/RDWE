@@ -27,6 +27,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #district { font-family: var(--f-head); font-size: 12px; letter-spacing: 4px; text-transform: uppercase; color: var(--gold); margin-top: 2px; }
 #money { font-family: var(--f-head); font-size: 24px; color: #9ff0b8; margin-top: 4px; letter-spacing: 1px; transition: transform .2s; }
 #money.bump { transform: scale(1.15); color: #d6ffe3; }
+#bank { font: 500 12px var(--f-head); letter-spacing: 1px; color: #7fb7a0; margin-top: 1px; }
+#jailbox { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); min-width: 360px; max-width: 520px; text-align: center; background: rgba(12,10,8,.82); border: 1px solid rgba(232,106,18,.5); border-radius: 4px; padding: 8px 14px 10px; overflow: hidden; }
+#jailbox b { display: block; font: 600 18px var(--f-head); letter-spacing: 3px; color: #ff9a4a; }
+#jailbox span { display: block; font-size: 12px; color: #d8cfc0; margin-top: 3px; }
+#jailbox kbd { font: 700 11px var(--f-head); background: #ece7dc; color: #111; padding: 1px 5px; border-radius: 3px; }
+#jailbox i { position: absolute; left: 0; bottom: 0; height: 3px; background: #ff9a4a; }
 
 #wanted { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); text-align: center; }
 #stars { font-size: 26px; letter-spacing: 6px; color: rgba(255,255,255,.12); text-shadow: 0 2px 8px rgba(0,0,0,.9); }
@@ -95,7 +101,7 @@ body.wanted #hud::after { content: ''; position: fixed; inset: 0; pointer-events
 #prompt div.off kbd { background: #555; color: #bbb; box-shadow: none; }
 @keyframes pop { from { transform: translateY(6px); opacity: 0; } }
 
-#feed { position: absolute; left: 22px; top: 140px; width: 360px; display: flex; flex-direction: column; gap: 5px; }
+#feed { position: absolute; left: 22px; top: 162px; width: 360px; display: flex; flex-direction: column; gap: 5px; }
 #feed div { background: linear-gradient(90deg, rgba(8,8,12,.85), rgba(8,8,12,0)); padding: 6px 12px; font-size: 13px; border-left: 2px solid var(--dim); animation: slide .25s; transition: opacity .6s; }
 #feed div.money { border-color: #5fd38d; color: #c9f5d9; }
 #feed div.bad { border-color: var(--red); color: #ffb9c0; }

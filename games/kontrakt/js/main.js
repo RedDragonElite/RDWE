@@ -134,7 +134,7 @@
           this.hurtFlash = Math.max(0, this.hurtFlash - dt * 1.4);
           this.flash = Math.max(0, this.flash - dt * 3);
           if (this.settings.post && this.post.ok) {
-            this.post.render({ time: performance.now() / 1000, hurt: this.hurtFlash, low: p.alive ? U.clamp(1 - p.hp / 40, 0, 1) : 1, instinct: P.instinct ? 1 : 0, drunk: P.drunk, flash: this.flash + (w.weather.flash > 0.6 ? 0.2 : 0), bloom: 0.9 + (1 - w.daylight()) * 0.6, grain: 0.045, slow: w.slowmo > 0 ? 1 : 0, tired: P.energy < 12 ? (12 - P.energy) / 12 : 0 });
+            this.post.render({ time: performance.now() / 1000, hurt: this.hurtFlash, low: p.alive ? U.clamp(1 - p.hp / 40, 0, 1) : 1, instinct: P.instinct ? 1 : 0, drunk: Math.max(P.drunk, (P.high || 0) * 0.8), flash: this.flash + (w.weather.flash > 0.6 ? 0.2 : 0), bloom: 0.9 + (1 - w.daylight()) * 0.6, grain: 0.045, slow: w.slowmo > 0 ? 1 : 0, tired: P.energy < 12 ? (12 - P.energy) / 12 : 0 });
           }
           if (!this.title) this.ui.update(dt);
           // dynamic resolution: keep the frame rate up on weaker GPUs

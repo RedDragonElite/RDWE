@@ -235,6 +235,8 @@
     privateBuilding(b) { return b && (b.type === 'house' || b.type === 'flat') && !b.owned && !b.property; },
     suspicion(a, dist, range) {
       const p = this.player, P = this.P;
+      if (P.jail && !P.jail.escaped) return [0, null];
+      if (P.surrender) return [0, null];
       let r = 0, why = null;
       const z = this.zoneAt(p.x, p.y), role = this.role(p);
       if (z >= 0) {
@@ -252,6 +254,8 @@
       }
       if (role === 'police' && a.kind === 'cop' && dist < 4 * TILE && !why) { r = 0.4; why = 'disguise'; }
       if (P.outfit === 'under' && !why) { r = 0.8; why = 'naked'; }
+      if (P.outfit === 'prisoner' && !why) { r = a.kind === 'cop' ? 2.6 : 0.9; why = 'prisoner'; }
+      if (P.masked && !why) { r = a.kind === 'cop' ? 1.3 : a.kind === 'guard' || a.kind === 'bodyguard' ? 1.1 : 0.55; why = 'masked'; }
       if (this.drag && !why) { r = 3; why = 'body'; }
       if (!r) return [0, null];
       const light = this.lightAt(p.x, p.y);
@@ -283,7 +287,7 @@
           if (why === 'body' && a.susp >= 1) this.crimeEvent(p, this.byId.get(this.drag) && !this.byId.get(this.drag).alive ? 'murder' : 'assault', p.x, p.y, null);
         } else if (a.state !== 'hostile') a.susp = Math.max(0, a.susp - dt * 0.3);
         if (a.kind === 'cop' && this.wanted >= 1 && a.state !== 'hostile' && a.state !== 'arrest') {
-          if (this.wanted < 2 && !this.playerArmed() && !p.inCar) this.startArrest(a); else this.alarm(a, p);
+          if (this.P.surrender || (this.wanted < 2 && !this.playerArmed() && !p.inCar)) this.startArrest(a); else this.alarm(a, p);
         }
         a.lastSeenX = p.x; a.lastSeenY = p.y;
       } else if (a.seesPlayer && p.inCar && a.kind === 'cop' && this.wanted >= 1) this.alarm(a, p);
@@ -339,7 +343,7 @@
       if (a.kind === 'civ' || a.kind === 'keeper' || a.kind === 'staff' || a.kind === 'target') {
         if (why === 'weapon' || why === 'body') {
           if (a.kind === 'keeper' && a.armedKeeper && why === 'weapon') { this.bark(a, 'Ganz ruhig, Freund. Waffe weg.'); a.susp = 0.6; return; }
-          if (Math.hypot(p.x - a.x, p.y - a.y) < 5 * TILE && this.aiming && Math.random() < 0.6) { a.state = 'cower'; a.brain.cowerT = 6; a.crouch = true; this.bark(a, U.pick(['Bitte nicht!', 'Ich hab Familie!', 'Nimm was du willst!'])); }
+          if (Math.hypot(p.x - a.x, p.y - a.y) < 6 * TILE && this.aiming && (a.kind !== 'civ' || Math.random() < 0.6)) { a.state = 'cower'; a.brain.cowerT = 6; a.crouch = true; this.bark(a, U.pick(['Bitte nicht!', 'Ich hab Familie!', 'Nimm was du willst!'])); }
           else this.flee(a, p.x, p.y, true);
           this.crimeEvent(p, why === 'body' ? 'murder' : 'weapon', p.x, p.y, null);
           return;
@@ -351,12 +355,16 @@
           return;
         }
         if (why === 'naked') { this.bark(a, U.pick(['Igitt, zieh dir was an!', 'Perversling!'])); a.susp = 0; return; }
+        if (why === 'masked') { this.bark(a, U.pick(['Was soll die Maske?!', 'Der hat was vor…', 'Oh nein, ein Überfall?']), 2); a.susp = 0.4; if (Math.random() < 0.35) this.flee(a, p.x, p.y, false); return; }
+        if (why === 'prisoner') { this.bark(a, 'Ist das… ein Ausbrecher?!'); this.flee(a, p.x, p.y, false); a.reportT = 4 + Math.random() * 3; a.reportType = 'jailbreak'; a.reportX = p.x; a.reportY = p.y; return; }
         a.susp = 0.5; return;
       }
       if (a.kind === 'cop') {
         if (why === 'weapon') { a.state = 'warn'; a.brain.warnT = 3; a.brain.why = why; this.bark(a, U.pick(LINES.weaponDown)); return; }
         if (why === 'trespass') { this.raiseWanted(1, 'trespass'); this.startArrest(a); return; }
         if (why === 'disguise') { this.P.compromised[this.P.outfit] = true; this.bark(a, 'Moment… Du bist keiner von uns!'); this.raiseWanted(1, 'trespass'); this.alarm(a, p); return; }
+        if (why === 'masked') { a.state = 'warn'; a.brain.warnT = 3.5; a.brain.why = why; this.bark(a, U.pick(['Polizei! Maske runter!', 'Sie da! Gesicht zeigen!'])); return; }
+        if (why === 'prisoner') { this.bark(a, 'Das ist der Ausbrecher! Zugriff!'); this.raiseWanted(3, 'jailbreak'); this.alarm(a, p); return; }
         if (why === 'body') { this.alarm(a, p); this.raiseWanted(2, 'murder'); return; }
         a.susp = 0.4; return;
       }
@@ -580,9 +588,10 @@
       else if (why === 'trespass') { const z = this.zoneAt(p.x, p.y); still = (z >= 0 && !this.zones[z].roles.includes(this.role(p))) || (this.bldAt(p.x, p.y) >= 0 && this.privateBuilding(this.buildings[this.bldAt(p.x, p.y)])); }
       else if (why === 'disguise') still = d < 6 * TILE && a.seesPlayer;
       else if (why === 'naked') still = this.P.outfit === 'under';
+      else if (why === 'masked') still = this.P.masked;
       if (!still) { a.state = a.brain.post ? 'post' : a.kind === 'cop' ? 'patrol' : 'patrol'; a.susp = 0.3; a.goal = null; a.path = null; this.bark(a, why === 'disguise' ? 'Na gut. Weitermachen.' : 'Gut so.', 1.6); return; }
       if (a.brain.warnT <= 0) {
-        if (a.kind === 'cop') { this.raiseWanted(why === 'weapon' ? 1 : 1, why === 'weapon' ? 'weapon' : 'trespass'); if (why === 'weapon') this.alarm(a, p); else this.startArrest(a); }
+        if (a.kind === 'cop') { this.raiseWanted(1, why === 'weapon' ? 'weapon' : why === 'masked' ? 'masked' : 'trespass'); if (why === 'weapon') this.alarm(a, p); else this.startArrest(a); }
         else this.alarm(a, p);
       }
     },
@@ -590,6 +599,7 @@
       const p = this.player;
       if (!p.alive) { a.state = a.kind === 'cop' ? 'patrol' : a.brain.post ? 'post' : a.kind === 'civ' ? 'wander' : 'patrol'; return; }
       if (a.kind === 'cop' && this.wanted < 1) { a.state = 'patrol'; a.goal = null; a.path = null; return; }
+      if (a.kind === 'cop' && this.P.surrender) { a.state = 'arrest'; a.brain.arT = 0; return; }
       const d = this.wdef(a);
       const tx = p.inCar ? this.carOf(p).x : p.x, ty = p.inCar ? this.carOf(p).y : p.y;
       if (a.seesPlayer) { a.brain.lx = tx; a.brain.ly = ty; a.brain.lost = 0; } else a.brain.lost += dt;
@@ -647,6 +657,16 @@
     },
     ai_arrest(a, dt) {
       const p = this.player;
+      if (this.P.surrender && p.alive) {
+        // suspect gave up: walk over, cuff
+        const d = Math.hypot(p.x - a.x, p.y - a.y);
+        a.faceTo = Math.atan2(p.y - a.y, p.x - a.x);
+        if (d > 1.5 * TILE) { this.goTo(a, p.x, p.y, { tol: 26 }); a.dv = this.steer(a, 110, dt); return; }
+        a.brain.arT = (a.brain.arT || 0) + dt;
+        this.arrestProgress = a.brain.arT / 1.8;
+        if (a.brain.arT > 1.8) { this.arrestProgress = 0; this.bark(a, U.pick(['Sie haben das Recht zu schweigen.', 'Handschellen sind zu. Mitkommen.'])); this.arrest(); }
+        return;
+      }
       if (this.wanted >= 2 || this.playerArmed()) { this.alarm(a, p); return; }
       if (this.wanted <= 0) { a.state = 'patrol'; return; }
       const d = Math.hypot(p.x - a.x, p.y - a.y);

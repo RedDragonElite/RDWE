@@ -41,6 +41,7 @@
   // ------------------------------------------------------------------ people
   /** pose resolution from actor + world */
   function poseOf(a, w) {
+    if (a.kind === 'player' && w.P && w.P.surrender) return 'hands';
     if (a.kind === 'player' && w.drag) return 'drag';
     if (a.state === 'cower') return 'cower';
     if (a.phone) return 'phone';
@@ -146,6 +147,7 @@
       }
       case 'drag': arm(x, -1, -8.6, -15, -4, sleeve, skin); arm(x, -1, 8.6, -15, 4, sleeve, skin); break;
       case 'cower': arm(x, -1, -8.6, 2, -4.5, sleeve, skin); arm(x, -1, 8.6, 2, 4.5, sleeve, skin); break;
+      case 'hands': arm(x, -1, -8.6, 0, -13, sleeve, skin); arm(x, -1, 8.6, 0, 13, sleeve, skin); x.fillStyle = skin; circ(x, 1, -14.5, 2.6); x.fill(); circ(x, 1, 14.5, 2.6); x.fill(); break;
       case 'phone': arm(x, -1, -8.6, 3 - swing, -10, sleeve, skin); arm(x, -1, 8.6, 3, 6.8, sleeve, skin); x.fillStyle = '#9fe0ff'; x.fillRect(2, 6.5, 3, 1.6); break;
       case 'throw': arm(x, -1, -8.6, 3 - swing, -10, sleeve, skin); arm(x, -1, 8.6, at < 0.25 ? 14 : 8, at < 0.25 ? 4 : 9, sleeve, skin); if (at > 0.25) { x.save(); x.translate(8, 9); K.drawWeaponTop(x, d.id, false); x.restore(); } break;
       default: { // fists / relaxed
@@ -170,6 +172,11 @@
       if (a.female) { ell(x, -6, 0, 3.4, 2.4); x.fill(); }
     } else if (!of.hood) {
       x.fillStyle = 'rgba(255,255,255,0.28)'; circ(x, -0.6, -1.6, 2.2); x.fill();
+    }
+    if (a.kind === 'player' && w.P && w.P.masked) {
+      x.fillStyle = '#121214'; circ(x, 0.8, 0, 6.1); x.fill();
+      x.fillStyle = skin; x.fillRect(3.2, -3.2, 2.2, 6.4);
+      x.fillStyle = '#1b1b1f'; circ(x, 4.4, -1.6, 0.8); x.fill(); circ(x, 4.4, 1.6, 0.8); x.fill();
     }
     const hat = a.hat ? 'fedora' : of.hat;
     if (hat === 'cap') { x.fillStyle = of.hatC; circ(x, 0.4, 0, 6.1); x.fill(); x.fillStyle = '#0a1226'; rr(x, 4.6, -4, 4, 8, 2); x.fill(); x.fillStyle = '#d4af37'; circ(x, 3.6, 0, 1); x.fill(); }
@@ -327,6 +334,7 @@
       case 'fountain': x.fillStyle = '#8f8a80'; circ(x, cx, cy, Wd / 2 - 1); x.fill(); x.fillStyle = '#3c8fb0'; circ(x, cx, cy, Wd / 2 - 6); x.fill(); x.fillStyle = '#b8b2a6'; circ(x, cx, cy, 7); x.fill(); break;
       case 'piano': sh(); x.fillStyle = '#0c0c0e'; x.beginPath(); x.moveTo(X + 3, Y + 4); x.lineTo(X + Wd - 3, Y + 4); x.quadraticCurveTo(X + Wd - 3, Y + H - 2, X + Wd * 0.4, Y + H - 4); x.lineTo(X + 3, Y + H - 4); x.closePath(); x.fill(); x.fillStyle = '#eee'; x.fillRect(X + 4, Y + 4, Wd * 0.45, 3); break;
       case 'lamp': x.fillStyle = '#26282c'; circ(x, cx, cy, 4); x.fill(); break;
+      case 'atm': sh(); x.fillStyle = '#3a3f46'; rr(x, X + 4, Y + 4, Wd - 8, H - 8, 2); x.fill(); x.fillStyle = '#1b5fb5'; x.fillRect(X + 8, Y + 7, Wd - 16, 7); x.fillStyle = '#b8c0c8'; for (let k = 0; k < 6; k++) x.fillRect(X + 9 + (k % 3) * 5, Y + 17 + Math.floor(k / 3) * 4, 3, 2.5); x.fillStyle = '#e0b000'; x.fillRect(X + 8, Y + H - 9, Wd - 16, 2); break;
       case 'tree': x.fillStyle = '#4a3220'; circ(x, cx, cy, 5); x.fill(); break;
       case 'umbrella': x.fillStyle = '#ddd'; circ(x, cx, cy, 2); x.fill(); break;
     }

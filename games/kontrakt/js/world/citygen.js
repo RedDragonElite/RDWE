@@ -19,7 +19,7 @@
 
   // explicit block plans; others fall back to the district default
   const PLAN = {
-    '0,0': ['house', 'house', 'house', 'house'], '1,0': ['bar', 'house', 'house', 'food'], '2,0': ['diner', 'house', 'flat', 'house'],
+    '0,0': ['house', 'grow', 'house', 'house'], '1,0': ['bar', 'house', 'house', 'food'], '2,0': ['diner', 'house', 'flat', 'house'],
     '3,0': ['cloth', 'flat', 'food', 'flat'], '0,1': ['house', 'house', 'house', 'house'], '1,1': ['house', 'flat', 'house', 'house'],
     '2,1': ['flat', 'house', 'pharmacy', 'house'], '3,1': ['office'], '4,1': ['police'], '2,2': ['gun', 'flat', 'flat', 'food'],
     '3,2': ['hotel'], '4,2': ['office'], '5,2': ['club'], '2,3': ['office'], '4,3': ['flat', 'diner', 'flat', 'flat'],
@@ -35,7 +35,7 @@
     barc: { s: 1 }, stool: { s: 0 }, pooltable: { s: 1 }, tv: { s: 1 }, rug: { s: 0, low: 1 }, crate: { s: 3 }, container: { s: 7 }, dumpster: { s: 3, hide: 1, inter: 'hide' },
     bench: { s: 1 }, tree: { s: 1, tall: 1 }, bush: { s: 0, bush: 1, tall: 1 }, lamp: { s: 1, tall: 1 }, vending: { s: 3, inter: 'vending' }, trash: { s: 1 },
     fountain: { s: 1 }, piano: { s: 1 }, hbed: { s: 1 }, locker: { s: 3, hide: 1, inter: 'hide' }, sign: { s: 0, inter: 'buy' }, dj: { s: 1 }, dance: { s: 0, low: 1 },
-    boat: { s: 0 }, hydrant: { s: 1 }, umbrella: { s: 1, tall: 1 }, cell: { s: 1 }, bollard: { s: 1 }, crane: { s: 0, tall: 1 }, desk2: { s: 1 },
+    boat: { s: 0 }, hydrant: { s: 1 }, umbrella: { s: 1, tall: 1 }, cell: { s: 1 }, bollard: { s: 1 }, crane: { s: 0, tall: 1 }, desk2: { s: 1 }, atm: { s: 3, inter: 'atm' },
   };
 
   K.generateCity = function (seed) {
@@ -492,10 +492,14 @@
         else if ((d === 'down' || d === 'old') && k % 13 === 9 && rng.chance(0.5)) addProp('trash', x, y);
         else if (k % 29 === 17 && rng.chance(0.4)) addProp('hydrant', x, y);
       });
-      // vending machines against the inner sidewalk edge
+      // vending machines and cash machines against the inner sidewalk edge
       if ((d === 'down' || d === 'old' || d === 'res') && rng.chance(0.65)) {
         const k = 4 + rng.int(14);
         addProp('vending', ox + 1 + k, oy + 1, 1, 1, { face: 0 }) || addProp('vending', ox + 1, oy + 1 + k, 1, 1, { face: 1 });
+      }
+      if ((d === 'down' || d === 'old' || d === 'docks' || d === 'res') && rng.chance(d === 'down' ? 0.9 : 0.45)) {
+        const k = 3 + rng.int(15);
+        addProp('atm', ox + 1 + k, oy + 20, 1, 1, { face: 2 }) || addProp('atm', ox + 20, oy + 1 + k, 1, 1, { face: 3 });
       }
     }
 

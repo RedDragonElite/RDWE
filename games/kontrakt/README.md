@@ -75,6 +75,36 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Streifenwagen verfolgen dich mit Sirene.
   - Ein unbeobachteter Outfitwechsel senkt die Fahndung um 2 Sterne.
 
+### Unterwelt: Verbrechen, Knast, Drogen
+- **Strafregister:** Jede gemeldete Tat landet auf der Anklage, mit eigener Haftzeit (Raub 4h, Mord 10h, Polizistenmord 20h …).
+  - Entkommst du der Fahndung, verfallen die Anklagepunkte.
+- **Ergeben (X):** Hände hoch, die Polizei legt Handschellen an. Das bringt 30% Strafnachlass. Wer sich danach bewegt, leistet Widerstand.
+- **Knast mit Timer:**
+  - Schnellverfahren mit Urteil, Häftlingskleidung und einer echten Zelle im Polizeirevier.
+  - Drinnen läuft die Zeit 14× schneller.
+  - Raus kommst du mit **Kaution (K)** oder per **Ausbruch:** Zellentür knacken, wenn kein Wärter hinsieht. Danach wirst du mit 3 Sternen als Ausbrecher gesucht.
+  - Bei der Festnahme werden Schusswaffen, Drogen, Hehlerware und Einbruchswerkzeug beschlagnahmt.
+- **Überfälle:** Zielst du mit der Waffe (RMB) auf jemanden, gehen die Hände hoch.
+  - Passanten ausrauben (E) bringt Brieftasche, Handy und Schmuck.
+  - Ladenkasse ausräumen: Ein stiller Alarm ruft nach 9 s die Polizei.
+- **Taschendiebstahl** von hinten (E halten). Geht er schief, schreit das Opfer.
+- **Einbrüche:** Schränke, Regale, Schreibtische, Kühlschränke, Spinde und Kisten durchwühlen (E). Beute verkaufst du beim Hehler am Schwarzmarkt.
+- **Geldautomaten** hacken (Hack-Gerät vom Schwarzmarkt).
+- **Bankkonto:**
+  - Ein- und Auszahlen am Automaten. Honorare und Einnahmen gehen aufs Konto.
+  - Legale Läden nehmen Karte, Schwarzmarkt und Dealer nur Bargeld.
+  - Beim Tod verlierst du nur Bargeld.
+- **Sturmhaube:** Zeugen erkennen dich nicht. Maske ungesehen absetzen löscht die Fahndung. Vermummt wirkst du aber verdächtig, und Polizisten fordern: „Maske runter!“
+- **Grow-System:**
+  - Samen, Töpfe, Dünger und Gießkanne gibt es bei „Grünes Glück Gartenbedarf“.
+  - Pflanzen wachsen in deinen Immobilien in Echtzeit und brauchen Wasser, sonst vertrocknen sie. Dünger verbessert Tempo und Qualität.
+  - Ernten bringt Gras.
+- **Dealer-System:**
+  - Passanten ansprechen (T). Nachts und in Hafen, Park und Altstadt kaufen mehr Leute.
+  - Dein Dealer-Ruf steigert Preise und Mengen.
+  - Manche Leute verpfeifen dich, und Polizisten, die zusehen, schreiten ein.
+  - Großhandel beim Schwarzmarkt: sicher, aber billig.
+
 ### Leben, Wirtschaft, RPG
 - **Hunger, Durst, Energie, Ausdauer, Blutungen, Trunkenheit und Schmerzmittel.**
 - **Essen und Trinken** im Diner, in der Bar, im Späti und an Getränkeautomaten.
@@ -124,6 +154,8 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 | **M** | Karte | **L** | Taschenlampe |
 | **Z** | Zoomstufe | **ESC** | Pause |
 | **Leertaste** | Handbremse | **F11** | Vollbild |
+| **X** | Ergeben | **K** | Kaution zahlen |
+| **RMB auf Person** | Überfall | **T bei Passanten** | Gras anbieten |
 
 ---
 
@@ -136,13 +168,13 @@ games/kontrakt/
 ├── js/core/              util (RNG, Noise, Namen), data (Waffen, Items, Outfits, Shops, Gebäude, Skills)
 ├── js/world/             citygen (Viertel, Gebäude, Räume, Möbel, Licht, Zonen), nav (A*, Sichtlinie, Raycasts)
 ├── js/game/              world (Physik, Türen, Zeit, Wetter, Licht, Lärm) + Mixins:
-│                         economy, combat, crime, ai, contracts, vehicles, player
+│                         economy, combat, crime, ai, contracts, vehicles, player, underworld
 ├── js/render/            textures, sprites (Menschen, Autos, Möbel), fx (Partikel, Decals),
 │                         renderer (Chunks, Dächer, Schatten, Sichtfeld, Lightmap, Wetter, Overlay), post (WebGL2)
 ├── js/audio/audio.js     prozedurale SFX, Ambience und generative Musik
 ├── js/ui/                ui (HUD, Minimap), menus (Handy, Inventar, Shops, Karte, Titel), input
 ├── js/main.js            Spielschleife, Speichern, Einstellungen, Titel-Drohnenflug, Stimmen
-└── tools/                sim.mjs (Headless-Spieltest), scenarios.mjs (KI-Verhalten), gen.mjs (Stadt-Dump)
+└── tools/                sim.mjs (Headless-Spieltest), scenarios.mjs (KI-Verhalten), crime.mjs (Knast, Raub, Grow, Bank), gen.mjs (Stadt-Dump)
 ```
 
 - **Getrennte Simulation:** `K.World` läuft komplett ohne DOM, auch in Node.

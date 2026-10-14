@@ -67,8 +67,8 @@
     buyIntel() {
       const c = this.contract; if (!c || c.intel) return false;
       const cost = Math.round(c.reward * 0.1 / 50) * 50;
-      if (this.P.money < cost) { this.notify('Nicht genug Geld für Intel.', 'bad'); return false; }
-      this.P.money -= cost; c.intel = true; this.emit('sfx', { s: 'cash' }); this.notify(`Intel gekauft (−${U.money(cost)}). Ziel wird markiert.`, 'money');
+      if (!this.pay(cost)) { this.notify('Nicht genug Geld für Intel.', 'bad'); return false; }
+ c.intel = true; this.emit('sfx', { s: 'cash' }); this.notify(`Intel gekauft (−${U.money(cost)}). Ziel wird markiert.`, 'money');
       return true;
     },
     spawnTarget(c) {
@@ -204,7 +204,7 @@
       else if (extraKills <= 2 && n.wanted < 2) rating = 'PROFI';
       else if (extraKills > 6) rating = 'SCHLÄCHTER';
       else if (n.wanted >= 3) rating = 'STAATSFEIND';
-      P.money += pay; P.stats.contracts++; P.stats.earned += pay; this.contractsDone++;
+      P.bank = (P.bank || 0) + pay; P.stats.contracts++; P.stats.earned += pay; this.contractsDone++;
       if (rating === 'LAUTLOSER ASSASSINE') P.stats.silent++;
       const xp = 120 + c.diff * 80 + got.length * 40 + (rating === 'LAUTLOSER ASSASSINE' ? 200 : 0);
       this.addXP(xp, 'Auftrag');

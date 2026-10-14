@@ -167,6 +167,9 @@
       case 'machete': P([[-50, -4], [-24, -5], [44, -12], [52, -4], [40, 8], [-24, 5], [-50, 4]]); break;
       case 'katana': x.lineWidth = 5; x.beginPath(); x.moveTo(-36, 4); x.quadraticCurveTo(10, 0, 58, -10); x.stroke(); R(-58, 0, 20, 8); R(-38, -6, 4, 18); break;
       case 'syringe': case 'sedative': R(-30, -5, 50, 10); R(20, -1.5, 26, 3); R(-42, -8, 12, 16); break;
+      case 'mask': x.beginPath(); x.ellipse(0, 0, 22, 24, 0, 0, 7); x.fill(); x.fillStyle = 'rgba(0,0,0,0.55)'; R(-14, -8, 28, 8); R(-6, 8, 12, 4); break;
+      case 'pot': P([[-20, -14], [20, -14], [14, 20], [-14, 20]]); x.fillStyle = 'rgba(0,0,0,0.35)'; R(-20, -14, 40, 6); x.fillStyle = col; x.beginPath(); x.ellipse(0, -22, 8, 12, 0.6, 0, 7); x.fill(); break;
+      case 'can': P([[-26, -12], [10, -12], [14, 18], [-22, 18]]); x.lineWidth = 4; x.beginPath(); x.moveTo(12, -2); x.lineTo(40, -22); x.stroke(); x.beginPath(); x.arc(-8, -18, 10, Math.PI, 0); x.stroke(); break;
       case 'p9': P([[-30, -12], [30, -12], [30, 0], [-6, 0], [-12, 22], [-26, 22], [-22, 0], [-30, 0]]); break;
       case 'silber': P([[-30, -12], [28, -12], [28, 0], [-6, 0], [-12, 22], [-26, 22], [-22, 0], [-30, 0]]); R(28, -10, 34, 9); break;
       case 'magnum': P([[-30, -10], [44, -10], [44, -2], [4, -2], [6, 8], [-10, 8], [-16, 24], [-30, 22], [-24, 0]]); x.beginPath(); x.arc(-4, -1, 7, 0, 7); x.fill(); break;

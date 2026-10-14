@@ -47,7 +47,7 @@
       if (g.paused) return;
       if (k === 'z' || k === 'y' && false) { g.zoomLevel = g.zoomLevel === 1 ? 1.3 : g.zoomLevel === 1.3 ? 0.78 : 1; return; }
       if (/^[1-9]$/.test(e.key)) { this.slot = +e.key - 1; return; }
-      const map = { e: 'e', f: 'f', t: 't', g: 'g', r: 'reload', h: 'holster', l: 'l', c: 'crouch' };
+      const map = { e: 'e', f: 'f', t: 't', g: 'g', r: 'reload', h: 'holster', l: 'l', c: 'crouch', x: 'x', k: 'k' };
       if (map[k]) { this.pressed.add(map[k]); if (k === 'h') this.pressed.add('h'); if (k === 'r') this.pressed.add('r'); }
     }
     snapshot(world) {

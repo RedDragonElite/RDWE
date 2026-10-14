@@ -15,6 +15,7 @@
         owned: ['bude'], home: 'bude', stash: { bude: { items: { medkit: 1, whiskey: 1 }, weapons: [{ id: 'knife' }], ammo: { '9mm': 30 }, money: 0 } },
         stats: { kills: 0, civKills: 0, contracts: 0, earned: 0, headshots: 0, takedowns: 0, silent: 0, days: 1 },
         compromised: {}, lastIncome: 0, recoil: 0,
+        bank: 0, plants: [], jail: null, masked: false, surrender: false, high: 0, deal: { rep: 0, sold: 0 }, record: {},
       };
     },
     sk(k) { return this.P.skills[k] || 0; },
@@ -65,6 +66,15 @@
         w.sup = true; this.takeItem(id); this.emit('sfx', { s: 'attach' }); this.notify(`Schalldämpfer auf ${d.name} montiert`); return true;
       }
       if (id === 'flashlight') { P.flashlight = !P.flashlight; this.emit('sfx', { s: 'click' }); return true; }
+      if (id === 'mask') return this.toggleMask();
+      if (id === 'growkit' || id === 'seed') return this.plantSeed();
+      if (id === 'can' || id === 'fert' || id === 'hackkit') { this.notify(id === 'hackkit' ? 'Stell dich an einen Geldautomaten.' : 'Stell dich an eine Pflanze.', 'bad'); return false; }
+      if (id === 'repair') {
+        const c = this.carNear(a);
+        if (!c) return this.notify('Kein Auto in der Nähe.', 'bad'), false;
+        c.hp = 100; c.fire = 0; this.takeItem(id); this.emit('sfx', { s: 'attach' }); this.notify('Auto repariert.'); return true;
+      }
+      if (id === 'bud') { if (P.inv.bud < 1) return false; this.takeItem('bud'); P.high = Math.min(1, (P.high || 0) + 0.35); P.hunger = Math.max(0, P.hunger - 6); P.energy = Math.max(0, P.energy - 4); this.emit('sfx', { s: 'cough' }); this.notify('Ein Zug… alles wird langsam und bunt.'); return true; }
       if (it.sellOnly || it.quest || id === 'lockpick') return false;
       this.consume(it);
       this.takeItem(id);
@@ -97,7 +107,8 @@
     buy(key, shopId) {
       const { price, name } = this.priceOf(key);
       const P = this.P;
-      if (P.money < price) { this.emit('sfx', { s: 'error' }); return this.notify('Nicht genug Geld.', 'bad'), false; }
+      const cashOnly = shopId === 'black';
+      if (!this.canPay(price, cashOnly)) { this.emit('sfx', { s: 'error' }); return this.notify(cashOnly ? 'Hier nur Bargeld.' : 'Nicht genug Geld.', 'bad'), false; }
       if (key.startsWith('o:')) {
         const o = key.slice(2);
         if (P.outfits.includes(o)) return this.notify('Hast du schon.', 'bad'), false;
@@ -109,7 +120,7 @@
         if (!d.stack && !d.consumable && P.weapons.some((w) => w.id === key)) return this.notify('Hast du schon.', 'bad'), false;
         if (!this.addWeapon(key, { n: key === 'coin' ? 5 : 1 })) return false;
       } else this.addItem(key);
-      P.money -= price;
+      this.pay(price, cashOnly);
       this.emit('sfx', { s: 'cash' });
       this.notify(`Gekauft: ${name} (−${U.money(price)})`, 'money');
       return true;
@@ -120,19 +131,20 @@
       if (d.type === 'gun' && w.mag) P.ammo[d.ammo] = (P.ammo[d.ammo] || 0) + w.mag;
       this.removeWeaponAt(i); P.money += v; this.emit('sfx', { s: 'cash' }); this.notify(`Verkauft: ${d.name} (+${U.money(v)})`, 'money');
     },
-    sellItem(id) {
-      const v = this.priceOf(id, true); if (!v || !this.takeItem(id)) return;
+    sellItem(id, n = 1) {
+      n = Math.min(n, this.P.inv[id] || 0);
+      const v = this.priceOf(id, true) * n; if (!v || !this.takeItem(id, n)) return;
       this.P.money += v; this.emit('sfx', { s: 'cash' }); this.notify(`Verkauft: ${K.ITEMS[id].name} (+${U.money(v)})`, 'money');
     },
     eatHere(key) {
       const it = K.ITEMS[key]; const { price } = this.priceOf(key);
-      if (this.P.money < price) { this.emit('sfx', { s: 'error' }); return this.notify('Nicht genug Geld.', 'bad'); }
-      this.P.money -= price; this.consume(it);
+      if (!this.pay(price)) { this.emit('sfx', { s: 'error' }); return this.notify('Nicht genug Geld.', 'bad'); }
+      this.consume(it);
     },
     heal() {
       const cost = K.SHOPS.hospital.heal;
-      if (this.P.money < cost) return this.notify('Nicht genug Geld.', 'bad');
-      this.P.money -= cost; this.player.hp = this.maxHp(); this.player.bleed = 0; this.emit('sfx', { s: 'heal' }); this.notify('Vollständig behandelt.', 'good');
+      if (!this.pay(cost)) return this.notify('Nicht genug Geld.', 'bad');
+      this.player.hp = this.maxHp(); this.player.bleed = 0; this.emit('sfx', { s: 'heal' }); this.notify('Vollständig behandelt.', 'good');
     },
     setOutfit(o, silent) {
       const P = this.P;
@@ -148,8 +160,8 @@
     buyProperty(id) {
       const d = this.propertyDef(id), b = this.propertyBuilding(id), P = this.P;
       if (!d || !b || P.owned.includes(id)) return false;
-      if (P.money < d.price) { this.emit('sfx', { s: 'error' }); return this.notify('Nicht genug Geld.', 'bad'), false; }
-      P.money -= d.price; P.owned.push(id); P.stash[id] = P.stash[id] || { items: {}, weapons: [], ammo: {}, money: 0 };
+      if (!this.pay(d.price)) { this.emit('sfx', { s: 'error' }); return this.notify('Nicht genug Geld (Bar + Konto).', 'bad'), false; }
+      P.owned.push(id); P.stash[id] = P.stash[id] || { items: {}, weapons: [], ammo: {}, money: 0 };
       this.markOwned();
       this.emit('sfx', { s: 'purchase' }); this.emit('banner', { title: 'IMMOBILIE ERWORBEN', sub: d.name, kind: 'gold' });
       this.addXP(150, 'Immobilie');
@@ -185,6 +197,7 @@
       P.thirst = Math.max(0, P.thirst - min * 0.11 * sv * exert);
       P.energy = Math.max(0, P.energy - min * 0.05 * exert);
       P.drunk = Math.max(0, P.drunk - min * 0.006);
+      P.high = Math.max(0, (P.high || 0) - min * 0.004);
       if (P.painkiller > 0) P.painkiller -= min;
       const mh = this.maxHp();
       if (P.hunger <= 0 || P.thirst <= 0) { a.hp -= min * 0.6; if (a.hp <= 0) this.kill(a, null, { kind: P.thirst <= 0 ? 'thirst' : 'hunger' }); }
@@ -199,7 +212,7 @@
       if (day > P.lastIncome) {
         if (P.lastIncome > 0 || day > 0) {
           let inc = 0; for (const id of P.owned) inc += this.propertyDef(id).income || 0;
-          if (inc) { P.money += inc; this.notify(`Einnahmen deiner Geschäfte: +${U.money(inc)}`, 'money'); this.emit('sfx', { s: 'cash' }); }
+          if (inc) { P.bank = (P.bank || 0) + inc; this.notify(`Einnahmen deiner Geschäfte aufs Konto: +${U.money(inc)}`, 'money'); this.emit('sfx', { s: 'cash' }); }
         }
         P.lastIncome = day;
         P.stats.days = U.day(this.time);
@@ -216,7 +229,8 @@
       P.energy = Math.min(100, P.energy + hours * 13);
       P.hunger = Math.max(5, P.hunger - min * 0.03);
       P.thirst = Math.max(5, P.thirst - min * 0.045);
-      P.drunk = 0;
+      P.drunk = 0; P.high = 0;
+      this.updatePlants(min);
       a.hp = this.maxHp(); a.bleed = 0;
       this.weather.next = this.time;
       this.wanted = 0; this.heat.seenT = 0;
@@ -257,6 +271,8 @@
       P.money -= fee;
       let lost = 0;
       if (this.wanted >= 2) { for (let i = P.weapons.length - 1; i > 0; i--) if (W8[P.weapons[i].id].type === 'gun') { P.weapons.splice(i, 1); lost++; } P.slot = 0; }
+      if (P.jail) { if (P.outfit === 'prisoner') { P.outfit = P.jail.prev; a.outfit = P.outfit; } P.jail = null; }
+      P.surrender = false; this.timeScale = 1; this.charges = {};
       a.alive = true; a.dead = false; a.hp = this.maxHp() * 0.6; a.bleed = 0; a.ko = 0; a.stun = 0; a.removed = false; a.vx = a.vy = 0;
       if (!this.byId.has(a.id)) this.byId.set(a.id, a);
       if (!this.actors.includes(a)) this.actors.push(a);
@@ -267,20 +283,6 @@
       this.player.wi = this.curWeapon();
       this.emit('respawn', { fee, lost });
     },
-    arrest() {
-      const P = this.P, a = this.player;
-      const fine = Math.min(P.money, Math.round(Math.max(250, P.money * 0.1)));
-      P.money -= fine;
-      let lost = 0;
-      for (let i = P.weapons.length - 1; i > 0; i--) if (W8[P.weapons[i].id].type === 'gun') { P.weapons.splice(i, 1); lost++; }
-      P.slot = 0; a.wi = this.curWeapon();
-      const ps = this.buildings.find((b) => b.type === 'police');
-      a.x = (ps.entrance.x + 0.5) * TILE; a.y = (ps.entrance.y + 1.5) * TILE;
-      this.time += 4 * 60; this.wanted = 0; this.drag = null;
-      for (const c of this.actors) if (c.kind === 'cop' && !c.station) this.removeActor(c);
-      this.emit('arrested', { fine, lost });
-    },
-
     // ------------------------------------------------------------ save
     serialize() {
       const P = this.P, a = this.player;

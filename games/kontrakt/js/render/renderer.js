@@ -346,6 +346,7 @@
       if (sun.a > 0.05) this.drawShadows(ctx, sun, vx0, vy0, vx1, vy1);
       this.fx.drawDecals(ctx, vx0, vy0, vx1, vy1);
       this.drawDynamicFloor(ctx, vx0, vy0, vx1, vy1);
+      this.drawPlants(ctx, vx0, vy0, vx1, vy1);
       // visibility from the player
       this.visT -= dt;
       const ex = p.inCar ? w.carOf(p).x : p.x, ey = p.inCar ? w.carOf(p).y : p.y;
@@ -482,6 +483,30 @@
         } else if (p.k === 'dance' && w.isNight()) {
           for (let j = 0; j < p.h; j++) for (let i = 0; i < p.w; i++) { const k = Math.sin(t * 4 + i * 1.3 + j * 2.1); if (k < 0.4) continue; ctx.fillStyle = `hsla(${(t * 80 + (i + j) * 60) % 360},90%,60%,${(k - 0.4) * 0.5})`; ctx.fillRect(X + i * TILE + 2, Y + j * TILE + 2, TILE - 4, TILE - 4); }
         }
+      }
+    }
+    drawPlants(ctx, vx0, vy0, vx1, vy1) {
+      const t = this.time;
+      for (const pl of this.w.P.plants || []) {
+        if (pl.x < vx0 - 30 || pl.x > vx1 + 30 || pl.y < vy0 - 30 || pl.y > vy1 + 30) continue;
+        ctx.save(); ctx.translate(pl.x, pl.y);
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(2, 3, 11, 10, 0, 0, 6.3); ctx.fill();
+        ctx.fillStyle = '#7a4a2c'; ctx.beginPath(); ctx.arc(0, 0, 9.5, 0, 6.3); ctx.fill();
+        ctx.fillStyle = pl.w > 30 ? '#2e2016' : '#5a4632'; ctx.beginPath(); ctx.arc(0, 0, 7.5, 0, 6.3); ctx.fill();
+        const dead = pl.hp <= 0, dry = pl.w <= 0;
+        const sz = 3 + pl.g * 15, sway = Math.sin(t * 1.4 + pl.id) * 0.08;
+        const leaf = dead ? '#6b5a3a' : dry ? '#7d8a3a' : pl.g >= 1 ? '#4f8f3a' : '#3f8a3a';
+        ctx.rotate(sway);
+        for (let k = 0; k < 7; k++) {
+          const a = k * 0.9 + pl.id, r = sz * (0.65 + (k % 3) * 0.17);
+          ctx.fillStyle = k % 2 ? leaf : U.shade(leaf, 1.25);
+          ctx.save(); ctx.rotate(a);
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(r * 0.5, -r * 0.22, r, 0); ctx.quadraticCurveTo(r * 0.5, r * 0.22, 0, 0); ctx.fill();
+          ctx.restore();
+        }
+        if (pl.g > 0.55 && !dead) { ctx.fillStyle = pl.g >= 1 ? '#c9e08a' : '#9fc46a'; for (let k = 0; k < 5; k++) { const a = k * 1.3 + pl.id; ctx.beginPath(); ctx.arc(Math.cos(a) * sz * 0.4, Math.sin(a) * sz * 0.4, 1.6 + pl.g * 1.4, 0, 6.3); ctx.fill(); } }
+        ctx.restore();
+        if (pl.g >= 1 && !dead) { ctx.strokeStyle = `rgba(255,220,120,${0.35 + Math.sin(t * 3) * 0.2})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(pl.x, pl.y, sz + 4, 0, 6.3); ctx.stroke(); }
       }
     }
     drawTall(ctx, vx0, vy0, vx1, vy1) {
@@ -778,6 +803,13 @@
         const [sx, sy] = toS(f.x, f.y), a = Math.min(1, f.life / f.max * 2);
         o.globalAlpha = a; o.font = `800 ${(f.big ? 16 : 12) * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.lineWidth = 3 * s; o.strokeStyle = 'rgba(0,0,0,0.75)'; o.strokeText(f.text, sx, sy); o.fillStyle = f.col; o.fillText(f.text, sx, sy);
         o.globalAlpha = 1;
+      }
+      // thirsty plants
+      for (const pl of w.P.plants || []) {
+        if (pl.w > 25 || pl.g >= 1 || pl.hp <= 0) continue;
+        const [sx, sy] = toS(pl.x, pl.y);
+        if (sx < 0 || sy < 0 || sx > this.ov.width || sy > this.ov.height) continue;
+        o.font = `${14 * s}px sans-serif`; o.textAlign = 'center'; o.globalAlpha = 0.6 + Math.sin(this.time * 4) * 0.4; o.fillText('💧', sx, sy - 18 * zs); o.globalAlpha = 1;
       }
       // damage direction
       const [px, py] = toS(p.x, p.y);

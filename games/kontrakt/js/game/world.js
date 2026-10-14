@@ -262,6 +262,7 @@
       this.updateCrime(dt);
       this.updateContracts(dt);
       this.updateSurvival(dt, minutes);
+      this.updateUnderworld(dt, minutes);
       this.updatePopulation(dt);
       if (this.tick % 120 === 0) this.cleanup();
     }
