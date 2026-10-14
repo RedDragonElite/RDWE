@@ -41,12 +41,12 @@
   // ------------------------------------------------------------------ people
   /** pose resolution from actor + world */
   function poseOf(a, w) {
-    if (a.kind === 'player' && w.P && w.P.surrender) return 'hands';
+    if ((a.kind === 'player' && w.P && w.P.surrender) || a.state === 'cuffed') return 'hands';
     if (a.kind === 'player' && w.drag) return 'drag';
     if (a.state === 'cower') return 'cower';
     if (a.phone) return 'phone';
     const d = W8[(a.wi && a.wi.id) || 'fists'];
-    const drawn = a.kind === 'player' || ['hostile', 'search', 'warn', 'arrest', 'respond'].includes(a.state) || (a.kind === 'keeper' && false);
+    const drawn = a.kind === 'player' || ['hostile', 'search', 'warn', 'arrest', 'respond', 'mug', 'holdup'].includes(a.state) || (a.kind === 'keeper' && false);
     if (!drawn || !d) return 'fist';
     if (d.type === 'gun') return d.cls === 'pistol' ? 'pistol' : 'rifle';
     if (d.type === 'melee') return 'melee';

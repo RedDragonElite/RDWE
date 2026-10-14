@@ -41,7 +41,7 @@
         if (this.seenByAnyone()) { this.heat.anon = false; this.notify('Man hat dein Gesicht gesehen!', 'bad'); }
         else if (this.heat.anon) {
           const was = Math.floor(this.wanted); this.wanted = 0; this.charges = {};
-          for (const c of this.actors) if (c.kind === 'cop' && !c.station) { c.state = 'patrol'; c.knowsPlayer = false; c.path = null; }
+          for (const c of this.actors) if (c.kind === 'cop' && !c.station && !c.inCar) { this.calmDown(c); c.knowsPlayer = false; }
           this.emit('wanted', { level: 0, prev: was, why: 'Maske runter — unerkannt' });
         } else this.notify('Maske ab. Sie kannten dein Gesicht schon.', 'bad');
       } else this.notify('Sturmhaube abgenommen.');
@@ -181,7 +181,7 @@
       const a = best;
       if (a.kind === 'target') { this.panic(a, p.x, p.y); return; }
       if (a.state !== 'cower') {
-        a.state = 'cower'; a.crouch = true; a.path = null; a.goal = null;
+        a.state = 'cower'; a.brain.cowerBy = 0; a.crouch = true; a.path = null; a.goal = null;
         this.bark(a, a.kind === 'keeper' ? U.pick(['Okay, okay! Nehmen Sie das Geld!', 'Nicht schießen! Die Kasse gehört Ihnen!']) : U.pick(['Nicht schießen!', 'Bitte! Ich hab Kinder!', 'Nimm alles, nimm alles!']), 2.4);
         if (!a.heldUp) { a.heldUp = true; this.crimeEvent(p, 'weapon', p.x, p.y, null); }
       }
@@ -219,7 +219,7 @@
         const c = shopB.counter, cx = (c.x + c.w / 2) * TILE, cy = (c.y + c.h / 2) * TILE;
         if (k && k.state === 'cower' && Math.hypot(cx - a.x, cy - a.y) < 3 * TILE) {
           if (shopB.tillDay === this.today()) add('E', 'Kasse ist leer', null);
-          else add('E', 'Kasse ausräumen', () => this.robTill(shopB, k), 3.2, { tick: () => { if (k.state !== 'cower') { k.state = 'cower'; k.brain.cowerT = 4; } } });
+          else add('E', 'Kasse ausräumen', () => this.robTill(shopB, k), 3.2, { tick: () => { if (k.state !== 'cower') { k.state = 'cower'; k.brain.cowerT = 4; k.brain.cowerBy = 0; } } });
         }
       }
       // plants
@@ -411,6 +411,7 @@
       this.updateJail(dt);
       this.updatePlants(min);
       this.updateHoldup(dt);
+      if (this.updateCriminals) this.updateCriminals(dt);
       if (P.surrender) {
         P.surrenderT += dt;
         if (this.wanted <= 0 && !this.actors.some((c) => c.kind === 'cop' && c.state === 'arrest')) P.surrender = false;

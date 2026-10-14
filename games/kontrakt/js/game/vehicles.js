@@ -36,7 +36,8 @@
         if (c.dead) continue;
         const d = Math.hypot(c.x - p.x, c.y - p.y);
         const mine = c.driver === 'player' || c.playerOwned;
-        if (!mine && d > 60 * TILE && !(c.kind === 'police' && this.wanted >= 2)) { this.despawnCar(c); continue; }
+        const busyUnit = c.unit && !['patrol', 'leave', 'abandoned'].includes(c.unit.mode);
+        if (!mine && d > 60 * TILE && !busyUnit) { this.despawnCar(c); continue; }
         if (c.ai && c.driver && c.driver !== 'player' && c.kind !== 'police') n++;
       }
       if (n < want) this.spawnTraffic();
@@ -103,7 +104,7 @@
         }
         let thr = 0, steer = 0, hb = false;
         if (c.driver === 'player') { const inp = this.carInput || {}; thr = inp.thr || 0; steer = inp.steer || 0; hb = !!inp.hb; }
-        else if (c.driver && !c.dead) { const dr = this.byId.get(c.driver); if (!dr || !dr.alive) { c.driver = null; } else [thr, steer, hb] = c.pursuit ? this.policeDrive(c, dt) : this.trafficDrive(c, dt); }
+        else if (c.driver && !c.dead) { const dr = this.byId.get(c.driver); if (!dr || !dr.alive) { c.driver = null; } else [thr, steer, hb] = c.unit ? this.unitDrive(c, dt) : c.pursuit ? this.policeDrive(c, dt) : this.trafficDrive(c, dt); }
         c.thr = thr; c.steer = U.lerp(c.steer, steer, Math.min(1, dt * 10));
         this.carPhysics(c, thr, c.steer, hb, dt);
       }

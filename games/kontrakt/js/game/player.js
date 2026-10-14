@@ -44,6 +44,7 @@
       }
 
       // -------------------------------------------------------- locked states
+      if (a.stun > 0) { this.moveActor(a, 0, 0, dt, 6); this.ctx = []; return; }
       if (this.td) { this.updateTakedown(dt); a.vx *= 0.5; a.vy *= 0.5; this.ctx = []; return; }
       if (this.action) {
         const ac = this.action;

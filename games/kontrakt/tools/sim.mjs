@@ -1,7 +1,7 @@
 // headless simulation smoke test: node tools/sim.mjs
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, Date, JSON, globalThis: null, performance: { now: () => Date.now() } }; ctx.globalThis = ctx; vm.createContext(ctx);
-const files = ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js'];
+const files = ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js'];
 for (const f of files) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
 const K = ctx.K;
 let ok = 0, fail = 0;

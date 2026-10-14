@@ -1,7 +1,7 @@
 // AI behaviour scenarios: node tools/scenarios.mjs
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
+for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
 const K = ctx.K, TILE = 32;
 let ok = 0, fail = 0;
 const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
@@ -86,8 +86,14 @@ console.log('5) shooting in public: witnesses call the police');
   check(civ.state === 'flee' || civ.state === 'cower', `witness flees (state=${civ.state})`);
   let wanted = 0; for (let i = 0; i < 60 * 12 && !wanted; i++) { run(w, 1); wanted = w.wanted; }
   check(wanted >= 1, `wanted level after report: ${wanted}`);
-  let cops = 0; for (let i = 0; i < 60 * 8 && !cops; i++) { run(w, 1); cops = w.actors.filter(a => a.kind === 'cop' && a.alive && !a.station && (a.state === 'respond' || a.state === 'hostile' || a.state === 'search' || a.state === 'arrest')).length; }
-  check(cops > 0, `police respond (${cops})`);
+  const units = () => w.cars.filter(c => c.unit && c.unit.mode !== 'patrol' && !c.dead);
+  let u = []; for (let i = 0; i < 60 * 5 && !u.length; i++) { run(w, 1); u = units(); }
+  check(u.length > 0, `a police unit is dispatched (${u.length})`);
+  const d0 = u.length ? Math.hypot(u[0].x - p.x, u[0].y - p.y) / TILE : 0;
+  check(d0 > 18, `it starts far away (${Math.round(d0)} tiles)`);
+  let arrived = false; for (let i = 0; i < 60 * 70 && !arrived; i++) { run(w, 1); arrived = w.cars.some(c => c.unit && c.unit.mode === 'onscene'); }
+  check(arrived, 'unit drives in and deploys officers');
+  check(!w.actors.some(a => a.kind === 'cop' && a.alive && !a.station && !a.unit), 'no officers appear out of thin air');
 }
 console.log('6) wire takedown from behind is silent and lethal');
 {
@@ -100,6 +106,33 @@ console.log('6) wire takedown from behind is silent and lethal');
   run(w, 60 * 3);
   check(!g.alive && g.killInfo.silent, 'guard dead, silently');
   check(!g.bloody, 'no blood with the wire');
+}
+console.log('7) street criminals mug civilians; police respond against them, not you');
+{
+  let res = null;
+  for (const seed of [17, 27, 37, 47]) {
+    const w = new K.World({ seed }); w.time = 14 * 60; w.godMode = true; w.thugT = 1e9;
+    const p = w.player; p.hidden = true;
+    const t = w.spawnThug('mug'); if (!t) continue;
+    let mugged = false, robbed = false, unit = false;
+    for (let i = 0; i < 60 * 90 && !unit; i++) {
+      run(w, 1);
+      if (t.state === 'mug') mugged = true;
+      if (w.actors.some(c => c.robbed)) robbed = true;
+      if (w.cars.some(c => c.unit && c.unit.foe === t.id)) unit = true;
+    }
+    res = { mugged, robbed, unit, wanted: w.wanted, w, t }; if (mugged) break;
+  }
+  check(res && res.mugged, 'a thug picks a victim and mugs them');
+  check(res && res.robbed, 'the victim loses their wallet');
+  check(res && res.unit, 'a police unit is dispatched against the thug');
+  check(res && res.wanted === 0, `player stays clean (wanted=${res && res.wanted})`);
+  if (res) {
+    const { w, t } = res; const p = w.player; p.hidden = false;
+    t.crim = true; t.alive && (p.x = t.x - 20, p.y = t.y);
+    const xp0 = w.P.xp + w.P.level * 1e6; w.hurt(t, 500, p, { kind: 'melee' }); run(w, 60 * 4);
+    check(!t.alive && w.P.xp + w.P.level * 1e6 > xp0 && w.wanted === 0, `stopping a robber is rewarded, not a crime (wanted=${w.wanted})`);
+  }
 }
 console.log(`\n${ok} ok, ${fail} failed`);
 process.exit(fail ? 1 : 0);

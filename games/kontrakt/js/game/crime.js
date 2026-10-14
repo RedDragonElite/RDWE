@@ -16,7 +16,8 @@
     crimeEvent(perp, type, x, y, victim, force) {
       if (!perp || perp.kind !== 'player') return;
       for (const n of this.near(x, y, 24 * TILE)) {
-        if (n === perp || !n.alive || n.ko > 0 || n.kind === 'player' || n.inCar === 'x') continue;
+        if (n === perp || !n.alive || n.ko > 0 || n.kind === 'player' || (n.inCar && !n.unit) || n.kind === 'crew') continue;
+        if (victim && victim.crim && victim.kind === 'thug') continue; // stopping a robber is not a crime
         const close = Math.hypot(n.x - perp.x, n.y - perp.y) < 2.6 * TILE;
         const saw = n === victim || (close && K.los(this, n.x, n.y, perp.x, perp.y)) || this.sees(n, perp.x, perp.y, this.viewRange(n) * 1.15, 1.35);
         if (!saw) continue;
@@ -36,10 +37,13 @@
         return;
       }
       switch (n.kind) {
-        case 'cop':
+        case 'cop': {
           this.raiseWanted(Math.max(sev, type === 'shots' || type === 'weapon' ? 1 : sev), type);
-          this.alarm(n, perp);
+          if (type === 'shots' || type === 'murder' || type === 'copkill' || type === 'explosion') this.lastThreatT = this.t;
+          if (n.inCar) { const c = this.cars.find((q) => q.id === n.inCar); if (c && c.unit && c.unit.mode === 'patrol') { c.unit.mode = 'respond'; c.unit.dest = { x, y }; c.siren = true; } break; }
+          if (this.copMayShoot()) this.alarm(n, perp); else this.startArrest(n);
           break;
+        }
         case 'guard': case 'bodyguard': case 'gang':
           if (type === 'trespass' && n.state !== 'hostile') { this.onSuspicious(n, 'trespass'); break; }
           this.alarm(n, perp);
@@ -56,6 +60,12 @@
     /** a civilian finished the phone call */
     report(n) {
       const type = n.reportType; n.reportT = 0;
+      if (n.reportFoe) {
+        const f = this.byId.get(n.reportFoe); n.reportFoe = 0;
+        this.bark(n, U.pick(['Polizei? Ich wurde überfallen!', 'Hallo? Hier ist gerade ein Raub passiert!']));
+        if (f && f.alive) this.dispatch(f.x, f.y, 2, { foe: f.id });
+        return;
+      }
       if (type === 'body') { this.policeInvestigate(n.reportX, n.reportY); this.bark(n, 'Polizei?! Hier liegt eine Leiche!'); return; }
       this.bark(n, U.pick(['Polizei! Schnell!', 'Hallo, Polizei? Hier ist ein Irrer!', 'Kommen Sie sofort!']));
       this.raiseWanted(SEV[type] || 1, type);
@@ -104,28 +114,20 @@
       if (!p.alive) return;
       // civilians on the phone
       for (const n of this.actors) if (n.reportT > 0 && n.alive && !n.ko) { n.reportT -= dt; if (n.reportT <= 0) this.report(n); }
+      this.updatePolice(dt);
       if (this.wanted <= 0) return;
       const seen = this.actors.some((c) => c.kind === 'cop' && c.alive && !c.ko && c.seesPlayer) || this.cars.some((c) => c.kind === 'police' && c.driver && c.driver !== 'player' && c.seesPlayer);
       if (seen) { this.heat.x = p.x; this.heat.y = p.y; this.heat.seenT = 0; }
-      else this.heat.seenT += dt;
-      const lose = 16 + this.wanted * 6;
+      else if (!this.cars.some((c) => c.unit && c.unit.mode === 'respond' && this.t - c.unit.t0 < 60)) this.heat.seenT += dt; // the call stays open while units are en route
+      const lose = 24 + this.wanted * 8;
       this.heatProgress = U.clamp(this.heat.seenT / lose, 0, 1);
       if (this.heat.seenT > lose) {
         const prev = Math.floor(this.wanted);
         this.wanted = Math.max(0, Math.floor(this.wanted) - 1);
         this.heat.seenT = 0;
         this.emit('wanted', { level: this.wanted, prev, why: this.wanted ? 'Spur verwischt' : 'Fahndung eingestellt' });
-        if (!this.wanted) { this.charges = {}; this.heat.anon = false; for (const c of this.actors) if (c.kind === 'cop' && c.state !== 'station') { c.state = 'patrol'; c.path = null; } }
+        if (!this.wanted) { this.charges = {}; this.heat.anon = false; for (const c of this.actors) if (c.kind === 'cop' && c.state !== 'station' && !c.inCar) this.calmDown(c); }
       }
-      // dispatch
-      const want = [0, 3, 5, 8, 11, 15][Math.floor(this.wanted)];
-      const active = this.actors.filter((c) => c.kind === 'cop' && c.alive && !c.removed && !c.station).length;
-      this.heat.spawnT -= dt;
-      if (active < want && this.heat.spawnT <= 0) {
-        this.heat.spawnT = 2.2 - this.wanted * 0.25;
-        this.spawnCopNear(this.heat.x, this.heat.y, 'respond', this.heat.x, this.heat.y);
-      }
-      if (this.wanted >= 2) this.ensurePoliceCars(Math.min(3, 1 + Math.floor(this.wanted / 2)));
     },
     spawnCopNear(x, y, state, tx, ty) {
       const p = this.player;
@@ -144,8 +146,8 @@
     },
     spawnCop(x, y, state, tx, ty) {
       const swat = this.wanted >= 4;
-      const c = this.spawnActor('cop', x, y, { outfit: 'police', weapon: swat ? (Math.random() < 0.5 ? 'k47' : 'pump') : Math.random() < 0.2 ? 'pump' : 'p9', hp: swat ? 160 : 120, armor: swat ? 60 : 20, state: state || 'patrol', reserve: -1, female: Math.random() < 0.3 });
-      c.acc = swat ? 1.7 : 2.1; c.swat = swat; c.brain.tx = tx; c.brain.ty = ty; c.crossOk = true;
+      const c = this.spawnActor('cop', x, y, { outfit: 'police', weapon: swat ? (Math.random() < 0.5 ? 'k47' : 'pump') : Math.random() < 0.15 ? 'pump' : 'p9', hp: swat ? 160 : 120, armor: swat ? 60 : 20, state: state || 'patrol', reserve: -1, female: Math.random() < 0.3 });
+      c.acc = swat ? 2.0 : 2.7; c.swat = swat; c.brain.tx = tx; c.brain.ty = ty; c.crossOk = true;
       return c;
     },
   });

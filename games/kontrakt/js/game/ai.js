@@ -99,13 +99,12 @@
           civs++;
         }
         if (a.kind === 'cop' && !a.station) {
-          if (d > 60 * TILE && this.wanted === 0) { this.removeActor(a); continue; }
+          if (d > 60 * TILE && this.wanted === 0 && !a.unit) { this.removeActor(a); continue; }
           if (a.state === 'patrol') patrol++;
         }
       }
       let n = 0;
       while (civs < want && n++ < 3) { if (this.spawnCiv()) civs++; else break; }
-      if (patrol < 2 && this.wanted === 0) { const c = this.spawnCopNear(p.x, p.y, 'patrol'); if (c) c.crossOk = false; }
       this.updateTraffic();
     },
     spawnCiv(near) {
@@ -200,6 +199,7 @@
         if (a.bark) { a.bark.t -= dt; if (a.bark.t <= 0) a.bark = null; }
         this.tickWeapon(a, dt);
         if (a.ko > 0 || a.dragBy) { a.vx *= 0.85; a.vy *= 0.85; a.seesPlayer = false; continue; }
+        if (a.state === 'cuffed') { this.ai_cuffed(a, dt); a.vx *= 0.8; a.vy *= 0.8; a.seesPlayer = false; continue; }
         const far = Math.abs(a.x - p.x) > 55 * TILE || Math.abs(a.y - p.y) > 55 * TILE;
         a.thinkT = (a.thinkT || Math.random() * 0.2) - dt;
         if (a.thinkT <= 0) { const iv = far ? 1.2 : 0.16 + Math.random() * 0.06; this.perceive(a, iv); a.thinkT = iv; }
@@ -287,11 +287,13 @@
           if (why === 'body' && a.susp >= 1) this.crimeEvent(p, this.byId.get(this.drag) && !this.byId.get(this.drag).alive ? 'murder' : 'assault', p.x, p.y, null);
         } else if (a.state !== 'hostile') a.susp = Math.max(0, a.susp - dt * 0.3);
         if (a.kind === 'cop' && this.wanted >= 1 && a.state !== 'hostile' && a.state !== 'arrest') {
-          if (this.P.surrender || (this.wanted < 2 && !this.playerArmed() && !p.inCar)) this.startArrest(a); else this.alarm(a, p);
+          if (this.P.surrender || !this.copMayShoot()) this.startArrest(a); else this.alarm(a, p);
         }
         a.lastSeenX = p.x; a.lastSeenY = p.y;
-      } else if (a.seesPlayer && p.inCar && a.kind === 'cop' && this.wanted >= 1) this.alarm(a, p);
+      } else if (a.seesPlayer && p.inCar && a.kind === 'cop' && this.wanted >= 1 && this.copMayShoot()) this.alarm(a, p);
       else if (a.state !== 'hostile') a.susp = Math.max(0, a.susp - dt * 0.3);
+      if (a.foe) { const f = this.byId.get(a.foe); a.seesFoe = !!(f && f.alive && !f.hidden && this.sees(a, f.x, f.y, range * 1.1, 1.7)); }
+      if (this.scanThreats) this.scanThreats(a, range);
       // bodies
       for (const b of this.bodies) {
         if (b.found && b.ko <= 0) continue;
@@ -305,18 +307,20 @@
 
     // ------------------------------------------------------------ reactions
     alarm(a, perp) {
+      if (a.state === 'cuffed') return;
       if (!a.alive || a.ko > 0) return;
       const civ = a.kind === 'civ' || ((a.kind === 'keeper' || a.kind === 'staff') && !a.armedKeeper);
       if (civ) { this.flee(a, perp.x, perp.y, true); return; }
+      a.foe = perp && perp.kind !== 'player' ? perp.id : 0;
       if (a.state !== 'hostile') {
-        a.state = 'hostile'; a.brain.react = 0.35 + Math.random() * 0.45; a.brain.lost = 0; a.brain.sdir = Math.random() < 0.5 ? 1 : -1; a.brain.st = 0;
+        a.state = 'hostile'; a.brain.react = a.kind === 'cop' ? 0.9 + Math.random() * 0.7 : 0.35 + Math.random() * 0.45; a.brain.lost = 0; a.brain.sdir = Math.random() < 0.5 ? 1 : -1; a.brain.st = 0;
         a.susp = 1; a.path = null; a.goal = null;
         this.bark(a, a.kind === 'cop' ? U.pick(['Polizei! Waffe fallen lassen!', 'Zugriff!', 'Verdächtiger gesichtet!']) : U.pick(LINES.hostile));
         this.emit('alert', { id: a.id, x: a.x, y: a.y });
         this.note('spotted', { n: a });
       }
       a.brain.lx = perp.x; a.brain.ly = perp.y;
-      if (a.zone >= 0 && this.zones[a.zone]) this.zoneAlert(a.zone, perp.x, perp.y);
+      if (a.zone >= 0 && this.zones[a.zone] && !a.foe) this.zoneAlert(a.zone, perp.x, perp.y);
       if (a.wi.id === 'fists' && a.kind === 'guard') a.wi = { id: 'p9', mag: 15 };
     },
     zoneAlert(z, x, y) {
@@ -332,6 +336,7 @@
       }
     },
     flee(a, x, y, scream) {
+      if (a.state === 'cuffed') return;
       if (!a.alive || a.ko > 0) return;
       if (a.kind === 'target') return this.panic(a, x, y);
       const was = a.state;
@@ -340,10 +345,11 @@
     },
     onSuspicious(a, why) {
       const p = this.player;
+      if (a.kind === 'thug') { if (why === 'weapon') { a.state = 'escape'; a.brain.ex = null; this.bark(a, 'Scheiße, der hat ne Knarre!', 1.8); } a.susp = 0.3; return; }
       if (a.kind === 'civ' || a.kind === 'keeper' || a.kind === 'staff' || a.kind === 'target') {
         if (why === 'weapon' || why === 'body') {
           if (a.kind === 'keeper' && a.armedKeeper && why === 'weapon') { this.bark(a, 'Ganz ruhig, Freund. Waffe weg.'); a.susp = 0.6; return; }
-          if (Math.hypot(p.x - a.x, p.y - a.y) < 6 * TILE && this.aiming && (a.kind !== 'civ' || Math.random() < 0.6)) { a.state = 'cower'; a.brain.cowerT = 6; a.crouch = true; this.bark(a, U.pick(['Bitte nicht!', 'Ich hab Familie!', 'Nimm was du willst!'])); }
+          if (Math.hypot(p.x - a.x, p.y - a.y) < 6 * TILE && this.aiming && (a.kind !== 'civ' || Math.random() < 0.6)) { a.state = 'cower'; a.brain.cowerT = 6; a.brain.cowerBy = 0; a.crouch = true; this.bark(a, U.pick(['Bitte nicht!', 'Ich hab Familie!', 'Nimm was du willst!'])); }
           else this.flee(a, p.x, p.y, true);
           this.crimeEvent(p, why === 'body' ? 'murder' : 'weapon', p.x, p.y, null);
           return;
@@ -395,13 +401,14 @@
       }
     },
     hear(a, kind, x, y, src) {
+      if (a.state === 'cuffed') return;
       if (a.state === 'hostile' || a.state === 'dead') { if (kind === 'shot' && a.state === 'hostile' && src && src.kind === 'player') { a.brain.lx = x; a.brain.ly = y; } return; }
       const k = a.kind;
       if (kind === 'shot' || kind === 'explosion' || kind === 'glass') {
         if (k === 'civ' || ((k === 'keeper' || k === 'staff') && !a.armedKeeper)) {
           if (kind === 'glass' && Math.random() < 0.5) { a.faceTo = Math.atan2(y - a.y, x - a.x); return; }
           const close = Math.hypot(a.x - x, a.y - y) < 8 * TILE;
-          if (close && Math.random() < 0.4) { a.state = 'cower'; a.brain.cowerT = 5 + Math.random() * 4; a.crouch = true; this.emit('scream', { x: a.x, y: a.y, female: a.female }); }
+          if (close && Math.random() < 0.4) { a.state = 'cower'; a.brain.cowerBy = src && src.kind !== 'player' ? src.id : 0; a.brain.cowerT = 5 + Math.random() * 4; a.crouch = true; this.emit('scream', { x: a.x, y: a.y, female: a.female }); }
           else this.flee(a, x, y, Math.random() < 0.6);
           return;
         }
@@ -426,8 +433,14 @@
       if (kind === 'steps' && a.kind !== 'civ' && a.state !== 'flee') { a.faceTo = Math.atan2(y - a.y, x - a.x); a.brain.turnTo = a.faceTo; a.brain.turnT = 1.5; }
     },
     onAttacked(t, src, info) {
+      if (t.state === 'cuffed') return;
       if (!src) return;
-      if (src.kind !== 'player') { if (t.kind === 'civ' || t.kind === 'staff') this.flee(t, src.x, src.y, true); return; }
+      if (src.kind !== 'player') {
+        if (this.isFighter(t) && this.enemies(t, src)) { this.alarm(t, src); return; }
+        if (t.kind === 'civ' || t.kind === 'staff' || t.kind === 'keeper') this.flee(t, src.x, src.y, true);
+        return;
+      }
+      if (t.kind === 'crew') { this.bark(t, U.pick(['Hey! Ich bin auf deiner Seite!', 'Pass auf, wohin du schießt!']), 2); return; }
       t.knowsPlayer = t.knowsPlayer || src.kind === 'player';
       if (t.kind === 'target') return this.panic(t, src.x, src.y);
       if (t.kind === 'civ' || t.kind === 'staff' || (t.kind === 'keeper' && !t.armedKeeper)) {
@@ -441,12 +454,14 @@
     onKill(t, src, info) {
       // nearby escorts react, contract bookkeeping
       if (t.kind === 'target' || t.target) this.contractTargetKilled(t, src, info);
+      if (this.heroReward) this.heroReward(t, src);
       for (const g of this.near(t.x, t.y, 12 * TILE)) {
         if (!g.alive || g.ko > 0 || g === t) continue;
         if (g.kind === 'bodyguard' && g.guarding === t.id) { g.state = 'search'; g.brain.sx = t.x; g.brain.sy = t.y; g.brain.searchT = 40; }
       }
     },
     panic(a, x, y) {
+      if (a.state === 'cuffed') return;
       if (!a.alive || a.ko > 0) return;
       if (a.state !== 'panic' && a.state !== 'hide') { this.bark(a, U.pick(['Beschützt mich!', 'Bringt mich hier raus!', 'Sie sind hinter mir her!'])); this.emit('scream', { x: a.x, y: a.y, female: a.female }); }
       a.state = 'panic'; a.brain.fx = x; a.brain.fy = y; a.brain.calm = 0; a.path = null; a.goal = null; a.crossOk = true;
@@ -483,7 +498,7 @@
       a.dv = this.steer(a, sp, dt);
     },
     ai_patrol(a, dt) {
-      if (a.kind === 'cop') return this.ai_wander(a, dt);
+      if (a.kind === 'cop') { if (a.unit) { a.state = 'return'; return; } return this.ai_wander(a, dt); }
       const z = this.zones[a.zone];
       if (!z) return this.ai_wander(a, dt);
       if (a.brain.waitT > 0) {
@@ -556,6 +571,12 @@
     ai_cower(a, dt) {
       a.crouch = true; a.dv = [0, 0];
       a.brain.cowerT -= dt;
+      const by = a.brain.cowerBy && this.byId.get(a.brain.cowerBy);
+      if (by) {   // held up by an NPC robber, not by you
+        a.faceTo = Math.atan2(by.y - a.y, by.x - a.x);
+        if (a.brain.cowerT <= 0 || !by.alive || by.state === 'cuffed') { a.crouch = false; a.brain.cowerBy = 0; this.flee(a, by.x, by.y, false); }
+        return;
+      }
       const p = this.player;
       a.faceTo = Math.atan2(p.y - a.y, p.x - a.x);
       if (a.brain.cowerT <= 0 || (!this.aiming && Math.hypot(p.x - a.x, p.y - a.y) > 6 * TILE)) { a.crouch = false; this.flee(a, p.x, p.y, false); if (!a.reportT) { a.reportT = 3; a.reportType = 'weapon'; a.reportX = p.x; a.reportY = p.y; } }
@@ -595,16 +616,33 @@
         else this.alarm(a, p);
       }
     },
+    dutyState(a) {
+      if (a.brain.post) return a.kind === 'keeper' ? 'work' : 'post';
+      return { cop: a.unit ? 'return' : 'patrol', crew: 'follow', gang: a.zone >= 0 ? 'patrol' : 'hang', thug: 'escape', bodyguard: 'escort', guard: 'patrol', staff: 'work', keeper: 'work' }[a.kind] || 'wander';
+    },
+    calmDown(a) { a.state = this.dutyState(a); a.foe = 0; a.goal = null; a.path = null; },
     ai_hostile(a, dt) {
-      const p = this.player;
-      if (!p.alive) { a.state = a.kind === 'cop' ? 'patrol' : a.brain.post ? 'post' : a.kind === 'civ' ? 'wander' : 'patrol'; return; }
-      if (a.kind === 'cop' && this.wanted < 1) { a.state = 'patrol'; a.goal = null; a.path = null; return; }
-      if (a.kind === 'cop' && this.P.surrender) { a.state = 'arrest'; a.brain.arT = 0; return; }
+      const isP = !a.foe;
+      const p = isP ? this.player : this.byId.get(a.foe);
+      if (!p || p.removed || !p.alive || p.hidden || (!isP && p.ko > 0)) { this.calmDown(a); return; }
+      if (isP && a.kind === 'cop') {
+        if (this.wanted < 1) { this.calmDown(a); return; }
+        if (this.P.surrender || !this.copMayShoot()) { a.state = 'arrest'; a.brain.arT = 0; return; }
+      }
+      const sees = isP ? a.seesPlayer : a.seesFoe;
       const d = this.wdef(a);
       const tx = p.inCar ? this.carOf(p).x : p.x, ty = p.inCar ? this.carOf(p).y : p.y;
-      if (a.seesPlayer) { a.brain.lx = tx; a.brain.ly = ty; a.brain.lost = 0; } else a.brain.lost += dt;
+      if (sees) { a.brain.lx = tx; a.brain.ly = ty; a.brain.lost = 0; } else a.brain.lost += dt;
       const dist = Math.hypot(tx - a.x, ty - a.y);
-      if (a.seesPlayer) {
+      if (sees && !isP && a.kind === 'cop' && p.kind === 'thug' && this.wdef(p).type !== 'gun' && p.state !== 'hostile' && p.state !== 'cuffed') {
+        // unarmed or knife-wielding robber: chase and cuff, don't shoot
+        a.faceTo = Math.atan2(ty - a.y, tx - a.x);
+        if (dist < 32) { this.copCuffs(a, p); return; }
+        this.goTo(a, tx, ty, { tol: 20 }); a.dv = this.steer(a, 150, dt);
+        if (!a.brain.yelled) { a.brain.yelled = true; this.bark(a, 'Polizei! Stehen bleiben!'); }
+        return;
+      }
+      if (sees) {
         const ang = Math.atan2(ty - a.y, tx - a.x);
         a.faceTo = ang;
         a.brain.react -= dt;
@@ -640,7 +678,7 @@
     },
     ai_search(a, dt) {
       a.brain.searchT -= dt;
-      if (a.brain.searchT <= 0) { a.state = a.brain.post ? 'post' : a.kind === 'cop' ? 'patrol' : a.kind === 'bodyguard' ? 'escort' : a.kind === 'gang' ? 'hang' : 'patrol'; a.goal = null; a.path = null; this.bark(a, U.pick(['Muss weg sein.', 'Zurück auf Position.', 'Augen offen halten.']), 1.8); return; }
+      if (a.brain.searchT <= 0) { this.calmDown(a); this.bark(a, U.pick(['Muss weg sein.', 'Zurück auf Position.', 'Augen offen halten.']), 1.8); return; }
       if (a.brain.waitT > 0) { a.brain.waitT -= dt; a.faceTo = a.angle + dt * 2.2; return; }
       if (!a.goal || a.arrived) {
         if (a.goal) { a.brain.waitT = 1 + Math.random() * 2; a.goal = null; return; }
@@ -667,13 +705,21 @@
         if (a.brain.arT > 1.8) { this.arrestProgress = 0; this.bark(a, U.pick(['Sie haben das Recht zu schweigen.', 'Handschellen sind zu. Mitkommen.'])); this.arrest(); }
         return;
       }
-      if (this.wanted >= 2 || this.playerArmed()) { this.alarm(a, p); return; }
-      if (this.wanted <= 0) { a.state = 'patrol'; return; }
+      if (this.copMayShoot()) { this.alarm(a, p); return; }
+      if (this.wanted <= 0) { this.calmDown(a); return; }
       const d = Math.hypot(p.x - a.x, p.y - a.y);
       a.faceTo = Math.atan2(p.y - a.y, p.x - a.x);
-      if (d > 1.6 * TILE) { this.goTo(a, p.x, p.y, { tol: 30 }); a.dv = this.steer(a, 120, dt); }
-      if (d > 10 * TILE && a.seesPlayer) { this.raiseWanted(2, 'assault'); this.bark(a, 'Er flieht! Verstärkung!'); this.alarm(a, p); return; }
-      if (d < 2.2 * TILE && p.speed < 25 && !p.inCar) {
+      // a drawn weapon gets one clear warning
+      if (this.playerArmed() && a.seesPlayer) {
+        if (!a.brain.armT) this.bark(a, U.pick(['Waffe fallen lassen! SOFORT!', 'Polizei! Waffe weg oder ich schieße!']), 2.4);
+        a.brain.armT = (a.brain.armT || 0) + dt;
+        if (a.brain.armT > 3.5) { this.raiseWanted(2, 'weapon'); this.lastThreatT = this.t; this.alarm(a, p); return; }
+      } else a.brain.armT = 0;
+      if (d > 1.6 * TILE) { this.goTo(a, p.x, p.y, { tol: 30 }); a.dv = this.steer(a, 140, dt); }
+      if (d > 10 * TILE && a.seesPlayer && !a.brain.fled) { a.brain.fled = true; this.raiseWanted(Math.max(1, Math.floor(this.wanted)), 'resist'); this.bark(a, 'Er flieht! Bleib stehen!'); }
+      // tackle a runner
+      if (d < 1.3 * TILE && p.speed > 60 && !p.inCar && a.cool <= 0 && p.stun <= 0) { p.stun = 1.5; p.vx = p.vy = 0; a.cool = 2.5; this.bark(a, 'Am Boden bleiben!'); this.emit('tackle', { x: p.x, y: p.y }); }
+      if (d < 2.2 * TILE && (p.speed < 25 || p.stun > 0) && !p.inCar) {
         a.brain.arT += dt;
         this.arrestProgress = a.brain.arT / 2.5;
         if (a.brain.arT > 2.5) { this.arrestProgress = 0; this.arrest(); }
