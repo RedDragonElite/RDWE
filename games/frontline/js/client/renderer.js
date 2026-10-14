@@ -43,6 +43,7 @@
       this.hoverOwner = 0;
       this.floats = [];
       this.atmo = new BW.Atmosphere(this);
+      this.unitView = new BW.UnitView(this);
       this.time = 0;
       this._labelTimer = 0;
       this.dist = new Uint16Array(W * H);
@@ -55,6 +56,8 @@
       this.tctx = this.terr.getContext('2d');
       this.timg = this.tctx.createImageData(W, H);
       this.tpx = new Uint32Array(this.timg.data.buffer);
+      this.gl = game.glCanvas && game.settings.webgl ? BW.GLMap.create(game.glCanvas, this.sim) : null;
+      if (game.glCanvas) game.glCanvas.style.display = this.gl ? 'block' : 'none';
       this.repaintAll();
       this.resize();
       this.fitView(true);
@@ -151,6 +154,7 @@
     // ------------------------------------------------------------ territory raster
     _paint(t) {
       const o = this.sim.owner[t];
+      if (this.gl) { this.gl.paint(t, o ? this.sim.players[o].color : null, o === this.hoverOwner ? 230 : 255); return; }
       if (!o) { this.tpx[t] = 0; return; }
       const W = this.W, own = this.sim.owner, x = t % W;
       const edge = (t < W || own[t - W] !== o) || (t >= own.length - W || own[t + W] !== o) ||
@@ -189,6 +193,7 @@
       const prev = this.hoverOwner; this.hoverOwner = o;
       const own = this.sim.owner;
       for (let t = 0; t < own.length; t++) if (own[t] && (own[t] === o || own[t] === prev)) this._paint(t);
+      if (this.gl) return;
       this.dirty = true;
     }
 
@@ -287,6 +292,16 @@
       this.fallout.push({ x, y, r: R * 1.05, life: 70, max: 70 });
       this.shake = Math.min(28, this.shake + (big ? 26 : 14));
     }
+    smallBlast(x, y) {
+      this.flashes.push({ x, y, r: 2.4, life: 0.25, max: 0.25 });
+      this.rings.push({ x, y, r0: 0.3, r1: 3.2, life: 0.5, max: 0.5, color: [255, 200, 140] });
+      const n = this.game.settings.fx ? 18 : 8;
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 6.283, sp = 1 + Math.random() * 5, fire = i < n / 2;
+        this.particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (fire ? 0 : 1), life: fire ? 0.4 : 1.5, max: fire ? 0.4 : 1.5,
+          size: fire ? 0.35 : 0.7, color: fire ? [255, 180, 80] : [110, 100, 92], glow: fire, smoke: !fire, drag: 2 });
+      }
+    }
     interceptFx(x, y) {
       this.flashes.push({ x, y, r: 6, life: 0.4, max: 0.4 });
       this.rings.push({ x, y, r0: 0.5, r1: 9, life: 0.7, max: 0.7, color: [120, 220, 255] });
@@ -314,7 +329,7 @@
       this._labelTimer -= dt;
       if (this._labelTimer <= 0) { this.computeLabels(); this._labelTimer = 0.5; }
       for (const l of this.labels.values()) { const f = 1 - Math.pow(0.02, dt); l.x += (l.tx - l.x) * f; l.y += (l.ty - l.y) * f; l.r += (l.tr - l.r) * f; }
-      if (this.dirty) { this.tctx.putImageData(this.timg, 0, 0); this.dirty = false; }
+      if (this.dirty && !this.gl) { this.tctx.putImageData(this.timg, 0, 0); this.dirty = false; }
 
       this.shake *= Math.pow(0.04, dt);
       this._sx = (Math.random() - 0.5) * this.shake; this._sy = (Math.random() - 0.5) * this.shake;
@@ -322,19 +337,32 @@
       const ox = this.cw / 2 - c.x * z + this._sx, oy = this.ch / 2 - c.y * z + this._sy;
 
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = '#060b16';
-      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      const set = game.settings, atmo = this.atmo;
+      if (this.gl) {
+        this.gl.adapt(dt);
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.gl.render(c, dpr, {
+          cw: this.cw, ch: this.ch, cx: c.x - this._sx / z, cy: c.y - this._sy / z, time: this.time,
+          night: set.daynight ? atmo.nightFactor(sim.tick) : 0, dusk: set.daynight ? atmo.dusk(sim.tick) : 0,
+          sun: atmo.sunDir(sim.tick, set.daynight), clouds: set.clouds,
+        });
+      } else {
+        ctx.fillStyle = '#060b16';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      }
 
       // world space
       ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * ox, dpr * oy);
-      ctx.imageSmoothingEnabled = z < 1;
-      ctx.drawImage(this.terrain, 0, 0);
-      const s = 0.5 + 0.5 * Math.sin(this.time * 0.9);
-      ctx.globalAlpha = s; ctx.drawImage(this.shimA, 0, 0);
-      ctx.globalAlpha = 1 - s; ctx.drawImage(this.shimB, 0, 0);
-      ctx.globalAlpha = 1;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(this.terr, 0, 0);
+      if (!this.gl) {
+        ctx.imageSmoothingEnabled = z < 1;
+        ctx.drawImage(this.terrain, 0, 0);
+        const s = 0.5 + 0.5 * Math.sin(this.time * 0.9);
+        ctx.globalAlpha = s; ctx.drawImage(this.shimA, 0, 0);
+        ctx.globalAlpha = 1 - s; ctx.drawImage(this.shimB, 0, 0);
+        ctx.globalAlpha = 1;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(this.terr, 0, 0);
+      }
 
       // fallout
       for (const f of this.fallout) {
@@ -415,7 +443,7 @@
 
       // clouds (fade out when zoomed in)
       const ca = Math.max(0, Math.min(0.42, 0.62 - z * 0.15));
-      if (ca > 0.01 && this.game.settings.clouds) {
+      if (ca > 0.01 && this.game.settings.clouds && !this.gl) {
         const sc = 3.2, off = this.time * 1.4;
         const m = new DOMMatrix().translateSelf(off, off * 0.35).scaleSelf(sc, sc);
         this.cloudPat.setTransform(m);
@@ -432,8 +460,9 @@
       this._drawStructures(ctx);
       this._drawTradeShips(ctx, alpha);
       this._drawBoats(ctx, alpha);
-      this._drawNukes(ctx, alpha);
       this._drawLabels(ctx);
+      this.unitView.draw(ctx, alpha, dt);
+      this._drawNukes(ctx, alpha);
       this._drawFloats(ctx, dt);
       this._drawArrows(ctx, dt);
       this._drawHover(ctx);
@@ -453,6 +482,13 @@
       }
       const mode = g.mode;
       if (!mode) return;
+      if (C.UNITS[mode]) {
+        const ok = this.sim.owner[ht] === g.me.id, R = C.UNITS[mode].radius;
+        ctx.fillStyle = ok ? `rgba(80,255,160,${0.15 + 0.1 * pulse})` : 'rgba(255,60,60,0.2)';
+        ctx.strokeStyle = ok ? 'rgba(80,255,160,0.9)' : 'rgba(255,60,60,0.9)'; ctx.lineWidth = lw;
+        ctx.beginPath(); ctx.arc(x, y, R, 0, 6.283); ctx.fill(); ctx.stroke();
+        return;
+      }
       if (C.NUKES[mode]) {
         const R = C.NUKES[mode].radius, emp = mode === 'emp';
         ctx.fillStyle = emp ? `rgba(80,180,255,${0.12 + 0.08 * pulse})` : `rgba(255,40,40,${0.12 + 0.08 * pulse})`;
@@ -764,6 +800,12 @@
       mctx.imageSmoothingEnabled = true;
       mctx.clearRect(0, 0, mw, mh);
       mctx.drawImage(this.terrain, 0, 0, mw, mh);
+      if (this.gl && this.gl.miniDirty) {
+        const src = this.gl.ownPx, dst = this.tpx;
+        for (let i = 0; i < src.length; i++) { const v = src[i]; dst[i] = v ? ((v & 0x00ffffff) | 0xa0000000) >>> 0 : 0; }
+        this.tctx.putImageData(this.timg, 0, 0);
+        this.gl.miniDirty = false;
+      }
       mctx.drawImage(this.terr, 0, 0, mw, mh);
       const v = this.viewRect(), sx = mw / this.W, sy = mh / this.H;
       mctx.strokeStyle = '#ffe28a'; mctx.lineWidth = 1.5;

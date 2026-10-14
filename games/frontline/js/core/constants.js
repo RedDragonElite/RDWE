@@ -93,6 +93,18 @@
       emp:   { e: '⚡', name: 'EMP-Rakete',       short: 'EMP',     cost: { gold: 20000, silver: 30, oil: 25 },  radius: 26, key: '', intercept: 0.7, tech: 'elec', emp: 600 },
     },
 
+    // controllable armies: speed in tiles/tick, conquer = max tiles taken per tick, radius = conquest swath
+    UNITS: {
+      inf:  { e: '💂', name: 'Infanterie', speed: 0.3,  atk: 1.0, def: 1.0, conquer: 4, radius: 2.4, cost: { gold: 400 },                     key: '7',
+              desc: 'Schnell aufgestellt · erobert alles auf ihrem Marsch' },
+      tank: { e: '🛡️', name: 'Panzer',     speed: 0.48, atk: 2.6, def: 2.2, conquer: 7, radius: 3.0, cost: { gold: 2500, iron: 25, oil: 20 }, key: '8', tech: 'logi',
+              desc: 'Schnell & hart · durchbricht Fronten (benötigt 🚂 Logistik)' },
+      art:  { e: '💥', name: 'Artillerie', speed: 0.2,  atk: 0.5, def: 0.6, conquer: 1, radius: 1.5, cost: { gold: 2000, iron: 20 },           key: '9', tech: 'steel',
+              range: 18, reload: 25, desc: 'Beschießt Feinde auf 18 Felder Distanz (benötigt ⚔️ Stahlklingen)' },
+    },
+    MAX_UNITS: 12,
+    MIN_UNIT: 150,
+
     TECH: {
       agri:    { e: '🌱', name: 'Agrarwirtschaft',  tier: 1, cost: { sci: 50 },               req: [], desc: '+35% Nahrung' },
       mining:  { e: '⚒️', name: 'Bergbau',          tier: 1, cost: { sci: 50 },               req: [], desc: '+35% Ertrag aus Lagerstätten' },
@@ -155,6 +167,7 @@
     ],
   };
   BW.C.BUILD_CATS = {
+    army: { e: '🎖️', name: 'Armee' },
     eco: { e: '🏗️', name: 'Wirtschaft' },
     mil: { e: '⚔️', name: 'Militär' },
     special: { e: '✨', name: 'Spezial' },

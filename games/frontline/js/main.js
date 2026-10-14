@@ -12,7 +12,7 @@
     get(k, d) { try { const v = localStorage.getItem('rde-frontline-' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem('rde-frontline-' + k, JSON.stringify(v)); } catch { /* private mode */ } },
   };
-  const DEFAULT_SETTINGS = { daynight: true, clouds: true, weather: true, fx: true, floats: true, shake: true, volume: 0.55 };
+  const DEFAULT_SETTINGS = { webgl: true, daynight: true, clouds: true, weather: true, fx: true, floats: true, shake: true, volume: 0.55 };
 
   const ACHIEVEMENTS = {
     firstBlood: { e: '🩸', t: 'Erstes Blut', s: 'Erobere Land einer anderen Nation.' },
@@ -27,6 +27,7 @@
     lucky:      { e: '📦', t: 'Glückspilz', s: 'Sichere einen Versorgungsabwurf.' },
     wonder:     { e: '🏛️', t: 'Für die Ewigkeit', s: 'Vollende ein Weltwunder.' },
     survivor:   { e: '🛡️', t: 'Überlebender', s: 'Überstehe einen Atomschlag.' },
+    general:    { e: '🎖️', t: 'General', s: 'Zerschlage eine feindliche Armee.' },
   };
 
   // ======================================================================= GAME
@@ -42,12 +43,14 @@
       this.mode = null;
       this.hoverTile = -1;
       this.arrows = [];
+      this.sel = new Set();
       this.history = [];
       this.achv = new Set(store.get('achievements', []));
       this.speed = 1; this.paused = false;
       this.running = true;
       this.acc = 0;
       this.canvas = $('game');
+      this.glCanvas = $('gl');
       $('feed').innerHTML = ''; $('toasts').innerHTML = ''; $('end').classList.add('hidden');
       this.renderer = new BW.Renderer(this.canvas, this);
       this.panels = new BW.Panels(this);
@@ -68,6 +71,7 @@
 
     destroy() {
       this.running = false;
+      if (this.renderer.gl) this.renderer.gl.destroy();
       window.removeEventListener('resize', this._onResize);
     }
 
@@ -80,7 +84,7 @@
       this.canvas.classList.toggle('mode-build', !!m && !C.NUKES[m]);
       this.canvas.classList.toggle('mode-nuke', !!m && !!C.NUKES[m]);
       if (m) {
-        const tab = C.NUKES[m] ? 'weapons' : C.BUILD[m].cat;
+        const tab = C.NUKES[m] ? 'weapons' : C.UNITS[m] ? 'army' : C.BUILD[m].cat;
         if (this.ui.tab !== tab) this.ui.setTab(tab);
       }
     }
@@ -96,7 +100,38 @@
       this.arrows.push({ fx, fy, tx: tile % sim.W + 0.5, ty: ((tile / sim.W) | 0) + 0.5, life: 1.2, max: 1.2, color: o ? [255, 80, 90] : [255, 220, 120] });
       audio.play('attack');
     }
-    click(tile) {
+    // ---------------------------------------------------------------- armies
+    myUnit(id) { const u = this.sim.unitById(id); return u && u.owner === this.me.id ? u : null; }
+    pruneSel() { for (const id of this.sel) if (!this.myUnit(id)) this.sel.delete(id); }
+    clearSel() { if (this.sel.size) { this.sel.clear(); this.ui.renderSel(); } }
+    select(ids, add) {
+      if (!add) this.sel.clear();
+      for (const id of ids) this.sel.add(id);
+      this.ui.renderSel();
+      if (ids.length) audio.play('select');
+    }
+    selectAll() { this.select(this.sim.unitsOf(this.me.id).map(u => u.id), false); }
+    boxSelect(b) {
+      const x0 = Math.min(b.x0, b.x1), x1 = Math.max(b.x0, b.x1), y0 = Math.min(b.y0, b.y1), y1 = Math.max(b.y0, b.y1);
+      const ids = [];
+      for (const u of this.sim.unitsOf(this.me.id)) {
+        const [sx, sy] = this.renderer.worldToScreen(u.x, u.y);
+        if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) ids.push(u.id);
+      }
+      this.select(ids, false);
+    }
+    orderSel(tile) {
+      const ids = [...this.sel];
+      if (!ids.length) return;
+      this.send({ type: 'move', ids, tile });
+      const x = tile % this.sim.W + 0.5, y = ((tile / this.sim.W) | 0) + 0.5;
+      this.renderer.pulse(x, y, [255, 220, 100]);
+      audio.play('march');
+    }
+    stopSel() { if (this.sel.size) this.send({ type: 'stop', ids: [...this.sel] }); }
+    disbandSel() { if (this.sel.size) { this.send({ type: 'disband', ids: [...this.sel] }); this.sel.clear(); this.ui.renderSel(); } }
+
+    click(tile, sx, sy, shift) {
       const sim = this.sim;
       audio.unlock();
       if (tile < 0) return;
@@ -110,10 +145,21 @@
       if (this.mode) {
         const m = this.mode;
         if (C.NUKES[m]) this.send({ type: 'nuke', kind: m, tile });
+        else if (C.UNITS[m]) this.send({ type: 'deploy', kind: m, tile, ratio: this.ratio });
         else this.send({ type: 'build', kind: m, tile });
         if (!this.input.keys.has('shift')) this.setMode(null);
         return;
       }
+      // armies: click own unit = select, with a selection every click is a march order
+      if (sx !== undefined) {
+        const mine = this.renderer.unitView.hit(sx, sy, 1, u => u.owner === this.me.id);
+        if (mine) {
+          if (shift && this.sel.has(mine.id)) { this.sel.delete(mine.id); this.ui.renderSel(); }
+          else this.select([mine.id], shift);
+          return;
+        }
+      }
+      if (this.sel.size) { this.orderSel(tile); return; }
       if (!sim.isLand(tile)) return;
       const o = sim.owner[tile];
       if (o === this.me.id) return;
@@ -122,7 +168,8 @@
     }
     hover(sx, sy, tile) {
       this.hoverTile = tile;
-      this.ui.tooltip(sx, sy, tile);
+      const unit = sx >= 0 && this.sim.units.length ? this.renderer.unitView.hit(sx, sy, 1) : null;
+      this.ui.tooltip(sx, sy, tile, unit);
       const o = tile >= 0 ? this.sim.owner[tile] : 0;
       this.renderer.setHoverOwner(o && this.sim.phase === 'play' ? o : 0);
     }
@@ -279,6 +326,27 @@
           case 'newDeposit':
             r.sparkle(e.x + 0.5, e.y + 0.5, [150, 230, 255], 30);
             break;
+          case 'deploy':
+            if (e.pid === me.id) {
+              audio.play('deploy');
+              this.float(e.x + 0.5, e.y, `${C.UNITS[e.kind].e} ${fmt(e.str)}`, '#ffe28a', 15);
+              r.pulse(e.x + 0.5, e.y + 0.5, me.color);
+              this.select([e.uid], this.input.keys.has('shift'));
+            } else if (this.visible(e.x, e.y, 0)) ui.feed(`🎖️ ${name(P(e.pid))} stellt ${C.UNITS[e.kind].name} auf (${fmt(e.str)}).`, '', 4000);
+            break;
+          case 'unitLost':
+            r.explosion(e.x, e.y, 2.2, false);
+            if (!this.settings.shake) r.shake = 0; else r.shake = Math.min(r.shake, 6);
+            if (e.pid === me.id) { ui.feed(`💀 ${C.UNITS[e.kind].e} ${C.UNITS[e.kind].name} ${e.by ? 'von ' + name(P(e.by)) + ' ' : ''}vernichtet!`, 'bad'); audio.play('lost'); }
+            else if (e.by === me.id) { ui.feed(`🎯 Feindliche ${C.UNITS[e.kind].name} von ${name(P(e.pid))} zerschlagen!`, 'good', 4000); this.float(e.x, e.y - 1, '🎯 Zerschlagen!', '#9dffb0'); this.unlock('general'); }
+            break;
+          case 'shellFired':
+            if (this.visible(e.x, e.y, 5)) audio.play('cannon');
+            break;
+          case 'shellHit':
+            r.smallBlast(e.x, e.y);
+            if (this.visible(e.x, e.y, 5)) audio.play('thud');
+            break;
           case 'stormEnd': ui.feed('🌤️ Der Sturm hat sich gelegt.', '', 4000); break;
           case 'ally': {
             if (e.a === me.id || e.b === me.id) {
@@ -379,7 +447,7 @@
       const alpha = this.paused ? 1 : Math.min(1, this.acc / C.TICK_MS);
       this.renderer.draw(dt, alpha);
       this._uiTimer -= dt; this._mmTimer -= dt;
-      if (this._uiTimer <= 0) { this.ui.update(); this._achvCheck(); this._uiTimer = 0.15; }
+      if (this._uiTimer <= 0) { this.pruneSel(); this.ui.update(); this._achvCheck(); this._uiTimer = 0.15; }
       if (this._mmTimer <= 0) { this.renderer.drawMinimap(this.mmctx, this.mm.width, this.mm.height); this._mmTimer = 0.25; }
     }
     _sample() {

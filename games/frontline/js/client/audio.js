@@ -84,6 +84,11 @@
         case 'event': if (!this._throttle(name, 800)) { this._tone(147, 1.2, 'sawtooth', 0.07, 110); this._tone(220, 1.0, 'sawtooth', 0.05, 0, 0.15); } break;
         case 'emp': this._tone(60, 0.8, 'square', 0.12, 2000); this._tone(3000, 0.4, 'sawtooth', 0.04, 80, 0.05); break;
         case 'thunder': if (!this._throttle(name, 1500)) this._boom(0.5, 3); break;
+        case 'select': if (!this._throttle(name, 60)) { this._tone(660, 0.05, 'square', 0.04); this._tone(990, 0.07, 'square', 0.035, 0, 0.04); } break;
+        case 'march': if (!this._throttle(name, 150)) { [0, 0.11, 0.22].forEach(d => this._tone(90, 0.08, 'square', 0.08, 50, d)); this._tone(523, 0.12, 'triangle', 0.06, 0, 0.05); } break;
+        case 'deploy': this._tone(196, 0.15, 'sawtooth', 0.06); this._tone(294, 0.15, 'sawtooth', 0.06, 0, 0.12); this._tone(392, 0.3, 'sawtooth', 0.06, 0, 0.24); break;
+        case 'cannon': if (!this._throttle(name, 120)) this._boom(0.25, 0.5); break;
+        case 'thud': if (!this._throttle(name, 90)) this._boom(0.18, 0.7); break;
         case 'eliminated': if (!this._throttle(name, 300)) this._tone(110, 0.6, 'sawtooth', 0.08, 55); break;
       }
     }

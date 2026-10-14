@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 const root = new URL('../js/', import.meta.url);
-for (const f of ['core/rng.js', 'core/constants.js', 'sim/mapgen.js', 'sim/ai.js', 'sim/economy.js', 'sim/events.js', 'sim/sim.js']) {
+for (const f of ['core/rng.js', 'core/constants.js', 'sim/mapgen.js', 'sim/ai.js', 'sim/economy.js', 'sim/events.js', 'sim/army.js', 'sim/sim.js']) {
   vm.runInThisContext(readFileSync(new URL(f, root), 'utf8'), { filename: f });
 }
 const BW = globalThis.BW;

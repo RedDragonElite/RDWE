@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <canvas id="gl"></canvas>
   <canvas id="game"></canvas>
   <div id="vignette"></div>
 
@@ -54,6 +55,7 @@
     </div>
 
     <div id="bottom">
+      <div id="selbar" class="glass hidden"></div>
       <div id="dock" class="glass">
         <div id="dock-tabs"></div>
         <div id="dock-cards"></div>
@@ -139,6 +141,7 @@
         <span><kbd>Mausrad</kbd> Zoom</span>
         <span><kbd>WASD</kbd> Kamera</span>
         <span><kbd>1-6</kbd> Angriffsgröße</span>
+        <span><kbd>Shift+Ziehen</kbd> Armeen wählen</span>
         <span><kbd>Tab</kbd> Bau-Kategorie</span>
         <span><kbd>Leertaste</kbd> Zu dir</span>
       </div>
@@ -166,6 +169,7 @@
   <script src="js/sim/ai.js"></script>
   <script src="js/sim/economy.js"></script>
   <script src="js/sim/events.js"></script>
+  <script src="js/sim/army.js"></script>
   <script src="js/sim/sim.js"></script>
   <!-- network -->
   <script src="js/net/transport.js"></script>
@@ -173,7 +177,9 @@
   <script src="js/client/audio.js"></script>
   <script src="js/client/sprites.js"></script>
   <script src="js/client/atmosphere.js"></script>
+  <script src="js/client/glmap.js"></script>
   <script src="js/client/renderer.js"></script>
+  <script src="js/client/units.js"></script>
   <script src="js/client/ui.js"></script>
   <script src="js/client/panels.js"></script>
   <script src="js/client/input.js"></script>

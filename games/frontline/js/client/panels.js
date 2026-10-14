@@ -261,6 +261,7 @@
       const s = this.game.settings;
       const tg = (k, label) => `<label class="opt"><input type="checkbox" data-set="${k}" ${s[k] ? 'checked' : ''}><span>${label}</span></label>`;
       return `<div class="opts">
+        ${tg('webgl', '🎨 WebGL2-Grafik (Shader-Wasser, glatte Grenzen) · wirkt ab nächster Runde')}
         ${tg('daynight', '🌙 Tag-Nacht-Zyklus & Stadtlichter')}
         ${tg('clouds', '☁️ Wolken')}
         ${tg('weather', '🌧️ Wetter (Regen, Blitze, Stürme)')}
@@ -273,6 +274,8 @@
       <div class="keys">
         ${Object.values(C.BUILD).map(d => `<span><kbd>${d.key}</kbd> ${d.e} ${d.name}</span>`).join('')}
         ${Object.values(C.NUKES).filter(d => d.key).map(d => `<span><kbd>${d.key}</kbd> ${d.e} ${d.name}</span>`).join('')}
+        ${Object.values(C.UNITS).map(d => `<span><kbd>${d.key}</kbd> ${d.e} ${d.name}</span>`).join('')}
+        <span><kbd>Shift+Ziehen</kbd> Armeen wählen</span><span><kbd>Strg+A</kbd> Alle Armeen</span><span><kbd>Entf</kbd> Auflösen</span>
         <span><kbd>Tab</kbd> Bau-Kategorie</span><span><kbd>1-6</kbd> Angriffsgröße</span><span><kbd>Q/E</kbd> ±5%</span>
         <span><kbd>Leertaste</kbd> Zu dir</span><span><kbd>Pos1</kbd> Ganze Karte</span><span><kbd>P</kbd> Pause</span><span><kbd>M</kbd> Ton</span>
       </div>

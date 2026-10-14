@@ -125,6 +125,47 @@
     else if (sim.has(p, 'fission') && p.gold > 60000 && p.res.uranium < 30) sim.cmdTrade(p, 'uranium', 30, 'buy');
   }
 
+  function targetTile(sim, q) {
+    const [cx, cy] = sim.centroid(q);
+    const c = Math.round(cy) * sim.W + Math.round(cx);
+    if (sim.owner[c] === q.id) return c;
+    return q.border.size ? q.border.values().next().value : -1;
+  }
+
+  /** spearheads: deploy at the front facing the target and keep idle armies busy */
+  function armies(sim, p, D, counts, fill) {
+    const mine = sim.unitsOf(p.id);
+    let target = sim.players[p.lastTarget];
+    if (!target || !target.alive || !counts.has(target.id) || p.allies.has(target.id)) {
+      target = null;
+      for (const [o] of counts) { const q = sim.players[o]; if (q.alive && !p.allies.has(o)) { target = q; break; } }
+    }
+    for (const u of mine) {
+      if (u.path || u.fight) continue;
+      if (target) { const t = targetTile(sim, target); if (t >= 0) sim._order(p, u, t); }
+      else {
+        const here = Math.floor(u.y) * sim.W + Math.floor(u.x);
+        if (sim.owner[here] === p.id) sim.cmdDisband(p, [u.id]);
+      }
+    }
+    const cap = p.diff === 'easy' ? 1 : p.diff === 'hard' ? 5 : 3;
+    if (!target || mine.length >= cap || fill < 0.55 || !sim.rng.chance(0.1 + D.aggr * 0.2)) return;
+    let kind = 'inf';
+    if (sim.has(p, 'logi') && sim.canAfford(p, C.UNITS.tank.cost) && sim.rng.chance(0.6)) kind = 'tank';
+    else if (sim.has(p, 'steel') && sim.canAfford(p, C.UNITS.art.cost) && sim.rng.chance(0.3)) kind = 'art';
+    if (!sim.canAfford(p, C.UNITS[kind].cost)) return;
+    const [tx, ty] = sim.centroid(target);
+    let best = -1, bd = 1e18;
+    for (const t of p.border) {
+      const x = t % sim.W, y = (t / sim.W) | 0, d = (x - tx) ** 2 + (y - ty) ** 2;
+      if (d < bd) { bd = d; best = t; }
+    }
+    if (best < 0) return;
+    const u = sim.cmdDeploy(p, kind, best, 0.25);
+    const t = targetTile(sim, target);
+    if (u && t >= 0) sim._order(p, u, t);
+  }
+
   function think(sim, p) {
     const D = C.DIFFICULTY[p.diff];
     const max = sim.maxTroops(p);
@@ -143,6 +184,8 @@
     }
 
     // ---------- military
+    armies(sim, p, D, counts, fill);
+
     const minFill = 0.55 - D.aggr * 0.3;
     if (fill < minFill && !underAttack.length) return;
 

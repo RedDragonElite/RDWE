@@ -20,6 +20,15 @@
       const sun = Math.cos(ph * Math.PI * 2); // 1 noon … -1 midnight
       return Math.max(0, Math.min(1, (0.15 - sun) / 0.75));
     }
+    /** sun direction for the GL lighting: travels east→west, low at dawn/dusk, moonlight at night */
+    sunDir(tick, cycle) {
+      const ph = cycle ? (tick % C.DAY_TICKS) / C.DAY_TICKS : 0.12;
+      const a = ph * Math.PI * 2;
+      const elev = Math.max(0.25, Math.cos(a) * 0.6 + 0.55);
+      const v = [-Math.sin(a) * 0.8 - 0.35, -0.55, elev];
+      const l = Math.hypot(v[0], v[1], v[2]);
+      return [v[0] / l, v[1] / l, v[2] / l];
+    }
     dusk(tick) {
       const ph = (tick % C.DAY_TICKS) / C.DAY_TICKS;
       const sun = Math.cos(ph * Math.PI * 2);
@@ -53,15 +62,15 @@
       const n = set.daynight ? this.nightFactor(sim.tick + (sim.phase === 'play' ? 0 : 0)) : 0;
       this.night = n;
       const dk = set.daynight ? this.dusk(sim.tick) : 0;
-      if (dk > 0.01) {
+      const gl = !!r.gl;
+      if (dk > 0.01 && !gl) {
         ctx.globalCompositeOperation = 'soft-light';
         ctx.fillStyle = `rgba(255,120,40,${dk * 0.35})`;
         ctx.fillRect(0, 0, cw, ch);
         ctx.globalCompositeOperation = 'source-over';
       }
       if (n > 0.01) {
-        ctx.fillStyle = `rgba(6,10,32,${n * 0.55})`;
-        ctx.fillRect(0, 0, cw, ch);
+        if (!gl) { ctx.fillStyle = `rgba(6,10,32,${n * 0.55})`; ctx.fillRect(0, 0, cw, ch); }
         // lights
         const z = r.cam.zoom, v = r.viewRect(), L = BW.Sprites.light();
         ctx.globalCompositeOperation = 'lighter';

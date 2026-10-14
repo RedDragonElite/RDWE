@@ -47,6 +47,7 @@
       this.depAt = new Map(this.deposits.map(d => [d.tile, d]));
       this._initEconomy();
       this._initEvents();
+      this._initArmy();
 
       // --- players ------------------------------------------------------
       const used = new Set(), usedEmblems = new Set();
@@ -71,7 +72,7 @@
       const p = {
         id, name: o.name, color: o.color, emblem: o.emblem, human: o.human, clientId: o.clientId ?? null, diff: o.diff,
         alive: true, spawned: false, spawnTile: -1,
-        troops: C.START_TROOPS, gold: 1500, tiles: 0, sx: 0, sy: 0,
+        troops: C.START_TROOPS, armyStr: 0, gold: 1500, tiles: 0, sx: 0, sy: 0,
         res: { food: 60, wood: 80, iron: 10, silver: 0, gems: 0, oil: 0, uranium: 0, sci: 0 },
         rates: { gold: 0, food: 0, wood: 0, iron: 0, silver: 0, gems: 0, oil: 0, uranium: 0, sci: 0 },
         terr: new Int32Array(8),
@@ -214,9 +215,9 @@
       this._economyTick();
       for (const p of this.players) {
         if (!p || !p.alive) continue;
-        const max = this.maxTroops(p);
-        if (p.troops < max) p.troops = Math.min(max, p.troops + this.troopRate(p));
-        else p.troops -= (p.troops - max) * 0.02;
+        const max = this.maxTroops(p), total = p.troops + p.armyStr; // fielded armies count toward the cap
+        if (total < max) p.troops = Math.min(max - p.armyStr, p.troops + this.troopRate(p));
+        else p.troops -= Math.min(p.troops, (total - max) * 0.02);
         if (!p.human && this.tick >= p.nextThink) {
           const d = C.DIFFICULTY[p.diff].think;
           p.nextThink = this.tick + d[0] + this.rng.int(d[1] - d[0]);
@@ -224,6 +225,7 @@
         }
       }
       this._processAttacks();
+      this._processUnits();
       this._processBoats();
       this._processTradeShips();
       this._processNukes();
@@ -247,6 +249,10 @@
         case 'nuke': if (this.phase === 'play') this.cmdNuke(p, it.kind, it.tile); break;
         case 'research': if (this.phase === 'play') this.cmdResearch(p, it.tech); break;
         case 'trade': if (this.phase === 'play') this.cmdTrade(p, it.res, it.qty, it.side); break;
+        case 'deploy': if (this.phase === 'play') this.cmdDeploy(p, it.kind, it.tile, it.ratio); break;
+        case 'move': if (this.phase === 'play') this.cmdMove(p, it.ids, it.tile); break;
+        case 'stop': this.cmdStop(p, it.ids); break;
+        case 'disband': this.cmdDisband(p, it.ids); break;
         case 'ally': this.cmdAlly(p, it.target); break;
         case 'allyReply': this.cmdAllyReply(p, it.target, it.accept); break;
         case 'unally': this.cmdUnally(p, it.target); break;
@@ -266,7 +272,7 @@
       mult *= 1 + 0.12 * Math.min(5, p.counts.barracks);
       mult *= p.fed ? 1.15 : 0.7;
       if (this.has(p, 'empire')) mult *= 1.2;
-      return Math.max(0, (10 + Math.pow(Math.max(p.troops, 1), 0.73) / 4) * (1 - p.troops / max)) * mult;
+      return Math.max(0, (10 + Math.pow(Math.max(p.troops, 1), 0.73) / 4) * (1 - (p.troops + p.armyStr) / max)) * mult;
     }
 
     // ---------------------------------------------------------------- attacks
@@ -620,6 +626,7 @@
         p.alive = false; p.troops = 0; p.stats.deathTick = this.tick;
         for (const a of this.attacks.slice()) if (a.attacker === p.id) this._endAttack(a, false);
         this.boats = this.boats.filter(b => b.owner !== p.id);
+        this.units = this.units.filter(u => u.owner !== p.id);
         for (const q of this.players) if (q) q.allies.delete(p.id);
         p.allies.clear();
         this.emit('eliminated', { pid: p.id });
@@ -653,10 +660,11 @@
         h ^= (p.troops | 0) ^ (p.tiles << 8) ^ (p.gold | 0); h = Math.imul(h, 16777619);
         for (const k of C.TRADE_RES) { h ^= (p.res[k] * 10) | 0; h = Math.imul(h, 16777619); }
       }
+      for (const u of this.units) { h ^= (u.str | 0) ^ ((u.x * 16) | 0); h = Math.imul(h, 16777619); }
       return (h ^ this.tick ^ this.structures.length) >>> 0;
     }
   }
 
-  Object.assign(Sim.prototype, BW.SimEconomy, BW.SimEvents);
+  Object.assign(Sim.prototype, BW.SimEconomy, BW.SimEvents, BW.SimArmy);
   BW.Sim = Sim;
 })(globalThis.BW = globalThis.BW || {});

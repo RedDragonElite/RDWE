@@ -57,14 +57,15 @@
     }
     _dockItems() {
       if (this.tab === 'weapons') return Object.keys(C.NUKES).map(k => ({ k, d: C.NUKES[k], nuke: true }));
+      if (this.tab === 'army') return Object.keys(C.UNITS).map(k => ({ k, d: C.UNITS[k], unit: true }));
       return Object.keys(C.BUILD).filter(k => C.BUILD[k].cat === this.tab).map(k => ({ k, d: C.BUILD[k], nuke: false }));
     }
     _renderDock() {
       const wrap = $('dock-cards');
-      wrap.innerHTML = this._dockItems().map(({ k, d, nuke }) => `
-        <div class="card${nuke ? ' nukecard' : ''}" data-k="${k}">
+      wrap.innerHTML = this._dockItems().map(({ k, d, nuke, unit }) => `
+        <div class="card${nuke ? ' nukecard' : ''}${unit ? ' unitcard' : ''}" data-k="${k}">
           ${d.key ? `<span class="k">${d.key}</span>` : ''}<span class="n"></span>
-          <div class="ce">${d.e}</div>
+          <div class="ce">${unit ? `<canvas class="uicon" data-kind="${k}" width="64" height="40"></canvas>` : d.e}</div>
           <div class="cn">${d.short || d.name}</div>
           <div class="cc"></div>
           <div class="lock hidden"></div>
@@ -77,6 +78,10 @@
         el.addEventListener('click', () => { this.game.audio.play('click'); this.game.setMode(this.game.mode === k ? null : k); });
       });
       this._cardKey = '';
+      wrap.querySelectorAll('canvas.uicon').forEach(cv => {
+        const x = cv.getContext('2d'); x.translate(32, 20); x.rotate(-0.35);
+        BW.drawUnitIcon(x, cv.dataset.kind, 16, this.game.me.color, 0, false);
+      });
       this.setMode(this.game.mode);
     }
 
@@ -123,9 +128,10 @@
       if (this.cards) for (const [k, c] of Object.entries(this.cards)) c.el.classList.toggle('active', k === mode);
       const hint = $('mode-hint');
       if (!mode) { hint.classList.add('hidden'); return; }
-      const nuke = !!C.NUKES[mode];
-      const d = nuke ? C.NUKES[mode] : C.BUILD[mode];
+      const nuke = !!C.NUKES[mode], unit = !!C.UNITS[mode];
+      const d = nuke ? C.NUKES[mode] : unit ? C.UNITS[mode] : C.BUILD[mode];
       hint.innerHTML = nuke ? `${d.e} ZIEL FÜR ${d.name.toUpperCase()} WÄHLEN · Rechtsklick/Esc = Abbruch`
+        : unit ? `🎖️ ${d.name.toUpperCase()} AUFSTELLEN · Klick auf eigenes Land · nutzt ${Math.round(this.game.ratio * 100)}% deiner Truppen · Esc = Abbruch`
         : `${d.e} ${d.name.toUpperCase()} PLATZIEREN · grüner Punkt = gültig · Shift = mehrfach · Esc = Abbruch`;
       hint.classList.toggle('nuke', nuke);
       hint.classList.remove('hidden');
@@ -160,17 +166,19 @@
       if (mh !== this._modsHtml) { $('mod-chips').innerHTML = mh; this._modsHtml = mh; }
 
       // dock cards
-      for (const { k, d, nuke } of this._dockItems()) {
+      const myUnits = sim.unitsOf(me.id);
+      for (const { k, d, nuke, unit } of this._dockItems()) {
         const c = this.cards[k];
         if (!c) continue;
-        const cost = nuke ? d.cost : sim.costOf(me, k);
+        const cost = nuke || unit ? d.cost : sim.costOf(me, k);
         let why = '';
         if (d.tech && !sim.has(me, d.tech)) why = `🔒 ${C.TECH[d.tech].e} ${C.TECH[d.tech].name}`;
-        else if (!nuke && d.max && me.built[k] >= d.max) why = '✔ Bereits gebaut';
+        else if (!nuke && !unit && d.max && me.built[k] >= d.max) why = '✔ Bereits gebaut';
         else if (nuke && !me.counts.silo) why = '🚀 Silo nötig';
-        const html = costHtml(cost, me);
+        else if (unit && myUnits.length >= C.MAX_UNITS) why = `Max. ${C.MAX_UNITS} Armeen`;
+        const html = costHtml(cost, me) + (unit ? `<span class="cost">⚔️${fmt(me.troops * g.ratio)}</span>` : '');
         if (c._cost !== html) { c.cc.innerHTML = html; c._cost = html; }
-        c.n.textContent = nuke ? '' : (me.built[k] || '');
+        c.n.textContent = nuke ? '' : unit ? (myUnits.filter(u => u.kind === k).length || '') : (me.built[k] || '');
         c.lock.textContent = why; c.lock.classList.toggle('hidden', !why);
         c.why.textContent = why || (sim.canAfford(me, cost) ? '' : 'Ressourcen fehlen');
         c.el.classList.toggle('poor', !!why || !sim.canAfford(me, cost));
@@ -232,7 +240,32 @@
         if (!r) { t.remove(); this.toasts.delete(from); continue; }
         t.querySelector('.t-bar').style.width = Math.max(0, ((r.expires - sim.tick) / 200) * 100) + '%';
       }
+      this.renderSel();
       g.panels.refresh();
+    }
+
+    // ---------------------------------------------------------------- selected armies
+    renderSel() {
+      const g = this.game, bar = $('selbar');
+      const units = [...g.sel].map(id => g.myUnit(id)).filter(Boolean);
+      if (!units.length) { bar.classList.add('hidden'); bar.innerHTML = ''; this._selHtml = ''; return; }
+      const by = {};
+      for (const u of units) by[u.kind] = (by[u.kind] || 0) + 1;
+      const total = units.reduce((a, u) => a + u.str, 0);
+      const fighting = units.some(u => u.fight), moving = units.some(u => u.path);
+      const html = `<div class="sel-l"><span class="sel-k">🎖️ ${units.length} ${units.length === 1 ? 'ARMEE' : 'ARMEEN'}</span>
+          ${Object.entries(by).map(([k, n]) => `<span class="chip">${C.UNITS[k].e} ${n}× ${C.UNITS[k].name}</span>`).join('')}
+          <span class="chip">⚔️ ${fmt(total)}</span>${fighting ? '<span class="chip bad">💥 IM GEFECHT</span>' : moving ? '<span class="chip good">🚶 MARSCHIERT</span>' : '<span class="chip">⏸️ BEREIT</span>'}</div>
+        <div class="sel-hint">Klick auf Karte = Marschbefehl (erobert unterwegs) · Shift+Ziehen = Auswahl · Strg+A = alle</div>
+        <div class="sel-b"><button class="mb" data-s="stop">🛑 Stopp</button><button class="mb sell" data-s="disband">🏳️ Auflösen</button><button class="mb" data-s="clear">✖</button></div>`;
+      if (html !== this._selHtml) {
+        bar.innerHTML = html; this._selHtml = html;
+        bar.querySelectorAll('[data-s]').forEach(b => b.addEventListener('pointerdown', (e) => {
+          e.preventDefault(); g.audio.play('click');
+          ({ stop: () => g.stopSel(), disband: () => g.disbandSel(), clear: () => g.clearSel() })[b.dataset.s]();
+        }));
+      }
+      bar.classList.remove('hidden');
     }
 
     feed(msg, cls = '', ttl = 7000) {
@@ -278,12 +311,20 @@
     }
 
     // ---------------------------------------------------------------- tooltip
-    tooltip(sx, sy, tile) {
+    tooltip(sx, sy, tile, unit) {
       const g = this.game, sim = g.sim;
       if (tile < 0 || this.radialOpen) { this.tip.classList.add('hidden'); return; }
       const o = sim.owner[tile], ter = C.TERRAIN[sim.terrain[tile]];
       let html;
-      if (o) {
+      if (unit) {
+        const p = sim.players[unit.owner], d = C.UNITS[unit.kind];
+        const tag = unit.owner === g.me.id ? '<span class="tag me">DEINE</span>' : g.me.allies.has(unit.owner) ? '<span class="tag ally">🤝</span>' : '<span class="tag foe">⚔️ FEIND</span>';
+        html = `<div class="tt-name">${d.e} ${d.name}${tag}</div>
+          <div class="tt-row">${p.emblem} Nation <b>${esc(p.name)}</b></div>
+          <div class="tt-row">⚔️ Stärke <b>${fmt(unit.str)} / ${fmt(unit.max)}</b></div>
+          <div class="tt-row">💪 Angriff · Abwehr <b>${d.atk} · ${d.def}</b></div>
+          <div class="tt-row">📍 Status <b>${unit.fight ? '💥 Gefecht' : unit.path ? '🚶 Marsch' : '⏸️ Bereit'}</b></div>`;
+      } else if (o) {
         const p = sim.players[o];
         const tag = o === g.me.id ? '<span class="tag me">DU</span>' : g.me.allies.has(o) ? '<span class="tag ally">🤝 VERBÜNDET</span>' : '<span class="tag foe">⚔️ FEIND</span>';
         html = `<div class="tt-name">${p.emblem} ${esc(p.name)}${tag}</div>

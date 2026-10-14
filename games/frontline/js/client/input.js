@@ -42,6 +42,10 @@
       this.canvas.setPointerCapture?.(e.pointerId);
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, button: e.button, t: performance.now() });
       if (this.game.ui.radialOpen && e.button !== 2) { this.game.ui.closeRadial(); this.pointers.delete(e.pointerId); return; }
+      if (e.button === 0 && e.shiftKey && e.pointerType === 'mouse' && !this.game.mode) {
+        this.pointers.get(e.pointerId).box = true;
+        this.box = { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY };
+      }
       if (this.pointers.size === 2) {
         const [a, b] = [...this.pointers.values()];
         this.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) };
@@ -60,6 +64,7 @@
           this.pinch.d = d; p.moved = true;
           return;
         }
+        if (p.box) { this.box.x1 = e.clientX; this.box.y1 = e.clientY; return; }
         if (!p.moved && Math.hypot(p.x - p.sx, p.y - p.sy) > 6) p.moved = true;
         if (p.moved) this.game.renderer.pan(dx, dy);
       }
@@ -70,14 +75,19 @@
       const p = this.pointers.get(e.pointerId);
       this.pointers.delete(e.pointerId);
       if (this.pointers.size < 2) this.pinch = null;
+      if (p && p.box) {
+        const b = this.box; this.box = null;
+        if (Math.abs(b.x1 - b.x0) + Math.abs(b.y1 - b.y0) > 8) { this.game.boxSelect(b); return; }
+      }
       if (!p || p.moved) return;
       const t = this.tileAt(e.clientX, e.clientY);
       const longPress = e.pointerType === 'touch' && performance.now() - p.t > 450;
       if (p.button === 2 || longPress) {
         if (this.game.mode) { this.game.setMode(null); return; }
+        if (this.game.sel.size && !longPress) { this.game.clearSel(); return; }
         this.game.ui.openRadial(e.clientX, e.clientY, t);
       } else if (p.button === 0) {
-        this.game.click(t);
+        this.game.click(t, e.clientX, e.clientY, e.shiftKey);
       }
     }
 
@@ -87,9 +97,11 @@
       if (down) this.keys.add(k); else { this.keys.delete(k); return; }
       const g = this.game;
       if (!g.running) return;
+      if (k === 'a' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this.keys.delete('a'); g.selectAll(); return; }
+      if (k === 'delete' || k === 'backspace') { if (g.sel.size) { e.preventDefault(); g.disbandSel(); } return; }
       const presets = { 1: 0.1, 2: 0.2, 3: 0.3, 4: 0.5, 5: 0.75, 6: 1 };
       if (presets[e.key]) { g.setRatio(presets[e.key]); return; }
-      if (k === 'escape') { if (g.panels.current) g.panels.close(); g.setMode(null); g.ui.closeRadial(); return; }
+      if (k === 'escape') { if (g.panels.current) g.panels.close(); g.setMode(null); g.ui.closeRadial(); g.clearSel(); return; }
       if (k === 'tab') { e.preventDefault(); g.ui.cycleTab(); return; }
       if (k === ' ') { e.preventDefault(); g.focusMe(); return; }
       if (k === 'p') { g.togglePause(); return; }
@@ -97,7 +109,7 @@
       if (k === 'q') { g.setRatio(Math.max(0.01, g.ratio - 0.05)); return; }
       if (k === 'e') { g.setRatio(Math.min(1, g.ratio + 0.05)); return; }
       if (k === 'home') { g.renderer.fitView(false); return; }
-      for (const [kind, d] of [...Object.entries(C.BUILD), ...Object.entries(C.NUKES)]) {
+      for (const [kind, d] of [...Object.entries(C.BUILD), ...Object.entries(C.NUKES), ...Object.entries(C.UNITS)]) {
         if (d.key && d.key.toLowerCase() === k) { g.setMode(g.mode === kind ? null : kind); return; }
       }
     }

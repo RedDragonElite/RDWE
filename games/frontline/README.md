@@ -13,6 +13,22 @@ cd games/frontline && python3 -m http.server 8080
 
 ## Was drin ist
 
+### 🎨 Grafik (WebGL2-Shader, pures JS)
+- Die ganze Welt wird **pro Pixel auf der GPU** gezeichnet: organische Küsten statt Tile-Pixel, Licht-Relief für Berge, Wälder und Hügel, die Sonne wandert mit der Tageszeit
+- **Animiertes Wasser** mit Wellen-Normalen, Sonnenreflexen, Tiefenverlauf und Gischt an der Küste
+- **Territorien als glatte Konturen** mit leuchtenden Grenzen und Innenglühen. Hovern hebt eine Nation hervor
+- **Wolken mit Schattenwurf**, Tag-Nacht-Licht mit Dämmerung
+- **Dynamische Auflösung**: Sinkt die Framerate, rendert der Shader intern kleiner. Ohne WebGL2 schaltet das Spiel automatisch auf Canvas2D um, abschaltbar in ⚙️ Optionen
+
+### 🎖️ Armeen befehligen (RTS)
+- Im Bau-Dock-Tab **🎖️ Armee** stellst du 💂 **Infanterie**, 🛡️ **Panzer** (🚂 Logistik) oder 💥 **Artillerie** (⚔️ Stahlklingen) auf eigenem Land auf. Sie nutzen deine eingestellte Angriffsgröße
+- **Auswählen**: Klick auf eine Einheit, **Shift+Ziehen** für eine Auswahlbox, **Strg+A** für alle. **Jeder Klick auf die Karte ist dann ein Marschbefehl**, Rechtsklick oder Esc hebt die Auswahl auf
+- Einheiten laufen per **A*-Wegfindung** (Gebirge bremsen) und **erobern alles in ihrer Schneise**. Damit baust du Speerspitzen, Durchbrüche und Kessel
+- **Gefechte**: Treffen Armeen aufeinander, gibt es Mündungsfeuer und Leuchtspur. Panzer schlagen hart zu, Verteidiger auf eigenem Boden bekommen +25 %
+- **Artillerie** feuert Granaten im Bogenflug auf Feinde in 18 Feldern Entfernung
+- Armeen zählen zum Truppenlimit. **🏳️ Auflösen** bringt die Truppen zurück (auf Feindesland nur die Hälfte)
+- Die KI stellt eigene Speerspitzen gegen ihren Lieblingsgegner auf
+
 ### 🗺️ Welt
 - Prozedurale Welten: Kontinente, Archipel, Pangaea, Hochland, per Seed reproduzierbar, mit Hillshading, Küstenschelf, glitzerndem Wasser und Wolken
 - **Lagerstätten** auf der Karte: 🔩 Eisen, 🥈 Silber, 🥇 Gold, 💎 Edelsteine, 🛢️ Öl, ☢️ Uran, mit 1 bis 3 ⭐ Reichhaltigkeit. Wer das Feld hält, kassiert
@@ -56,6 +72,8 @@ Ressourcenleiste, Bau-Dock mit Kategorien und Kosten-Chips, große Seitenbuttons
 | C V B J O H K Y | 🏙️ 🌾 🪓 ⛏️ ⛽ ⚓ 🏪 🏦 |
 | F U Z I G R L T | 🏰 ⛺ 🧱 📡 🛰️ 🚀 🔬 🏛️ |
 | N / X | ☢️ Atombombe / 💥 Wasserstoffbombe |
+| 7 / 8 / 9 | 💂 Infanterie / 🛡️ Panzer / 💥 Artillerie aufstellen |
+| Shift+Ziehen · Strg+A · Entf | Armeen auswählen · alle wählen · auflösen |
 | Shift + Klick | Baumodus aktiv lassen |
 | Leertaste · Pos1 · P · M · Esc | Zu dir · ganze Karte · Pause · Ton · Abbrechen/Schließen |
 
@@ -63,9 +81,9 @@ Ressourcenleiste, Bau-Dock mit Kategorien und Kosten-Chips, große Seitenbuttons
 
 ```
 js/core/      rng.js (mulberry32), constants.js (gesamtes Balancing)
-js/sim/       mapgen.js, sim.js, economy.js, events.js, ai.js   ← DOM-frei, deterministisch, läuft auch in Node
+js/sim/       mapgen.js, sim.js, economy.js, events.js, army.js, ai.js   ← DOM-frei, deterministisch, läuft auch in Node
 js/net/       transport.js                                       ← LocalTransport + LockstepTransport (WebSocket)
-js/client/    renderer.js, atmosphere.js, sprites.js, ui.js, panels.js, input.js, audio.js
+js/client/    glmap.js (WebGL2), renderer.js, units.js, atmosphere.js, sprites.js, ui.js, panels.js, input.js, audio.js
 js/main.js    Menü, Game-Loop, Events → Effekte/Sound/Erfolge
 tools/        headless.mjs, smoke.mjs                            ← Tests ohne Browser
 ```
@@ -82,7 +100,7 @@ steppen erst, wenn das Bündel da ist. Das Protokoll ist in `js/net/transport.js
 
 ```bash
 node tools/headless.mjs 1337 4000   # 16 Brutal-Bots: Performance + Determinismus-Check
-node tools/smoke.mjs                # Spawn, Expansion, Boot, Bündnis, Forschung, Börse, Silo, Atomschlag, Weltereignis
+node tools/smoke.mjs                # Spawn, Expansion, Boot, Bündnis, Forschung, Börse, Silo, Atomschlag, Weltereignis, Armeen
 ```
 
 ---
