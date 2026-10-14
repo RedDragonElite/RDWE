@@ -1,0 +1,97 @@
+// AI behaviour scenarios: node tools/scenarios.mjs
+import fs from 'fs'; import vm from 'vm';
+const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
+for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
+const K = ctx.K, TILE = 32;
+let ok = 0, fail = 0;
+const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
+const run = (w, n, inp = {}) => { for (let i = 0; i < n; i++) { w.update(1/60, { pressed: {}, ...inp }); w.events.length = 0; } };
+function villaSetup(seed) {
+  const w = new K.World({ seed });
+  w.time = 13 * 60; w.godMode = true;
+  const z = w.zones.find(z => !z.dead && z.garden);
+  const guards = w.actors.filter(a => a.kind === 'guard' && a.zone === z.id && a.alive);
+  return { w, z, guards };
+}
+console.log('1) trespassing in a villa garden gets you warned, then shot at');
+{
+  const { w, z, guards } = villaSetup(11);
+  const g = guards.find(g => g.state === 'patrol') || guards[0];
+  // stand 3 tiles in front of the guard, inside the garden
+  const p = w.player; g.brain.waitT = 30; g.state = 'patrol';
+  for (let k = 0; k < 40; k++) { const a = Math.random() * 6.28; const x = g.x + Math.cos(g.angle) * 90, y = g.y + Math.sin(g.angle) * 90; if (w.zoneAt(x, y) === z.id && !w.blockedTile(w.tileIdx(x, y), p)) { p.x = x; p.y = y; break; } g.angle = a; }
+  w.P.slot = 0; p.wi = w.curWeapon();
+  console.log('   in zone:', w.zoneAt(p.x, p.y) === z.id, 'dist', Math.round(Math.hypot(p.x - g.x, p.y - g.y)));
+  let warned = false, hostile = false;
+  for (let i = 0; i < 60 * 12 && !hostile; i++) { run(w, 1); if (g.state === 'warn') warned = true; if (g.state === 'hostile') hostile = true; }
+  check(warned, 'guard warns the trespasser');
+  check(hostile, 'guard turns hostile when you stay');
+}
+console.log('2) a guard disguise lets you walk past ordinary guards');
+{
+  const { w, z, guards } = villaSetup(12);
+  const g = guards.find(g => !g.enforcer) || guards[0];
+  for (const o of guards) if (o !== g) w.removeActor(o);
+  w.setOutfit('guard', true);
+  const p = w.player; g.brain.waitT = 30; g.state = 'patrol';
+  p.x = g.x + Math.cos(g.angle) * 150; p.y = g.y + Math.sin(g.angle) * 150;
+  if (w.zoneAt(p.x, p.y) !== z.id || w.blockedTile(w.tileIdx(p.x, p.y), p)) { p.x = g.x + 60; p.y = g.y; }
+  w.P.slot = 0; p.wi = w.curWeapon();
+  run(w, 60 * 6);
+  check(g.state !== 'hostile' && g.state !== 'warn', `no reaction (state=${g.state}, susp=${g.susp.toFixed(2)})`);
+}
+console.log('3) a thrown coin lures a guard away');
+{
+  const { w, z, guards } = villaSetup(13);
+  const g = guards[1] || guards[0];
+  g.state = 'patrol'; g.brain.waitT = 30;
+  let tx = g.x + 90, ty = g.y + 20;
+  for (const [dx, dy] of [[90, 20], [-90, 20], [20, 90], [20, -90], [60, 60], [-60, -60]]) { if (K.los(w, g.x, g.y, g.x + dx, g.y + dy) && !w.blockedTile(w.tileIdx(g.x + dx, g.y + dy), g)) { tx = g.x + dx; ty = g.y + dy; break; } }
+  w.player.x = g.x - 400; w.player.y = g.y - 400; w.player.hidden = true;
+  w.rebuildGrid(); w.noise(tx, ty, 7, 'coin', null);
+  check(g.state === 'investigate', `guard investigates the noise (state=${g.state})`);
+  const d0 = Math.hypot(tx - g.x, ty - g.y);
+  let dmin = d0; for (let i = 0; i < 60 * 5; i++) { run(w, 1); dmin = Math.min(dmin, Math.hypot(tx - g.x, ty - g.y)); }
+  check(dmin < d0 - 20, `guard walks toward the coin (${Math.round(d0)} → ${Math.round(dmin)})`);
+}
+console.log('4) a found body raises the alarm in the zone');
+{
+  const { w, z, guards } = villaSetup(14);
+  const [a, b] = guards;
+  w.player.x = 10; w.player.y = 10; w.player.hidden = true;
+  w.kill(a, null, { kind: 'melee' });
+  b.x = a.x - 60; b.y = a.y; b.angle = 0; b.state = 'patrol'; b.brain.waitT = 30;
+  run(w, 60 * 2);
+  check(a.found, 'body is found');
+  check(z.alert > w.t, 'zone goes on alert');
+  check(['search', 'investigate', 'hostile'].includes(b.state), `guard searches (state=${b.state})`);
+}
+console.log('5) shooting in public: witnesses call the police');
+{
+  const w = new K.World({ seed: 21 }); w.godMode = true; w.time = 12 * 60;
+  run(w, 60 * 20);
+  const civ = w.actors.find(a => a.kind === 'civ' && a.alive && !a.inCar);
+  const p = w.player; p.x = civ.x - 70; p.y = civ.y; civ.angle = Math.PI; civ.state = 'idle'; civ.brain.t = 30;
+  w.rebuildGrid(); w.P.slot = 1; p.wi = w.curWeapon();
+  w.attack(p, 0, true, true);
+  run(w, 2);
+  check(civ.state === 'flee' || civ.state === 'cower', `witness flees (state=${civ.state})`);
+  let wanted = 0; for (let i = 0; i < 60 * 12 && !wanted; i++) { run(w, 1); wanted = w.wanted; }
+  check(wanted >= 1, `wanted level after report: ${wanted}`);
+  let cops = 0; for (let i = 0; i < 60 * 8 && !cops; i++) { run(w, 1); cops = w.actors.filter(a => a.kind === 'cop' && a.alive && !a.station && (a.state === 'respond' || a.state === 'hostile' || a.state === 'search' || a.state === 'arrest')).length; }
+  check(cops > 0, `police respond (${cops})`);
+}
+console.log('6) wire takedown from behind is silent and lethal');
+{
+  const { w, guards } = villaSetup(15);
+  const g = guards[0]; for (const o of guards.slice(1)) w.removeActor(o);
+  const p = w.player; g.state = 'post'; g.brain.post = { x: g.x, y: g.y }; g.brain.face = 0; g.angle = 0;
+  p.x = g.x - 22; p.y = g.y; p.angle = 0; w.P.slot = w.P.weapons.findIndex(x => x.id === 'wire'); p.wi = w.curWeapon();
+  w.rebuildGrid();
+  check(w.tryTakedown(), 'takedown starts');
+  run(w, 60 * 3);
+  check(!g.alive && g.killInfo.silent, 'guard dead, silently');
+  check(!g.bloody, 'no blood with the wire');
+}
+console.log(`\n${ok} ok, ${fail} failed`);
+process.exit(fail ? 1 : 0);

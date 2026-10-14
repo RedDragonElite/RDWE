@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>RDE // KONTRAKT</title>
+<meta name="description" content="Ein Open-World-Assassinen-RPG in purem HTML, CSS und JavaScript. Red Dragon Elite.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="view"></canvas>
+<canvas id="post"></canvas>
+<canvas id="over"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="tl">
+    <div id="clock"><b id="c-time">08:00</b><span id="c-day">Mo · Tag 1</span><span id="c-weather"></span></div>
+    <div id="district">Altstadt</div>
+    <div id="money">$0</div>
+  </div>
+  <div id="wanted"><div id="stars"></div><div id="heat"><i></i></div></div>
+  <div id="tracker" class="hidden"></div>
+  <div id="minimap"><canvas id="mm" width="440" height="440"></canvas><div id="mm-n">N</div></div>
+  <div id="vitals">
+    <div class="bar hp"><i></i><span id="hp-t">100</span></div>
+    <div class="bar armor"><i></i></div>
+    <div class="bar stam"><i></i></div>
+    <div id="needs">
+      <div class="need" id="n-food" title="Hunger"><em>🍔</em><i></i></div>
+      <div class="need" id="n-water" title="Durst"><em>💧</em><i></i></div>
+      <div class="need" id="n-energy" title="Energie"><em>⚡</em><i></i></div>
+      <div class="need status" id="n-bleed" title="Blutung">🔻</div>
+      <div class="need status" id="n-drunk" title="Betrunken">🍺</div>
+    </div>
+  </div>
+  <div id="weapon">
+    <div id="w-slots"></div>
+    <div id="w-main"><img id="w-icon" alt=""><div><div id="w-name">Fäuste</div><div id="w-ammo"></div></div></div>
+  </div>
+  <div id="stance"></div>
+  <div id="prompt"></div>
+  <div id="feed"></div>
+  <div id="banner"><b></b><span></span></div>
+  <div id="phone-hint">📱 <b>P</b> Handy · <b>TAB</b> Inventar · <b>M</b> Karte · <b>Q</b> Instinkt</div>
+</div>
+
+<div id="phone" class="hidden">
+  <div class="ph-frame">
+    <div class="ph-top"><span id="ph-time">08:00</span><span>KRÄHENBURG·NET</span><span>▮▮▮ 87%</span></div>
+    <div id="ph-body"></div>
+    <div class="ph-home"><button id="ph-back">◀</button><button id="ph-homebtn">●</button><button id="ph-close">✕</button></div>
+  </div>
+</div>
+
+<div id="panel" class="hidden"><div class="pn-box"><header><h2 id="pn-title"></h2><button class="pn-x">✕</button></header><div id="pn-body"></div></div></div>
+
+<div id="mapview" class="hidden">
+  <div class="mv-box">
+    <header><h2>KRÄHENBURG</h2><span>Klick = Wegpunkt · Rechtsklick = löschen · M/ESC = schließen</span></header>
+    <canvas id="bigmap"></canvas>
+    <div id="mv-legend"></div>
+  </div>
+</div>
+
+<div id="title">
+  <div class="t-inner">
+    <div class="t-brand">RED DRAGON ELITE PRÄSENTIERT</div>
+    <h1>KONTRAKT</h1>
+    <div class="t-sub">Krähenburg · Ein Leben zwischen Aufträgen</div>
+    <div class="t-menu">
+      <button id="t-continue" class="hidden">Fortsetzen</button>
+      <button id="t-new">Neues Spiel</button>
+      <button id="t-controls">Steuerung</button>
+      <button id="t-settings">Einstellungen</button>
+    </div>
+    <div class="t-foot">pure HTML · CSS · JavaScript — kein Framework, keine Assets. Alles prozedural.</div>
+  </div>
+</div>
+
+<div id="pause" class="hidden">
+  <div class="p-box">
+    <h2>PAUSE</h2>
+    <button data-p="resume">Weiter</button>
+    <button data-p="save">Spiel speichern</button>
+    <button data-p="settings">Einstellungen</button>
+    <button data-p="controls">Steuerung</button>
+    <button data-p="title">Zum Hauptmenü</button>
+  </div>
+</div>
+
+<div id="result" class="hidden"></div>
+<div id="dead" class="hidden"></div>
+<div id="fade"></div>
+<div id="toast"></div>
+
+<script src="js/core/util.js"></script>
+<script src="js/core/data.js"></script>
+<script src="js/world/citygen.js"></script>
+<script src="js/world/nav.js"></script>
+<script src="js/game/world.js"></script>
+<script src="js/game/economy.js"></script>
+<script src="js/game/combat.js"></script>
+<script src="js/game/crime.js"></script>
+<script src="js/game/ai.js"></script>
+<script src="js/game/contracts.js"></script>
+<script src="js/game/vehicles.js"></script>
+<script src="js/game/player.js"></script>
+<script src="js/render/textures.js"></script>
+<script src="js/render/sprites.js"></script>
+<script src="js/render/fx.js"></script>
+<script src="js/render/renderer.js"></script>
+<script src="js/render/post.js"></script>
+<script src="js/audio/audio.js"></script>
+<script src="js/ui/ui.js"></script>
+<script src="js/ui/menus.js"></script>
+<script src="js/ui/input.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
