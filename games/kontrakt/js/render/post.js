@@ -25,16 +25,17 @@ void main(){
   float l = dot(col, vec3(0.299,0.587,0.114));
   col = mix(col, col*vec3(0.9,1.0,1.08), (1.0-l)*0.4);
   col = mix(col, col*vec3(1.07,1.0,0.9), l*0.28);
-  // Vice grade: violet shadows, teal mids, pink-orange highlights — stronger at golden hour
+  // cinema grade: cool steel shadows, neutral mids, warm skin-tone highlights, a touch of restraint —
+  // a little warmer at golden hour (no neon)
   if (uVice > 0.0) {
     float lv = dot(col, vec3(0.299,0.587,0.114));
-    vec3 shadow = vec3(0.10, 0.02, 0.18), high = vec3(1.10, 0.90, 0.95) + vec3(0.06, 0.02, -0.08)*uDusk;
-    col += shadow * (1.0-lv) * (1.0-lv) * 0.55 * uVice;
-    col = mix(col, col*high, smoothstep(0.35, 1.0, lv) * 0.6 * uVice);
-    col = mix(col, col*vec3(0.92,1.04,1.06), (1.0-abs(lv-0.45)*2.0) * 0.25 * uVice);
-    col = mix(col, col*vec3(1.12,0.88,1.02), uDusk*0.35*uVice);
+    vec3 shadow = vec3(0.0, 0.03, 0.05), high = vec3(1.04, 1.0, 0.95) + vec3(0.04, 0.0, -0.05)*uDusk;
+    col += shadow * (1.0-lv) * (1.0-lv) * 0.6 * uVice;
+    col = mix(col, col*high, smoothstep(0.4, 1.0, lv) * 0.5 * uVice);
+    col = mix(col, col*vec3(1.08,0.97,0.9), uDusk*0.25*uVice);
     float lv2 = dot(col, vec3(0.299,0.587,0.114));
-    col = mix(vec3(lv2), col, 1.0 + 0.16*uVice);
+    col = mix(vec3(lv2), col, 1.0 - 0.08*uVice);
+    col = (col - 0.5) * (1.0 + 0.06*uVice) + 0.5;
   }
   float red = clamp((col.r - max(col.g,col.b))*3.0, 0.0, 1.0);
   float sat = 1.08 - uLow*0.75 - uInstinct*0.85;

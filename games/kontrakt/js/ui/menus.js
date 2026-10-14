@@ -678,7 +678,7 @@
     }
 
     // ============================================================ map
-    openMap() { this.closePhone(); this.closePanel(); $('#mapview').classList.remove('hidden'); this.sync(); requestAnimationFrame(() => this.drawMap()); if (document.fonts && !this.fontReady) document.fonts.load('40px "Kaushan Script"').then(() => { this.fontReady = true; if (!$('#mapview').classList.contains('hidden')) this.drawMap(); }).catch(() => {}); }
+    openMap() { this.closePhone(); this.closePanel(); $('#mapview').classList.remove('hidden'); this.sync(); requestAnimationFrame(() => this.drawMap()); if (document.fonts && !this.fontReady) document.fonts.load('600 40px "Oswald"').then(() => { this.fontReady = true; if (!$('#mapview').classList.contains('hidden')) this.drawMap(); }).catch(() => {}); }
     closeMap() { $('#mapview').classList.add('hidden'); this.sync(); }
     toggleMap() { if ($('#mapview').classList.contains('hidden')) this.openMap(); else this.closeMap(); }
     drawMap() {
@@ -689,24 +689,25 @@
       if (!ui.mapTex) ui.buildMapTex();
       const s = Math.min(cv.width / w.W, cv.height / w.H), ox = (cv.width - w.W * s) / 2, oy = (cv.height - w.H * s) / 2;
       this.mapMeta = { s, ox, oy };
-      const sky = x.createLinearGradient(0, 0, 0, cv.height); sky.addColorStop(0, '#1a0b2e'); sky.addColorStop(0.55, '#5a1a5e'); sky.addColorStop(0.85, '#ff5e7e'); sky.addColorStop(1, '#ffb36b');
-      x.fillStyle = sky; x.fillRect(0, 0, cv.width, cv.height);
-      // retro sun behind the city
-      const sunX = cv.width * 0.82, sunY = cv.height * 0.82, sr = cv.height * 0.22, sg = x.createLinearGradient(0, sunY - sr, 0, sunY + sr); sg.addColorStop(0, '#ffe08a'); sg.addColorStop(1, '#ff3d7f');
-      x.fillStyle = sg; x.beginPath(); x.arc(sunX, sunY, sr, 0, 6.3); x.fill();
-      x.fillStyle = '#5a1a5e'; for (let k = 0; k < 6; k++) x.fillRect(sunX - sr, sunY + k * sr * 0.16, sr * 2, sr * 0.04 + k * 1.5);
-      x.save(); x.shadowColor = 'rgba(255,47,160,0.6)'; x.shadowBlur = 30; x.fillStyle = '#000'; x.fillRect(ox, oy, w.W * s, w.H * s); x.restore();
+      // dossier table: graphite with a fine survey grid
+      x.fillStyle = '#0c0e11'; x.fillRect(0, 0, cv.width, cv.height);
+      x.strokeStyle = 'rgba(255,255,255,0.035)'; x.lineWidth = 1;
+      for (let gx = ox % (s * 8); gx < cv.width; gx += s * 8) { x.beginPath(); x.moveTo(gx, 0); x.lineTo(gx, cv.height); x.stroke(); }
+      for (let gy = oy % (s * 8); gy < cv.height; gy += s * 8) { x.beginPath(); x.moveTo(0, gy); x.lineTo(cv.width, gy); x.stroke(); }
+      x.save(); x.shadowColor = 'rgba(0,0,0,0.8)'; x.shadowBlur = 30; x.fillStyle = '#000'; x.fillRect(ox, oy, w.W * s, w.H * s); x.restore();
       x.imageSmoothingEnabled = false; x.drawImage(ui.mapTex, ox, oy, w.W * s, w.H * s); x.imageSmoothingEnabled = true;
       if (ui.mapNeon) x.drawImage(ui.mapNeon, ox, oy, w.W * s, w.H * s);
       ui.drawTurf(x, s, ox, oy, 0.22);
       const toM = (wx, wy) => [ox + wx / TILE * s, oy + wy / TILE * s];
       // district labels
-      x.font = `${Math.round(s * 4.2)}px "Kaushan Script", cursive`; x.textAlign = 'center';
+      x.font = `600 ${Math.round(s * 2.6)}px "Oswald", sans-serif`; x.textAlign = 'center';
+      if ('letterSpacing' in x) x.letterSpacing = `${Math.round(s * 0.9)}px`;
       const seen = new Set();
-      for (const bl of w.city.blocks) { if (seen.has(bl.d)) continue; seen.add(bl.d); const [mx, my] = toM((bl.ox + 11) * TILE, (bl.oy + 11) * TILE); x.save(); x.shadowColor = '#ff2fa0'; x.shadowBlur = 12; x.fillStyle = '#ffe3f5'; x.fillText(K.DISTRICTS[bl.d], mx, my); x.restore(); }
-      { const [mx, my] = toM(40 * TILE, (w.city.W + 3) * TILE); x.save(); x.font = `${Math.round(s * 3.2)}px "Kaushan Script", cursive`; x.shadowColor = '#2ef2ff'; x.shadowBlur = 10; x.fillStyle = '#e6fdff'; x.fillText('Ocean Drive', mx, my - s * 5.5); x.restore(); }
+      for (const bl of w.city.blocks) { if (seen.has(bl.d)) continue; seen.add(bl.d); const [mx, my] = toM((bl.ox + 11) * TILE, (bl.oy + 11) * TILE); x.save(); x.shadowColor = 'rgba(0,0,0,0.9)'; x.shadowBlur = 6; x.fillStyle = 'rgba(240,238,232,0.82)'; x.fillText(K.DISTRICTS[bl.d].toUpperCase(), mx, my); x.restore(); }
+      { const [mx, my] = toM(40 * TILE, (w.city.W + 3) * TILE); x.save(); x.font = `500 ${Math.round(s * 2)}px "Oswald", sans-serif`; x.fillStyle = 'rgba(240,238,232,0.55)'; x.fillText('OCEAN DRIVE', mx, my - s * 5.5); x.restore(); }
+      if ('letterSpacing' in x) x.letterSpacing = '0px';
       x.font = `${Math.round(s * 4.2)}px sans-serif`; x.textBaseline = 'middle';
-      for (const q of ui.poiIcons()) { const [mx, my] = toM(q.x, q.y); if (!q.small) { x.fillStyle = 'rgba(20,8,30,0.82)'; x.beginPath(); x.arc(mx, my, s * 3, 0, 6.3); x.fill(); x.strokeStyle = q.c || '#2ef2ff'; x.lineWidth = 2; x.stroke(); } x.fillStyle = '#fff'; x.fillText(q.e, mx, my + 1); }
+      for (const q of ui.poiIcons()) { const [mx, my] = toM(q.x, q.y); if (!q.small) { x.fillStyle = 'rgba(10,11,14,0.88)'; x.beginPath(); x.arc(mx, my, s * 3, 0, 6.3); x.fill(); x.strokeStyle = q.c || 'rgba(240,238,232,0.7)'; x.lineWidth = 1.5; x.stroke(); } x.fillStyle = '#fff'; x.fillText(q.e, mx, my + 1); }
       const c = w.contract, tgt = w.targetActor();
       if (c && tgt) {
         if (c.intel) { const [mx, my] = toM(tgt.x, tgt.y); x.fillStyle = '#ff2030'; x.beginPath(); x.arc(mx, my, s * 2, 0, 6.3); x.fill(); }
@@ -731,7 +732,7 @@
     settings() {
       const g = this.g, s = g.settings;
       const tog = (k, name, sub) => `<div class="set"><div>${name}<small>${sub}</small></div><button class="tog ${s[k] ? 'on' : ''}" data-t="${k}"></button></div>`;
-      const h = `${tog('post', 'Post-FX (WebGL)', 'Bloom, Farbkorrektur, Chromatic Aberration, Film-Grain')}${tog('vice', 'Vice-Look', 'Sunset-Grading: lila Schatten, Pink- und Orange-Lichter')}${tog('fov', 'Sichtfeld-Schatten', 'Nur was du siehst ist sichtbar — für Stealth')}${tog('gore', 'Blut & Gore', 'Blutspritzer, Lachen, Körperteile')}${tog('music', 'Dynamische Musik', 'Noir-Jazz, Spannung & Kampf passen sich an')}${tog('voice', 'NPC-Stimmen', 'Sprachausgabe für wichtige Rufe (Browser-TTS)')}${tog('barks', 'Sprechblasen', 'Was NPCs sagen')}${tog('weather', 'Wetter-Effekte', 'Regen, Nebel, Gewitter')}${tog('clouds', 'Wolkenschatten', '')}${tog('shake', 'Kamera-Wackeln', '')}
+      const h = `${tog('post', 'Post-FX (WebGL)', 'Bloom, Farbkorrektur, Chromatic Aberration, Film-Grain')}${tog('vice', 'Kino-Look', 'Filmisches Grading: kühle Schatten, warme Lichter, wärmer zur goldenen Stunde')}${tog('fov', 'Sichtfeld-Schatten', 'Nur was du siehst ist sichtbar — für Stealth')}${tog('gore', 'Blut & Gore', 'Blutspritzer, Lachen, Körperteile')}${tog('music', 'Dynamische Musik', 'Noir-Jazz, Spannung & Kampf passen sich an')}${tog('voice', 'NPC-Stimmen', 'Sprachausgabe für wichtige Rufe (Browser-TTS)')}${tog('barks', 'Sprechblasen', 'Was NPCs sagen')}${tog('weather', 'Wetter-Effekte', 'Regen, Nebel, Gewitter')}${tog('clouds', 'Wolkenschatten', '')}${tog('shake', 'Kamera-Wackeln', '')}
         <div class="set"><div>Lautstärke</div><input type="range" min="0" max="1" step="0.05" value="${s.volume}" data-r="volume"></div>
         <div class="set"><div>Musik</div><input type="range" min="0" max="1" step="0.05" value="${s.musicVol}" data-r="musicVol"></div>
         <div class="set"><div>Auflösung<small>Weniger = schneller</small></div><select data-s="res"><option value="1" ${s.res == 1 ? 'selected' : ''}>100%</option><option value="0.8" ${s.res == 0.8 ? 'selected' : ''}>80%</option><option value="0.65" ${s.res == 0.65 ? 'selected' : ''}>65%</option><option value="0.5" ${s.res == 0.5 ? 'selected' : ''}>50%</option></select></div>

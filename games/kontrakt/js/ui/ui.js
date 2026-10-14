@@ -185,15 +185,16 @@
     buildMapTex() {
       const w = this.g.world, c = K.mkCanvas(w.W, w.H), x = c.getContext('2d'), id = x.createImageData(w.W, w.H);
       const col = {};
-      col[T.WATER] = [18, 92, 128]; col[T.POOL] = [60, 220, 240]; col[T.ROAD] = [44, 30, 64]; col[T.WALK] = [118, 96, 140]; col[T.GRASS] = [70, 150, 96]; col[T.PLAZA] = [150, 124, 160];
-      col[T.DIRT] = [150, 116, 86]; col[T.DOCK] = [120, 92, 70]; col[T.QUAY] = [104, 92, 120]; col[T.HEDGE] = [44, 110, 64]; col[T.FENCE] = [40, 30, 50]; col[T.GATE] = [90, 80, 100]; col[T.CONC] = [104, 96, 124]; col[T.SAND] = [244, 214, 164]; col[T.WOOD] = [190, 140, 100];
-      const PAL = { beach: ['#ff8fb1', '#7fe0d0', '#ffd39a'], down: ['#8fd3ff', '#c79bff', '#7fe0d0', '#ff9ad5'], old: ['#ffb38a', '#ffd39a', '#f29ac0'], res: ['#a8e6a1', '#ffe08a', '#9fd8ff'], hill: ['#ff9a8a', '#ffcf9a'], ind: ['#9a8fb5', '#7f8aa5'], docks: ['#8a9ab5', '#b58aa8'] };
+      // tactical map look: graphite streets, bone-white blocks, muted greens and steel water
+      col[T.WATER] = [24, 38, 52]; col[T.POOL] = [70, 120, 140]; col[T.ROAD] = [30, 33, 38]; col[T.WALK] = [62, 66, 72]; col[T.GRASS] = [50, 66, 54]; col[T.PLAZA] = [74, 78, 84];
+      col[T.DIRT] = [78, 72, 64]; col[T.DOCK] = [70, 64, 58]; col[T.QUAY] = [58, 62, 68]; col[T.HEDGE] = [40, 54, 44]; col[T.FENCE] = [26, 28, 32]; col[T.GATE] = [80, 84, 90]; col[T.CONC] = [66, 70, 76]; col[T.SAND] = [128, 120, 104]; col[T.WOOD] = [96, 82, 68];
+      const PAL = { beach: ['#c9c3b6', '#bdb8ad'], down: ['#c4c8cc', '#b6bcc2', '#cfd2d4'], old: ['#c9c0b4', '#bfb5a8'], res: ['#c0c4ba', '#cac8c0'], hill: ['#d0c8bc', '#c6bfb4'], ind: ['#9ea3a9', '#959aa0'], docks: ['#979ca3', '#8f959c'] };
       const bcol = w.buildings.map((b) => { const p = PAL[b.district] || PAL.down; return U.hex2rgb(p[b.seed % p.length]); });
       for (let i = 0; i < w.N; i++) {
         const t = w.tiles[i], b = w.bmap[i];
         let c2 = col[t] || [150, 140, 150];
-        if (t === T.WATER) { const y = (i / w.W) | 0, depth = Math.min(1, (y - w.city.W) / 12); c2 = [18 + (1 - depth) * 40, 92 + (1 - depth) * 70, 128 + (1 - depth) * 40]; }
-        if (b >= 0) { c2 = bcol[b]; if (t === T.WALL || t === T.WINDOW) c2 = c2.map((v) => v * 0.62); }
+        if (t === T.WATER) { const y = (i / w.W) | 0, depth = Math.min(1, (y - w.city.W) / 12); c2 = [20 + (1 - depth) * 14, 32 + (1 - depth) * 20, 46 + (1 - depth) * 22]; }
+        if (b >= 0) { c2 = bcol[b]; if (t === T.WALL || t === T.WINDOW) c2 = c2.map((v) => v * 0.55); else c2 = c2.map((v) => v * 0.78); }
         if (w.solid[i] & 1 && b < 0 && t !== T.WATER) c2 = c2.map((v) => v * 0.78);
         id.data[i * 4] = c2[0]; id.data[i * 4 + 1] = c2[1]; id.data[i * 4 + 2] = c2[2]; id.data[i * 4 + 3] = 255;
       }
@@ -203,11 +204,9 @@
       const S = 4, n = K.mkCanvas(w.W * S, w.H * S), nx = n.getContext('2d'), P = w.city.P, NB = w.city.NB;
       const seg = (fn) => { for (let j = 0; j <= NB; j++) for (let i = 0; i <= NB; i++) { const x0 = (i * P + 2) * S, y0 = (j * P + 2) * S; if (i < NB) fn(x0, y0, x0 + P * S, y0, j); if (j < NB) fn(x0, y0, x0, y0 + P * S, -1); } };
       nx.lineCap = 'round';
-      nx.shadowColor = '#ff2fa0'; nx.shadowBlur = 14; nx.strokeStyle = 'rgba(255,47,160,0.28)'; nx.lineWidth = 13;
-      seg((a, b, c3, d) => { nx.beginPath(); nx.moveTo(a, b); nx.lineTo(c3, d); nx.stroke(); });
-      nx.shadowColor = '#2ef2ff'; nx.shadowBlur = 6; nx.strokeStyle = 'rgba(46,242,255,0.75)'; nx.lineWidth = 1.6;
-      seg((a, b, c3, d, j) => { nx.lineWidth = j === NB ? 3 : 1.6; nx.beginPath(); nx.moveTo(a, b); nx.lineTo(c3, d); nx.stroke(); });
-      nx.shadowBlur = 0;
+      // thin white centre lines, a heavier line along the seafront
+      nx.strokeStyle = 'rgba(232,230,225,0.22)'; nx.lineWidth = 1.2;
+      seg((a, b, c3, d, j) => { nx.lineWidth = j === NB ? 2.4 : 1.2; nx.strokeStyle = j === NB ? 'rgba(232,230,225,0.4)' : 'rgba(232,230,225,0.22)'; nx.beginPath(); nx.moveTo(a, b); nx.lineTo(c3, d); nx.stroke(); });
       this.mapNeon = n;
     }
     poiIcons() {

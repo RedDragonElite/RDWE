@@ -107,7 +107,7 @@ body.wanted #hud::after { content: ''; position: fixed; inset: 0; pointer-events
 #feed div.bad { border-color: var(--red); color: #ffb9c0; }
 #feed div.good { border-color: var(--blue); }
 #feed div.loot { border-color: var(--gold); color: #ffe7b0; }
-#feed div.phone { border-color: #c27aff; color: #ecd6ff; }
+#feed div.phone { border-color: #ece9e2; color: #f4f2ec; }
 @keyframes slide { from { transform: translateX(-20px); opacity: 0; } }
 
 #banner { position: absolute; left: 0; right: 0; top: 24%; text-align: center; opacity: 0; transition: opacity .4s; }
@@ -378,25 +378,25 @@ body.driving #vitals { opacity: .55; }
 body.driving #prompt { bottom: 205px; }
 @media (max-width: 1720px) { body.driving #weapon { bottom: 196px; } }
 
-/* ---- Vice look: neon HUD accents ---- */
-#minimap { border: 3px solid transparent; background: linear-gradient(#0a0b0e,#0a0b0e) padding-box, linear-gradient(135deg,#ff2fa0,#2ef2ff) border-box; box-shadow: 0 0 18px rgba(255,47,160,.45), 0 0 0 4px rgba(0,0,0,.45), 0 10px 30px rgba(0,0,0,.6); }
-#district { color: #ff8fd8; text-shadow: 0 0 8px rgba(255,47,160,.55); }
-#clock b { text-shadow: 0 0 14px rgba(46,242,255,.35); }
-#mapview .mv-box { background: linear-gradient(160deg,#1a0b2e,#2a0f3a 60%,#3a1236); border: 1px solid rgba(255,47,160,.35); box-shadow: 0 0 40px rgba(255,47,160,.25); }
-#mapview header h2 { font-family: 'Kaushan Script', cursive; font-size: 34px; letter-spacing: 2px; color: #ffe3f5; text-shadow: 0 0 10px #ff2fa0, 0 0 24px #ff2fa0; text-transform: none; }
-#mv-legend { background: rgba(20,8,30,.82); border: 1px solid rgba(46,242,255,.3); }
+/* ---- contract look: graphite, bone white and signal red (no neon) ---- */
+#minimap { border: 2px solid rgba(236,233,226,.85); background: #0b0c0f; box-shadow: 0 0 0 4px rgba(0,0,0,.55), 0 10px 30px rgba(0,0,0,.6); }
+#district { color: #ece9e2; letter-spacing: .28em; text-shadow: none; border-left: 2px solid #e0182d; padding-left: 8px; }
+#clock b { text-shadow: none; }
+#mapview .mv-box { background: #0c0e11; border: 1px solid rgba(236,233,226,.14); box-shadow: 0 30px 80px rgba(0,0,0,.7); }
+#mapview header h2 { font-family: var(--f-head); font-size: 26px; letter-spacing: .35em; color: #ece9e2; text-shadow: none; text-transform: uppercase; border-left: 3px solid #e0182d; padding-left: 12px; }
+#mv-legend { background: rgba(10,11,14,.9); border: 1px solid rgba(236,233,226,.12); }
 
 /* ---- drag & drop inventory + hotbar ---- */
 .inv2 { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 .tile { position: relative; height: 78px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--line); display: grid; place-items: center; cursor: grab; user-select: none; touch-action: none; transition: transform .08s, border-color .1s; }
-.tile:hover { border-color: rgba(46,242,255,.5); transform: translateY(-1px); }
-.tile.sel { border-color: #ff2fa0; box-shadow: 0 0 12px rgba(255,47,160,.35); }
+.tile:hover { border-color: rgba(236,233,226,.45); transform: translateY(-1px); }
+.tile.sel { border-color: #e0182d; box-shadow: 0 0 0 1px rgba(224,24,45,.4) inset; }
 .tile.dragging { opacity: .35; }
 .tile img { width: 70px; height: 30px; object-fit: contain; pointer-events: none; }
 .tile .emo, .hb .emo, .drag-ghost .emo { font-style: normal; font-size: 26px; pointer-events: none; }
 .tile b { position: absolute; top: 4px; right: 6px; font: 600 11px var(--f-head); color: var(--gold); }
-.tile u { position: absolute; top: 4px; left: 6px; text-decoration: none; font: 700 10px var(--f-head); color: #111; background: #2ef2ff; border-radius: 4px; padding: 0 4px; }
+.tile u { position: absolute; top: 4px; left: 6px; text-decoration: none; font: 700 10px var(--f-head); color: #111; background: #ece9e2; border-radius: 4px; padding: 0 4px; }
 .tile small { position: absolute; bottom: 4px; left: 4px; right: 4px; text-align: center; font-size: 10px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .ammo { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: #aaa; } .ammo b { color: #ddd; }
 #inv-det .det-h { display: flex; align-items: center; gap: 10px; } #inv-det .det-h img { width: 70px; height: 30px; } #inv-det h4 { margin: 0; } #inv-det p { color: #aaa; font-size: 12px; }
@@ -405,16 +405,16 @@ body.driving #prompt { bottom: 205px; }
 .hb { position: relative; border-radius: 8px; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.12); display: grid; place-items: center; user-select: none; touch-action: none; }
 .hb[data-drag] { cursor: grab; }
 .hb.empty { border-style: dashed; opacity: .6; }
-.hb.on { border-color: #ff2fa0; background: rgba(255,47,160,.16); box-shadow: 0 0 10px rgba(255,47,160,.35); }
+.hb.on { border-color: #e0182d; background: rgba(224,24,45,.14); box-shadow: none; }
 .hb.out { opacity: .4; }
-.hb.over, .zone.over { border-color: #2ef2ff !important; background: rgba(46,242,255,.15) !important; }
+.hb.over, .zone.over { border-color: #ece9e2 !important; background: rgba(236,233,226,.1) !important; }
 .hb img { width: 46px; height: 20px; object-fit: contain; pointer-events: none; }
 .hb span { position: absolute; top: 1px; left: 4px; font: 600 9px var(--f-head); color: var(--dim); pointer-events: none; }
 .hb b { position: absolute; bottom: 1px; right: 4px; font: 600 9px var(--f-head); color: var(--gold); pointer-events: none; }
 .inv-zones { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
 .zone { border: 1px dashed rgba(255,255,255,.25); border-radius: 10px; padding: 12px; text-align: center; color: #bbb; font: 600 13px var(--f-head); letter-spacing: 1px; }
 .zone.bad { border-color: rgba(239,68,68,.45); color: #f88; }
-.drag-ghost { position: fixed; z-index: 9999; pointer-events: none; transform: translate(-50%, -50%) scale(1.15); background: rgba(20,8,30,.9); border: 1px solid #ff2fa0; border-radius: 10px; padding: 6px 8px; box-shadow: 0 8px 24px rgba(0,0,0,.5), 0 0 14px rgba(255,47,160,.4); }
+.drag-ghost { position: fixed; z-index: 9999; pointer-events: none; transform: translate(-50%, -50%) scale(1.15); background: rgba(10,11,14,.92); border: 1px solid #e0182d; border-radius: 10px; padding: 6px 8px; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
 .drag-ghost img { width: 70px; height: 30px; }
 /* HUD hotbar */
 #w-slots { display: grid; grid-template-columns: repeat(9, 40px); gap: 4px; justify-content: end; margin-bottom: 6px; }
