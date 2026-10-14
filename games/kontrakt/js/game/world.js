@@ -267,6 +267,7 @@
       this.updateUnderworld(dt, minutes);
       if (this.updateAutos) this.updateAutos(dt);
       if (this.updateProps) this.updateProps(dt);
+      if (this.updateMedical) this.updateMedical(dt);
       this.updatePopulation(dt);
       if (this.tick % 120 === 0) this.cleanup();
     }
@@ -307,7 +308,7 @@
           a.stun = Math.max(a.stun, 0.2);
           if (a.poisoned <= 0) this.kill(a, this.byId.get(a.poisonBy) || null, { kind: 'poison', silent: true, accident: true });
         }
-        if (a.bleed > 0 && a.kind !== 'player') {
+        if (a.bleed > 0 && a.kind !== 'player' && !a.downed) {
           a.hp -= a.bleed * dt * 3;
           if (Math.random() < dt * 4) this.emit('drip', { x: a.x, y: a.y });
           if (a.hp <= 0) this.kill(a, this.byId.get(a.lastHitBy) || null, { kind: 'bleed' });

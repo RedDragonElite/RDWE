@@ -457,3 +457,20 @@ body.placing #prompt { display: none; }
 #hunt.seen { color: #ff3b4e; animation: pulse .5s infinite alternate; }
 #hunt.search, #hunt.hide { color: #ffb000; }
 #hunt.lost, #hunt.hid0 { color: #ece9e2; opacity: .8; }
+
+/* injuries */
+#bodyfig { position: absolute; right: -46px; bottom: 2px; width: 36px; height: 64px; opacity: 0; transition: opacity .4s; }
+#bodyfig.on { opacity: 1; }
+#bodyfig [data-z] { fill: rgba(236,233,226,.18); stroke: rgba(236,233,226,.5); stroke-width: 1; }
+#bodyfig .w1 { fill: rgba(255,176,0,.75); }
+#bodyfig .w2 { fill: rgba(224,24,45,.85); }
+#bodyfig .frac { fill: #f4f4f0; stroke: #e0182d; stroke-width: 2; stroke-dasharray: 3 2; }
+#bodyfig .art { fill: #e0182d; animation: pulse .35s infinite alternate; }
+#downed { position: absolute; left: 50%; top: 90px; transform: translateX(-50%); width: 360px; padding: 14px 18px; background: rgba(10,6,8,.86); border: 1px solid rgba(224,24,45,.5); border-top: 3px solid #e0182d; border-radius: 6px; color: #ece9e2; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+#downed b { display: block; font: 600 18px var(--f-head); letter-spacing: .32em; color: #ff3b4e; margin-bottom: 8px; animation: pulse .9s infinite alternate; }
+#downed .dn-row { display: flex; justify-content: space-between; font-size: 13px; color: #cfc9be; margin: 4px 0; }
+#downed em { font-style: normal; font: 600 14px var(--f-head); color: #fff; }
+#downed .dn-bar { height: 8px; background: #1b1416; border-radius: 4px; overflow: hidden; }
+#downed .dn-bar i { display: block; height: 100%; transition: width .3s; }
+#downed .dn-bar i.g { background: #10b981; } #downed .dn-bar i.a { background: #f59e0b; } #downed .dn-bar i.r { background: #e0182d; }
+#dn-ems { margin-top: 8px; font-size: 13px; color: #a5b4fc; min-height: 16px; }

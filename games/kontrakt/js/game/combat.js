@@ -48,6 +48,7 @@
         else if (d.scope) spread += 0.06 * d.scope;   // hip-firing a scoped rifle
         spread *= 1 - this.sk('marksman') * 0.1;
         spread *= 1 + P.drunk * 1.5;
+        if (this.shaky && this.shaky(a)) spread *= 1.8;
         spread += P.recoil;
         P.recoil = Math.min(0.25, P.recoil + d.recoil * 0.6);
       } else {
@@ -350,23 +351,28 @@
       if (!t.alive) { if (info.kind === 'bullet' || info.kind === 'explosion') this.emit('corpseHit', { x: t.x, y: t.y, a: info.dir, id: t.id, gore: info.kind === 'explosion' }); return; }
       let d = dmg;
       const isP = t.kind === 'player';
+      // somebody lying there critical: anything serious finishes them
+      if (t.downed) { t.downed.loss = Math.min(100, t.downed.loss + dmg * 1.5); if (dmg >= 8 || t.downed.loss >= 100) { t.downed = null; t.ko = 0; this.kill(t, src, info); } return; }
+      const zone = this.hitZone ? this.hitZone(t, info) : info.head ? 'head' : 'torso';
       if (isP) {
         d *= this.difficulty || 1;
         if (this.P.painkiller > 0) d *= 0.7;
         if (this.godMode) d = 0;
       }
-      if (info.head) d *= isP ? 1.5 : 2.6;
-      if (t.armor > 0 && (info.kind === 'bullet' || info.kind === 'explosion')) {
+      if (this.zoneMult) d *= this.zoneMult(t, zone); else if (info.head) d *= isP ? 1.5 : 2.6;
+      if (t.armor > 0 && (info.kind === 'bullet' || info.kind === 'explosion') && (zone === 'torso' || info.kind === 'explosion')) {   // the vest covers the torso
         const ab = Math.min(t.armor, d * 0.65); t.armor -= ab * 1.1; d -= ab; if (t.armor < 0) t.armor = 0;
       }
       if (t.ko > 0 && info.blunt) d *= 2;
       t.hp -= d; t.flinch = 0.18; if (src) t.lastHitBy = src.id;
-      if (info.kind === 'bullet' && d > 18) t.bleed = Math.min(3, t.bleed + (d > 40 ? 1 : 0.5));
-      if (info.sharp) t.bleed = Math.min(3, t.bleed + 1);
+      if (this.applyInjury) this.applyInjury(t, zone, d, info);
+      else { if (info.kind === 'bullet' && d > 18) t.bleed = Math.min(3, t.bleed + (d > 40 ? 1 : 0.5)); if (info.sharp) t.bleed = Math.min(3, t.bleed + 1); }
+      info.zone = zone;
       if (info.kind === 'bullet' || info.sharp || info.kind === 'explosion' || info.kind === 'car') t.bloodFeet = 0;
       this.emit('hurt', { id: t.id, x: t.x, y: t.y, dmg: d, a: info.dir, head: info.head, kind: info.kind, player: isP, blunt: !!info.blunt, w: info.w });
       if (t.hp <= 0) {
         if (info.blunt && !isP && t.ko <= 0 && info.kind !== 'explosion') { t.hp = 5; this.knockout(t, src, 120); return; }
+        if (this.shouldDown && this.shouldDown(t, d, info)) { this.goDown(t, src, info); return; }
         this.kill(t, src, info);
         return;
       }
@@ -381,6 +387,7 @@
     },
     kill(t, src, info = {}) {
       if (!t.alive) return;
+      t.downed = null;
       t.alive = false; t.dead = true; t.hp = 0; t.ko = 0; t.deadT = 0; t.state = 'dead'; t.path = null;
       t.deathA = info.dir != null ? info.dir : t.angle + Math.PI;
       t.bloody = !['poison', 'wire', 'hunger', 'thirst'].includes(info.kind);

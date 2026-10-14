@@ -14,7 +14,7 @@
   };
   K.ENGINE_SERIES = {
     compact: 'su-mid', coupe: 'su-ss', sedan: 'b-i6r', taxi: 'b-i6r', police: 'b-i6r', muscle: 'gv8', sport: 'v8f',
-    super: 'v12d', suv: 'b-v8', pickup: 'ds8', van: 'ds8', ev: 'electric',
+    super: 'v12d', suv: 'b-v8', pickup: 'ds8', van: 'ds8', ambulance: 'ds8', ev: 'electric',
   };
   const PAD = 0.15;
 

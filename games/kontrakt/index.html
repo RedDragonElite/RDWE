@@ -27,6 +27,7 @@
   <div id="tracker" class="hidden"></div>
   <div id="minimap"><canvas id="mm" width="440" height="440"></canvas><div id="mm-n">N</div></div>
   <div id="vitals">
+    <svg id="bodyfig" viewBox="0 0 40 72" title="Verletzungen"><circle data-z="head" cx="20" cy="8" r="6"/><rect data-z="torso" x="12" y="16" width="16" height="22" rx="3"/><rect data-z="armL" x="4" y="17" width="6" height="20" rx="3"/><rect data-z="armR" x="30" y="17" width="6" height="20" rx="3"/><rect data-z="legL" x="12.5" y="40" width="7" height="28" rx="3"/><rect data-z="legR" x="20.5" y="40" width="7" height="28" rx="3"/></svg>
     <div class="bar hp"><i></i><span id="hp-t">100</span></div>
     <div class="bar armor"><i></i></div>
     <div class="bar stam"><i></i></div>
@@ -51,6 +52,7 @@
   </div>
   <div id="stance"></div>
   <div id="prompt"></div>
+  <div id="downed" class="hidden"><b>KRITISCHER ZUSTAND</b><div class="dn-row"><span>Blutverlust</span><em id="dn-loss">0%</em></div><div class="dn-bar"><i id="dn-bar"></i></div><div class="dn-row"><span id="dn-label"></span><em id="dn-time"></em></div><div id="dn-ems"></div></div>
   <div id="placebar" class="hidden"><div class="pb-top"><i></i><b></b><span></span></div><div class="pb-keys"><kbd>LMB</kbd> Platzieren <kbd>R</kbd>/<kbd>Mausrad</kbd> Drehen <kbd>RMB</kbd>/<kbd>ESC</kbd> Abbrechen</div></div>
   <div id="feed"></div>
   <div id="banner"><b></b><span></span></div>
@@ -130,6 +132,7 @@
 <script src="js/game/hotbar.js"></script>
 <script src="js/game/props.js"></script>
 <script src="js/game/manhunt.js"></script>
+<script src="js/game/medical.js"></script>
 <script src="js/render/textures.js"></script>
 <script src="js/render/sprites.js"></script>
 <script src="js/render/fx.js"></script>

@@ -895,6 +895,13 @@
           o.fillStyle = col; o.font = `900 ${12 * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.textBaseline = 'middle';
           o.fillText(st === 'hostile' || k >= 1 ? '!' : '?', sx, hy + 0.5 * s);
         }
+        if (a.downed && a.alive) {
+          // critical: a red cross with the blood loss ring
+          const k = a.downed.loss / 100, by = sy - 18 * zs;
+          o.lineWidth = 2.6 * s; o.strokeStyle = 'rgba(0,0,0,0.6)'; o.beginPath(); o.arc(sx, by, 9 * s, 0, 6.3); o.stroke();
+          o.strokeStyle = a.downed.stab ? '#10b981' : '#e0182d'; o.beginPath(); o.arc(sx, by, 9 * s, -Math.PI / 2, -Math.PI / 2 + U.TAU * k); o.stroke();
+          o.fillStyle = a.downed.stab ? '#10b981' : '#e0182d'; o.fillRect(sx - 1.5 * s, by - 5 * s, 3 * s, 10 * s); o.fillRect(sx - 5 * s, by - 1.5 * s, 10 * s, 3 * s);
+        }
         if (a.reportT > 0 && (!a.call || w.t - a.call.t0 > a.call.dial)) {
           // phone at the ear: the ring shows how long until they get through
           const k = a.call ? U.clamp((w.t - a.call.t0) / a.call.dur, 0, 1) : 0.5;

@@ -91,6 +91,18 @@
       this.set('place', place + (z >= 0 ? '|z' + (w.zones[z].roles.includes(w.role(p)) ? 'ok' : 'no') : ''), () => { e.district.innerHTML = U.esc(place) + (z >= 0 ? (w.zones[z].roles.includes(w.role(p)) ? ' <span style="color:#5fd38d">· ZUGANG (Verkleidung)</span>' : ' <span style="color:#ff3b4e">· SPERRGEBIET</span>') : ''); });
       this.set('bank', P.bank || 0, (v) => (e.bank.textContent = `Konto ${U.money(v)}${P.deal && P.deal.rep ? ` · Dealer-Ruf ${P.deal.rep}` : ''}`));
       this.jailbox(P, w);
+      // injuries: body figure + critical overlay
+      { const I = p.inj, key = I ? Object.keys(K.ZONES).map((z) => (I.wounds[z] || 0) + (I.frac[z] ? 'f' : '') + (I.artery === z ? 'a' : '')).join(',') : '';
+        this.set('inj', key, () => { const svg = this.figEl || (this.figEl = document.getElementById('bodyfig')); if (!svg) return; svg.classList.toggle('on', !!key && key.replace(/[0,]/g, '') !== ''); svg.querySelectorAll('[data-z]').forEach((el) => { const z = el.dataset.z; el.setAttribute('class', !I ? '' : I.artery === z ? 'art' : I.frac[z] ? 'frac' : I.wounds[z] >= 2 ? 'w2' : I.wounds[z] ? 'w1' : ''); }); });
+        const D = p.downed, el = this.dnEl || (this.dnEl = document.getElementById('downed'));
+        if (el) { el.classList.toggle('hidden', !D); if (D) {
+          document.getElementById('dn-loss').textContent = Math.floor(D.loss) + '%';
+          const bar = document.getElementById('dn-bar'); bar.style.width = D.loss + '%'; bar.className = D.loss > 60 ? 'r' : D.loss > 30 ? 'a' : 'g';
+          document.getElementById('dn-label').textContent = D.label;
+          const s = Math.floor(w.t - D.t0); document.getElementById('dn-time').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+          const amb = w.cars.find((c) => c.kind === 'ambulance' && c.unit && c.unit.ems === p.id && !c.dead);
+          document.getElementById('dn-ems').textContent = amb ? (amb.unit.mode === 'respond' ? `🚑 Rettungswagen unterwegs · ca. ${Math.max(5, Math.round(Math.hypot(amb.x - p.x, amb.y - p.y) / Math.max(120, amb.speed || 0)))} s` : '🚑 Sanitäter bei dir') : (s < K.EMS.giveUp ? `Aufgeben möglich in ${K.EMS.giveUp - s} s` : '');
+        } } }
       // prop placement bar (dark slate + violet)
       const pl = w.placing;
       this.set('placing', pl ? `${pl.id}|${pl.ok}|${pl.why}|${P.inv['pl_' + pl.id] || 0}` : '', () => {
@@ -376,6 +388,7 @@
         if (car.dead || car.driver === 'player') continue;
         if (car.owned) { const [mx, my] = toM(car.x, car.y); if (mx < 0 || my < 0 || mx > S || my > S) continue; if (car.service) { x.fillStyle = '#3b82f6'; x.beginPath(); x.arc(mx, my, 8, 0, 6.3); x.fill(); } x.fillText('🚗', mx, my); }
       }
+      for (const car of w.cars) if (car.kind === 'ambulance' && !car.dead) { const [mx, my] = toM(car.x, car.y); x.fillStyle = '#f4f4f0'; x.fillRect(mx - 7, my - 7, 14, 14); x.fillStyle = '#e0182d'; x.fillRect(mx - 1.5, my - 5, 3, 10); x.fillRect(mx - 5, my - 1.5, 10, 3); }
       for (const car of w.cars) if (car.kind === 'police' && !car.dead) { const [mx, my] = toM(car.x, car.y); x.fillStyle = Math.floor(this.t * 6) % 2 ? '#ff2a2a' : '#4f9bff'; x.fillRect(mx - 6, my - 6, 12, 12); }
       // manhunt: the search area and the helicopter
       if (w.wanted > 0 && w.heat.search) {

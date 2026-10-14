@@ -226,6 +226,7 @@
         const fn = this['ai_' + a.state] || this.ai_idle;
         fn.call(this, a, dt);
         let [dvx, dvy] = a.dv || [0, 0];
+        if (a.inj && (a.inj.frac.legL || a.inj.frac.legR)) { dvx *= 0.55; dvy *= 0.55; }
         if (a.stun > 0) { dvx = 0; dvy = 0; }
         // look both ways before stepping onto the road
         if ((dvx || dvy) && a.state !== 'flee' && a.state !== 'hostile') {
@@ -648,6 +649,7 @@
       if (!p || p.removed || !p.alive || (!isP && (p.hidden || p.ko > 0))) { this.calmDown(a); return; }
       if (isP && a.kind === 'cop') {
         if (this.wanted < 1) { this.calmDown(a); return; }
+        if (p.downed) { a.state = 'arrest'; a.brain.arT = 0; return; }
         if (this.P.surrender || !this.copMayShoot()) { a.state = 'arrest'; a.brain.arT = 0; return; }
       }
       const sees = isP ? a.seesPlayer : a.seesFoe;
@@ -717,7 +719,7 @@
     },
     ai_arrest(a, dt) {
       const p = this.player;
-      if (this.P.surrender && p.alive) {
+      if ((this.P.surrender || p.downed) && p.alive) {
         // suspect gave up: walk over, cuff
         const d = Math.hypot(p.x - a.x, p.y - a.y);
         a.faceTo = Math.atan2(p.y - a.y, p.x - a.x);

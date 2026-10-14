@@ -226,7 +226,7 @@
   // per-model silhouette: cabin span (from rear, from front) and corner radius
   const CARSHAPE = {
     sedan: [15, 22, 9], taxi: [15, 22, 9], police: [15, 22, 9], sport: [17, 24, 9], compact: [9, 15, 10], coupe: [16, 27, 9], muscle: [18, 29, 7],
-    suv: [6, 19, 6], pickup: [0, 21, 6], super: [21, 22, 10], ev: [10, 17, 11], van: [4, 18, 4],
+    suv: [6, 19, 6], pickup: [0, 21, 6], super: [21, 22, 10], ev: [10, 17, 11], van: [4, 18, 4], ambulance: [4, 18, 4],
   };
   const TINT = ['#1a2a3a', '#14202c', '#0d141b', '#080b0f', '#030405', '#0f2418'];
   K.drawCar = function (x, c, t, o = {}) {
@@ -270,6 +270,11 @@
     if (tu.finish === 'metal' || tu.finish === 'chrome') { x.fillStyle = 'rgba(255,255,255,0.12)'; for (let k = 0; k < 9; k++) x.fillRect(-hl + 6 + ((k * 23) % (L - 12)), -hw + 3 + ((k * 7) % (Wd - 8)), 1, 1); }
     // livery
     if (c.kind === 'police') { x.fillStyle = '#f2f2f2'; x.fillRect(-hl + 14, -hw + 1, L - 30, 5); x.fillRect(-hl + 14, hw - 6, L - 30, 5); }
+    if (c.kind === 'ambulance') {
+      x.fillStyle = '#d4202a'; x.fillRect(-hl + 4, -hw + 1, L - 8, 4); x.fillRect(-hl + 4, hw - 5, L - 8, 4);
+      x.fillStyle = '#f2c200'; for (let k = 0; k < 8; k++) { x.fillRect(-hl + 6 + k * 8, -hw + 1, 4, 2); x.fillRect(-hl + 6 + k * 8, hw - 3, 4, 2); }
+      x.fillStyle = '#d4202a'; x.fillRect(-hl + 18, -3.5, 12, 7); x.fillRect(-hl + 20.5, -6, 7, 12);
+    }
     if (c.kind === 'taxi') { x.fillStyle = '#111'; for (let k = 0; k < 6; k++) x.fillRect(-hl + 16 + k * 5, (k & 1) ? -hw + 2 : hw - 4, 5, 2); }
     const stripe = tu.color2 || (c.kind === 'sport' || c.kind === 'muscle' ? 'rgba(255,255,255,0.75)' : null);
     if (stripe) { x.save(); bodyPath(); x.clip(); x.fillStyle = stripe; x.fillRect(-hl, -3.2, L, 2.2); x.fillRect(-hl, 1, L, 2.2); x.restore(); }
@@ -307,6 +312,7 @@
       x.fillStyle = !on && c.siren ? '#2a6bff' : '#10204a'; x.fillRect(-3, 0, 6, hw - 6);
     }
     if (c.kind === 'taxi') { x.fillStyle = '#ffe680'; x.fillRect(-3, -5, 6, 10); }
+    if (c.kind === 'ambulance') { const on = c.siren && Math.floor(t * 7) % 2; x.fillStyle = on ? '#3a7bff' : '#16264a'; x.fillRect(hl - 26, -hw + 4, 5, Wd - 8); x.fillStyle = !on && c.siren ? '#3a7bff' : '#16264a'; x.fillRect(-hl + 4, -hw + 4, 4, Wd - 8); }
     // spoiler
     if (tu.spoiler) { const sw = [0, 2, 3.5, 5][tu.spoiler]; x.fillStyle = tu.spoiler === 1 ? U.shade(col, 0.7) : '#151618'; x.fillRect(-hl - (tu.spoiler > 1 ? 2 : 0), -hw + 2, sw, Wd - 4); if (tu.spoiler === 3) { x.fillRect(-hl - 3, -hw + 1, 6, 2.5); x.fillRect(-hl - 3, hw - 3.5, 6, 2.5); } }
     // lights (broken ones stay dark), blinkers

@@ -33,12 +33,13 @@
       const a = this.player, P = this.P, pr = inp.pressed || {};
       this.aimX = inp.ax != null ? inp.ax : a.x + Math.cos(a.angle) * 100;
       this.aimY = inp.ay != null ? inp.ay : a.y + Math.sin(a.angle) * 100;
-      this.aiming = !!inp.aim && !a.inCar && a.alive && !this.placing;
+      this.aiming = !!inp.aim && !a.inCar && a.alive && !this.placing && !a.downed;
       this.scopeSway(a, P, inp, dt);
       P.recoil = Math.max(0, P.recoil - dt * 0.55);
       P.instinct = !!inp.instinct && a.alive;
       if (a.bark) { a.bark.t -= dt; if (a.bark.t <= 0) a.bark = null; }
       if (!a.alive) return;
+      if (a.downed) { this.downedControls(inp, pr); return; }
       a.wi = this.curWeapon();
       this.tickWeapon(a, dt);
       const aimAng = Math.atan2(this.aimY - a.y, this.aimX - a.x);
@@ -107,6 +108,7 @@
       if (a.slowT > 0) { a.slowT -= dt; sp *= 0.35; }
       if (this.drag) sp = 52;
       if (this.aiming) sp *= this.scoped ? 0.45 : 0.68;
+      if (this.limping && this.limping(a)) { sp = Math.min(sp, 98) * 0.55; a.sprint = false; }
       const wd = W8[a.wi.id]; if (wd && wd.slow && !P.handsDown) sp *= wd.slow;
       if (P.energy < 12) sp *= 0.82;
       if (this.carried() > this.weightLimit()) sp *= 0.72;
@@ -249,6 +251,11 @@
           add('E', b.alive ? 'Bewusstlosen ziehen' : 'Leiche ziehen', () => this.startDrag(b));
           if (!b.stripped && b.outfit !== P.outfit && K.OUTFITS[b.outfit]) add('T', `Verkleiden: ${K.OUTFITS[b.outfit].name || 'Kleidung'}`, () => this.takeDisguise(b), 1.4);
         }
+      }
+      // first aid on somebody critical (needs a bandage, tourniquet or medkit)
+      if (!this.drag && this.firstAidTarget) {
+        const fa = this.firstAidTarget();
+        if (fa && (P.inv.medkit || P.inv.bandage || P.inv.tourniquet)) { add('E', `Erste Hilfe: ${fa.name || 'Verletzter'} (${Math.round(fa.downed.loss)}% Blutverlust)`, () => this.firstAid(fa), 3.5); return out; }
       }
       // ground items
       if (!this.drag) {

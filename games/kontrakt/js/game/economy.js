@@ -67,6 +67,9 @@
         w.sup = true; this.takeItem(id); this.emit('sfx', { s: 'attach' }); this.notify(`Schalldämpfer auf ${d.name} montiert`); return true;
       }
       if (it.place) return this.startPlace(it.place);
+      if ((id === 'tourniquet' || id === 'splint') && this.treatSelf) return this.treatSelf(id);
+      if (id === 'bandage' && a.inj && a.inj.artery) this.notify('Ein Verband hält die Arterie nicht — Tourniquet!', 'bad');
+      if (id === 'medkit' && a.inj) a.inj.artery = null;
       if (id === 'flashlight') { P.flashlight = !P.flashlight; this.emit('sfx', { s: 'click' }); return true; }
       if (id === 'mask') return this.toggleMask();
       if (id === 'growkit' || id === 'seed') return this.plantSeed();
@@ -93,7 +96,7 @@
       if (it.energy) P.energy = U.clamp(P.energy + it.energy, 0, 100);
       if (it.hp) a.hp = U.clamp(a.hp + it.hp, 1, this.maxHp());
       if (it.drunk) P.drunk = U.clamp(P.drunk + it.drunk, 0, 1);
-      if (it.stopBleed) a.bleed = 0;
+      if (it.stopBleed) a.bleed = it.id === 'bandage' ? Math.max(a.inj && a.inj.artery ? 1.2 : 0, a.bleed - 1.2) : 0;
       if (it.painkiller) P.painkiller = it.painkiller;
       this.emit('sfx', { s: it.food ? 'eat' : it.water ? 'drink' : 'heal' });
       this.notify(`${it.name} ${it.food ? 'gegessen' : it.water ? 'getrunken' : 'benutzt'}`);
@@ -150,7 +153,7 @@
     heal() {
       const cost = K.SHOPS.hospital.heal;
       if (!this.pay(cost)) return this.notify('Nicht genug Geld.', 'bad');
-      this.player.hp = this.maxHp(); this.player.bleed = 0; this.emit('sfx', { s: 'heal' }); this.notify('Vollständig behandelt.', 'good');
+      this.player.hp = this.maxHp(); this.player.bleed = 0; this.player.inj = null; this.emit('sfx', { s: 'heal' }); this.notify('Vollständig behandelt — Wunden genäht, Brüche gerichtet.', 'good');
     },
     setOutfit(o, silent) {
       const P = this.P;
@@ -208,10 +211,10 @@
       const mh = this.maxHp();
       if (P.hunger <= 0 || P.thirst <= 0) { a.hp -= min * 0.6; if (a.hp <= 0) this.kill(a, null, { kind: P.thirst <= 0 ? 'thirst' : 'hunger' }); }
       else if (P.hunger > 35 && P.thirst > 35 && !a.bleed && a.hp < mh) a.hp = Math.min(mh, a.hp + min * (0.35 + this.sk('survival') * 0.15));
-      if (a.bleed > 0) {
+      if (a.bleed > 0 && !a.downed) {
         a.hp -= a.bleed * dt * 0.9;
         if (Math.random() < dt * 3) this.emit('drip', { x: a.x, y: a.y });
-        if (a.hp <= 0) this.kill(a, this.byId.get(a.lastHitBy) || null, { kind: 'bleed' });
+        if (a.hp <= 0) { if (this.goDown && !this.godMode) this.goDown(a, this.byId.get(a.lastHitBy) || null, { kind: 'bullet' }); else this.kill(a, this.byId.get(a.lastHitBy) || null, { kind: 'bleed' }); }
       }
       // passive income from businesses, once per day at 08:00
       const day = Math.floor((this.time - 8 * 60) / 1440);
@@ -279,7 +282,7 @@
       if (this.wanted >= 2) { for (let i = P.weapons.length - 1; i > 0; i--) if (W8[P.weapons[i].id].type === 'gun') { P.weapons.splice(i, 1); lost++; } P.slot = 0; }
       if (P.jail) { if (P.outfit === 'prisoner') { P.outfit = P.jail.prev; a.outfit = P.outfit; } P.jail = null; }
       P.surrender = false; this.timeScale = 1; this.charges = {};
-      a.alive = true; a.dead = false; a.hp = this.maxHp() * 0.6; a.bleed = 0; a.ko = 0; a.stun = 0; a.removed = false; a.vx = a.vy = 0;
+      a.alive = true; a.dead = false; a.hp = this.maxHp() * 0.6; a.bleed = 0; a.downed = null; a.inj = null; a.ko = 0; a.stun = 0; a.removed = false; a.vx = a.vy = 0;
       if (!this.byId.has(a.id)) this.byId.set(a.id, a);
       if (!this.actors.includes(a)) this.actors.push(a);
       a.x = (h.entrance.x + 0.5) * TILE; a.y = (h.entrance.y + 1.5) * TILE;

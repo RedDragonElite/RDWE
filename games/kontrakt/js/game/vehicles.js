@@ -8,6 +8,7 @@
     van:   { l: 78, w: 34, max: 330, acc: 180, colors: ['#e8e8e4', '#3b4048', '#8b6a3a'] },
     taxi:  { l: 64, w: 30, max: 420, acc: 250, colors: ['#f2c200'] },
     police:{ l: 66, w: 31, max: 520, acc: 330, colors: ['#10141c'] },
+    ambulance: { l: 82, w: 35, max: 380, acc: 220, colors: ['#f4f4f0'] },
   };
   const P = 26, NB = 7, LANE = 32;
   const nodeXY = (i, j) => [(i * P + 2) * TILE, (j * P + 2) * TILE];

@@ -117,6 +117,36 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Ohne Sichtkontakt fährt die Verfolgung zur Funkposition, nicht zu dir.
 - **Verstecken:** in Containern, Schränken und Spinden (**T** halten, **E** zum Rauskommen). Suchende Polizisten schauen in Verstecke direkt neben sich.
 
+### Verletzungen & Rettungsdienst (nach rde_aimd, erweitert)
+- **Trefferzonen:**
+  - **Kopf:** tödlich, ×2,6 bei NPCs
+  - **Oberkörper:** ×1, die Schutzweste schützt nur hier
+  - **Arme:** ×0,6
+  - **Beine:** ×0,7
+- **Blutungen:** Je nach Zone und Schaden blutet die Wunde. Treffer an Bein, Arm oder Oberkörper können eine Arterie treffen, das blutet stark.
+- **Brüche:** Ein gebrochenes Bein lässt dich humpeln, ohne Sprint. Ein gebrochener Arm zittert und streut stärker. Das gilt auch für NPCs.
+- **Behandlung:**
+  - Verband: nur leichte Blutungen
+  - Tourniquet: Arm oder Bein, auch Arterien
+  - Schiene: richtet einen Bruch
+  - Medkit: stoppt alle Blutungen
+  - Klinik: näht und richtet alles
+- **Kritischer Zustand statt Sofort-Tod** (für dich und NPCs):
+  - Wer liegt, verliert Blut (0–100 %, je nach Wunde 0,5–1,6 %/s).
+  - Ein weiterer Schuss oder 100 % Blutverlust bedeuten das Ende.
+  - Saubere Kopfschüsse, Overkill, Takedowns und Gift töten weiterhin sofort.
+- **Notruf 112:**
+  - Zeugen rufen einen Rettungswagen. Der fährt von außerhalb mit Blaulicht über das Straßennetz an.
+  - Zwei Sanitäter steigen aus und behandeln 10 s vor Ort. Danach steht der Patient wieder auf.
+  - Solange Hilfe unterwegs ist, stirbt niemand (rde_aimd).
+- **Du am Boden:**
+  - Overlay mit Blutverlust, Verletzung und Zeit; Herzschlag, der schneller wird.
+  - **E** ruft den Rettungswagen (750 $ + Entfernung). **X** heißt nach 20 s aufgeben, dann geht es in die Klinik.
+  - Ein Crew-Mitglied mit Verbandszeug holt dich zurück.
+  - Mit Fahndung legt dir die Polizei am Boden Handschellen an.
+- **Erste Hilfe:** **E** halten an Verletzten, mit Verband, Tourniquet oder Medkit. Das stabilisiert sie, bringt XP als Lebensretter, und sie stehen später auf.
+- **HUD:** Ein Körperdiagramm zeigt Wunden, Brüche und Arterien. Über Verletzten steht ein rotes Kreuz mit Blutverlust-Ring, und die Minimap zeigt Rettungswagen.
+
 ### Unterwelt: Verbrechen, Knast, Drogen
 - **Strafregister:** Jede gemeldete Tat landet auf der Anklage, mit eigener Haftzeit (Raub 4h, Mord 10h, Polizistenmord 20h …).
   - Entkommst du der Fahndung, verfallen die Anklagepunkte.
@@ -398,7 +428,7 @@ games/kontrakt/
   - `node tools/sim.mjs` spielt Laufen, Schießen, Auftrag, Takedown, Fahren, 5 Spielstunden und Speichern headless durch.
   - `node tools/scenarios.mjs` prüft die KI: Hausfriedensbruch, Verkleidung, Münzen-Ablenkung, Leichenfund, Zeugen mit Polizei, Klaviersaite.
   - `node tools/crime.mjs` prüft Unterwelt, Überfälle, Gangs und Reviere; `node tools/city.mjs` prüft Strand, Clubs, Tänzerinnen und Immobilien; `node tools/cars.mjs` prüft Sprit, Crashs, Verformung, Gurt, Laternen, Reifen, Tuning, Autohaus, Zapfsäule, Werkstatt und Car Service.
-  - `node tools/arms.mjs` prüft Scharfschützengewehre, Scope-Wackeln, Atem anhalten und .50-Durchschlag; `node tools/props.mjs` prüft Platzieren, Container, Schlösser, Stationen, Einbrecher und Speichern der Props; `node tools/hunt.mjs` prüft Notrufe, Funk, Suche, Sternabbau, Verstecke, Hubschrauber, Straßensperren und PIT.
+  - `node tools/arms.mjs` prüft Scharfschützengewehre, Scope-Wackeln, Atem anhalten und .50-Durchschlag; `node tools/props.mjs` prüft Platzieren, Container, Schlösser, Stationen, Einbrecher und Speichern der Props; `node tools/hunt.mjs` prüft Notrufe, Funk, Suche, Sternabbau, Verstecke, Hubschrauber, Straßensperren und PIT; `node tools/medical.mjs` prüft Trefferzonen, Blutungen, Brüche, kritischen Zustand, Erste Hilfe und Rettungswagen.
 - **Speichern** in `localStorage`. Die Stadt wird aus dem Seed neu erzeugt, deshalb bleibt der Spielstand klein.
 
 *Red Dragon Elite · pure HTML · CSS · JavaScript*

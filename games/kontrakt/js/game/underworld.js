@@ -87,6 +87,7 @@
     /** taken into custody: frisk, confiscate, sentence, cell */
     arrest() {
       const P = this.P, a = this.player;
+      if (a.downed) { a.downed = null; a.ko = 0; a.hp = Math.max(a.hp, 30); a.bleed = 0; }
       const surrendered = !!P.surrender;
       P.surrender = false;
       const lost = [];
