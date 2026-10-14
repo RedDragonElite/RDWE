@@ -201,6 +201,7 @@
       }
       if (this.drag) return false;
       if (this.propsContext && this.propsContext(add)) return false;
+      if (this.orgContext && this.orgContext(add)) return false;
       if (this.fuelContext && this.fuelContext(add)) return false;
       if (this.crewContext && this.crewContext(add)) return false;
       if (this.mechanicContext && this.mechanicContext(add)) return false;

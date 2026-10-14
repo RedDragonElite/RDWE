@@ -1,7 +1,7 @@
 // AI behaviour scenarios: node tools/scenarios.mjs
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js','js/game/gangs.js','js/game/autos.js','js/game/carservice.js','js/game/nightlife.js','js/game/hotbar.js','js/game/props.js','js/game/manhunt.js','js/game/medical.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
+for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js','js/game/gangs.js','js/game/autos.js','js/game/carservice.js','js/game/nightlife.js','js/game/hotbar.js','js/game/props.js','js/game/manhunt.js','js/game/medical.js','js/game/org.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
 const K = ctx.K, TILE = 32;
 let ok = 0, fail = 0;
 const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
@@ -80,7 +80,7 @@ console.log('5) shooting in public: witnesses call the police');
   run(w, 60 * 20);
   const civ = w.actors.find(a => a.kind === 'civ' && a.alive && !a.inCar);
   const p = w.player; p.x = civ.x - 70; p.y = civ.y; civ.angle = Math.PI; civ.state = 'idle'; civ.brain.t = 30;
-  w.rebuildGrid(); w.P.slot = 1; p.wi = w.curWeapon();
+  w.rebuildGrid(); w.P.slot = 1; p.wi = w.curWeapon(); w.forceCalls = true;
   w.attack(p, 0, true, true);
   run(w, 2);
   check(civ.state === 'flee' || civ.state === 'cower', `witness flees (state=${civ.state})`);
@@ -167,7 +167,7 @@ console.log('8) crew: hire, call, follow, ride along, fight, clinic');
   const ti = w.nav.nearestFree(w.tileIdx(p.x + 5 * TILE, p.y), null, 6);
   const t = w.spawnActor('thug', (ti % w.W + 0.5) * TILE, ((ti / w.W | 0) + 0.5) * TILE, { weapon: 'bat', state: 'prowl', outfit: 'hoodie' }); t.crim = true; w.alarm(t, p);
   w.rebuildGrid();
-  for (let i = 0; i < 60 * 25 && t.alive; i++) run(w, 1);
+  for (let i = 0; i < 60 * 45 && t.alive && !(t.ko > 0); i++) run(w, 1);   // limb hits make fights last longer
   check(!t.alive || t.ko > 0, 'crew takes down the attacker');
   check(w.P.crew.some(m => m.kills > 0 || m.xp > 0), 'crew earns XP');
   check(w.wanted === 0, `defending you is not a crime (wanted=${w.wanted})`);

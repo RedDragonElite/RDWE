@@ -78,6 +78,7 @@
             <button class="app" data-a="estate"><i style="background:linear-gradient(135deg,#3d8a4a,#123a1a)">🏠</i>Immobilien</button>
             <button class="app" data-a="msgs"><i style="background:linear-gradient(135deg,#8a4ac8,#2a1240)">💬</i>Nachrichten</button>
             <button class="app" data-a="bank"><i style="background:linear-gradient(135deg,#5fd38d,#14482a)">💰</i>Konto</button>
+            <button class="app" data-a="org"><i style="background:linear-gradient(135deg,#e0182d,#1a0507)">♛</i>Organisation</button>
             <button class="app" data-a="props"><i style="background:linear-gradient(135deg,#8b5cf6,#1e1b4b)">🛋️</i>Einrichtung</button>
             <button class="app" data-a="cars"><i style="background:linear-gradient(135deg,#3b82f6,#0f172a)">🚘</i>Car Service</button>
             <button class="app" data-a="inv"><i style="background:linear-gradient(135deg,#6b6f78,#22252b)">🎒</i>Inventar</button>
@@ -140,6 +141,7 @@
           <div class="card"><div class="sub">Passives Einkommen</div><h4>${U.money(inc)} / Tag</h4><p>Zahlt jeden Morgen um 08:00 aus.</p></div>
           <div class="card"><div class="sub">Verdient mit Aufträgen</div><h4>${U.money(P.stats.earned)}</h4></div>`;
       } else if (app === 'props') { this.propsApp(body); return; }
+      else if (app === 'org' || app.startsWith('org:')) { this.orgApp(body, app.split(':')[1] || 'home'); return; }
       else if (app === 'cars' || app.startsWith('cars:')) { this.carApp(body, app.split(':')[1] || 'start'); return; }
       else if (app === 'map') { this.closePhone(); this.openMap(); return; }
       else if (app === 'inv') { this.closePhone(); this.inventory(); return; }
@@ -183,6 +185,7 @@
       else if (e.open === 'dealer') this.dealer(e.kind);
       else if (e.open === 'tuning') this.tuning(e.car);
       else if (e.open === 'container') this.container(e.uid);
+      else if (e.open === 'corner') this.corner(e.uid);
       else if (e.open === 'station') this.station(e.uid);
     }
 
@@ -589,6 +592,60 @@
       b.querySelectorAll('[data-sa]').forEach((x) => (x.onclick = () => { w.storeTake(rec, 'a', x.dataset.sa); re(); }));
       b.querySelectorAll('[data-si]').forEach((x) => (x.onclick = () => { w.storeTake(rec, 'i', x.dataset.si); re(); }));
       const sc = b.querySelector('[data-setcode]'); if (sc) sc.onclick = () => { if (w.setCode(rec, b.querySelector('[data-code]').value.trim())) re(); };
+    }
+    /** your street dealer: hand over product, take it back, collect the cash, let them go */
+    corner(uid) {
+      const w = this.g.world, P = w.P, rec = w.org().dealers.find((d) => d.uid === uid); if (!rec) return this.closePanel();
+      const drugs = ['bud', 'meth', 'coke', 'weedbrick'].filter((k) => K.ITEMS[k]);
+      let h = `<div class="ctr-cap"><span>${esc(K.DISTRICTS[w.districtAt(rec.x, rec.y)] || '')} · ${w.ownTurfAt(rec.x, rec.y) ? 'dein Revier (+30% Absatz)' : 'fremdes Pflaster'}</span><span>Verkauft: ${rec.sold}</span><span>Anteil Dealer: ${Math.round(K.ORG.dealerCut * 100)}%</span></div>`;
+      h += `<div class="job"><b>Kasse: ${U.money(rec.cash)}</b><div class="btns" style="margin-top:8px"><button class="btn red" data-dc ${rec.cash ? '' : 'disabled'}>Kassieren</button><button class="btn ghost" data-df>Feuern</button></div></div>`;
+      h += '<div class="cols"><div><div class="sec">Bei dir</div><div class="list">';
+      for (const k of drugs) if (P.inv[k]) h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)}</div><div class="q">×${P.inv[k]}</div><button class="btn ghost" data-dg="${k}">Alles geben ▶</button></div>`;
+      h += '</div></div><div><div class="sec">Ware an der Ecke</div><div class="list">';
+      for (const k in rec.stock) h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)}</div><div class="q">×${rec.stock[k]}</div><button class="btn ghost" data-dt="${k}">◀ Zurück</button></div>`;
+      if (!Object.keys(rec.stock).length) h += '<div class="it"><div class="nm"><small>Nichts mehr da. Ohne Ware kein Geschäft.</small></div></div>';
+      h += '</div></div></div><p style="font-size:12px;color:#9ca3af">Nachts und in belebten Vierteln läuft mehr. Razzien sind in Mitte häufiger, im eigenen Revier seltener; in fremdem Revier wird eher geraubt.</p>';
+      const b = this.panel(`ECKE · ${rec.name.toUpperCase()}`, h, 'corner');
+      const re = () => this.corner(uid);
+      b.querySelectorAll('[data-dg]').forEach((x) => (x.onclick = () => { w.dealerGive(rec, x.dataset.dg, 1e9); re(); }));
+      b.querySelectorAll('[data-dt]').forEach((x) => (x.onclick = () => { w.dealerTake(rec, x.dataset.dt); re(); }));
+      b.querySelector('[data-dc]').onclick = () => { w.dealerCollect(rec); re(); };
+      b.querySelector('[data-df]').onclick = () => { w.dealerFire(rec); this.closePanel(); };
+    }
+    /** phone: the organisation */
+    orgApp(body, tab) {
+      const w = this.g.world, P = w.P, O = w.org();
+      this.phoneApp = 'org:' + tab;
+      const r = w.orgRank(), next = K.ORG.ranks[r + 1], cur = K.ORG.ranks[r][0];
+      const tabs = `<div class="cs-tabs">${[['home', 'Übersicht'], ['racket', 'Schutzgeld'], ['corners', 'Ecken'], ['biz', 'Geschäfte']].map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-ot="${k}">${n}</button>`).join('')}</div>`;
+      let h = `<div class="ph-h">ORGANISATION</div><div class="org-rank"><b>${esc(K.ORG.ranks[r][1])}</b><small>${P.gang ? esc(P.gang.name) : 'ohne Gang'} · Ruf ${Math.floor(O.rep)}${next ? ' / ' + next[0] : ''}</small><div class="xpbar"><i style="width:${next ? ((O.rep - cur) / (next[0] - cur)) * 100 : 100}%"></i></div></div>${tabs}`;
+      const rk = Object.entries(O.racket), dl = O.dealers.filter((d) => !d.gone);
+      let biz = 0; for (const id of P.owned) biz += Math.round((w.propertyDef(id).income || 0) * w.bizMult(id));
+      if (tab === 'home') {
+        const rDay = rk.reduce((s, [, R]) => s + R.rate, 0), turf = w.playerBlocks ? w.playerBlocks() * K.TURF_INCOME : 0;
+        h += `<div class="card"><div class="sub">Tageseinnahmen (geschätzt)</div>
+          <div class="stat"><span>Legale Geschäfte</span><b>${U.money(biz)}</b></div>
+          <div class="stat"><span>Reviere (${w.playerBlocks ? w.playerBlocks() : 0} Blöcke)</span><b>${U.money(turf)}</b></div>
+          <div class="stat"><span>Schutzgeld (${rk.length} Läden)</span><b>${U.money(rDay)}</b></div>
+          <div class="stat"><span>Dealer heute (${dl.length}/${w.maxDealers()})</span><b>${U.money(O.today.dealers || 0)}</b></div></div>
+          <div class="card"><p>Fordere Schutzgeld direkt im Laden [T] — mit gezogener Waffe, deiner Crew oder im eigenen Revier geben sie eher nach. Eröffne Ecken für Dealer und versorge sie mit Ware. Höherer Rang = mehr Ecken.</p></div>`;
+      } else if (tab === 'racket') {
+        if (!rk.length) h += '<div class="card"><p>Noch kein Laden zahlt dir. Geh in einen Laden und sprich den Inhaber an [T].</p></div>';
+        for (const [bid, R] of rk) { const b = w.buildings[bid]; h += `<div class="card"><div class="sub">${esc(K.DISTRICTS[b.district] || '')}${w.ownTurfAt(b.x * TILE, b.y * TILE) ? ' · dein Revier: Gang kassiert automatisch' : ''}</div><h4>${esc(R.name)}</h4><div class="meta"><span>${U.money(R.rate)}/Tag${R.unpaid > 2 ? ` · ⚠ ${R.unpaid} Tage nicht abgeholt` : ''}</span><b>${R.owed ? 'offen ' + U.money(R.owed) : '✔'}</b></div><div class="btns"><button class="btn ghost" data-oloc="${bid}">Wegpunkt</button></div></div>`; }
+      } else if (tab === 'corners') {
+        h += `<div class="card"><p>Stell dich auf die Straße, wo die Ecke sein soll. Ein Dealer kostet ${U.money(K.ORG.dealerFee)} Startgeld und behält ${Math.round(K.ORG.dealerCut * 100)}%.</p><div class="btns"><button class="btn red" data-oopen ${dl.length >= w.maxDealers() ? 'disabled' : ''}>Hier eine Ecke eröffnen</button></div></div>`;
+        for (const d of dl) h += `<div class="card"><div class="sub">${esc(K.DISTRICTS[w.districtAt(d.x, d.y)] || '')}</div><h4>${esc(d.name)}</h4><div class="meta"><span>Ware: ${w.dealerUnits(d)} · verkauft ${d.sold}</span><b>${U.money(d.cash)}</b></div><div class="btns"><button class="btn ghost" data-oway="${d.uid}">Wegpunkt</button></div></div>`;
+      } else {
+        const mine = P.owned.filter((id) => w.propertyDef(id).income);
+        if (!mine.length) h += '<div class="card"><p>Du besitzt noch kein Geschäft. Immobilien-App: Bar, Diner, Tankstelle, Werkstatt, Clubs.</p></div>';
+        for (const id of mine) { const d = w.propertyDef(id), lv = w.bizLevel(id), up = K.ORG.bizUp[lv]; h += `<div class="card"><h4>${esc(d.name)}</h4><div class="meta"><span>${U.money(Math.round(d.income * w.bizMult(id)))}/Tag · Ausbau ${lv}/${K.ORG.bizUp.length}</span><b>${lv ? '+' + Math.round((w.bizMult(id) - 1) * 100) + '%' : ''}</b></div>${up ? `<div class="btns"><button class="btn" data-oup="${id}" ${P.money >= w.bizUpgradeCost(id) ? '' : 'disabled'}>${esc(up.name)} · ${U.money(w.bizUpgradeCost(id))}</button></div>` : '<p style="color:#10b981">Voll ausgebaut.</p>'}</div>`; }
+      }
+      body.innerHTML = h;
+      body.querySelectorAll('[data-ot]').forEach((b) => (b.onclick = () => this.orgApp(body, b.dataset.ot)));
+      body.querySelectorAll('[data-oloc]').forEach((b) => (b.onclick = () => { const bb = w.buildings[b.dataset.oloc]; this.g.waypoint = { x: (bb.entrance.x + 0.5) * TILE, y: (bb.entrance.y + 0.5) * TILE }; this.g.ui.feed('Wegpunkt gesetzt.'); }));
+      body.querySelectorAll('[data-oway]').forEach((b) => (b.onclick = () => { const d = O.dealers.find((q) => q.uid === +b.dataset.oway); if (d) { this.g.waypoint = { x: d.x, y: d.y }; this.g.ui.feed('Wegpunkt gesetzt.'); } }));
+      const op = body.querySelector('[data-oopen]'); if (op) op.onclick = () => { w.openCorner(); this.orgApp(body, 'corners'); };
+      body.querySelectorAll('[data-oup]').forEach((b) => (b.onclick = () => { w.bizUpgrade(b.dataset.oup); this.orgApp(body, 'biz'); }));
     }
     /** a crafting station: recipes with what you have, the running batch, collect */
     station(uid) {

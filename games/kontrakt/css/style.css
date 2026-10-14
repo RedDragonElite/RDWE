@@ -474,3 +474,9 @@ body.placing #prompt { display: none; }
 #downed .dn-bar i { display: block; height: 100%; transition: width .3s; }
 #downed .dn-bar i.g { background: #10b981; } #downed .dn-bar i.a { background: #f59e0b; } #downed .dn-bar i.r { background: #e0182d; }
 #dn-ems { margin-top: 8px; font-size: 13px; color: #a5b4fc; min-height: 16px; }
+
+/* organisation app */
+.org-rank { padding: 10px 12px; margin-bottom: 10px; border-left: 3px solid #e0182d; background: rgba(224,24,45,.08); }
+.org-rank b { display: block; font: 600 20px var(--f-head); letter-spacing: .12em; color: #ece9e2; text-transform: uppercase; }
+.org-rank small { color: #9ca3af; font-size: 12px; }
+.org-rank .xpbar { margin-top: 6px; }

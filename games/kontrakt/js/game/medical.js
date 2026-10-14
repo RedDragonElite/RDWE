@@ -92,6 +92,7 @@
       }
       t.ko = 1e6; t.state = 'ko'; t.path = null; t.vx *= 0.3; t.vy *= 0.3; t.susp = 0;
       this.emit('downed', { id: t.id, x: t.x, y: t.y });
+      if (src && src.kind === 'crew' && this.crewKill) this.crewKill(src, t);   // putting someone down counts for your crew
       if (src && src.kind === 'player') { this.crimeEvent(src, t.kind === 'cop' ? 'assault' : 'assault', t.x, t.y, t); this.note('ko', { victim: t }); }
       // somebody who saw it phones for an ambulance
       for (const n of this.near(t.x, t.y, 16 * TILE)) {

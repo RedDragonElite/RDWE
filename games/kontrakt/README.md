@@ -228,6 +228,22 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Frieden kann man kaufen. Verliert eine Gang ihr letztes Revier, ist sie zerschlagen.
 - **Einnahmen:** Jeder eigene Block bringt $150 pro Tag. Dealen im eigenen Revier bringt +25%.
 
+### Deine Organisation: Rang, Schutzgeld, Ecken, Geschäfte
+- **Rang in der Unterwelt:** Straßenratte → Kleinkrimineller → Soldat → Capo → Unterboss → Pate. Den Ruf bringen Schutzgeld, Verkäufe, Ausbau und Reviere. Höherer Rang gibt mehr Ecken und mehr Respekt.
+- **Schutzgeld:**
+  - Im Laden beim Inhaber **T** halten: „Schutzgeld fordern“.
+  - Ob er nachgibt, hängt ab von gezogener Waffe, deiner Crew, dem eigenen Revier, Rang und davon, ob du den Laden kürzlich zerschossen hast. Fremdes Revier oder ein bewaffneter Inhaber machen es schwerer.
+  - Sagt er nein, ruft er womöglich die Polizei (Schutzgelderpressung), oder die Gang, der der Block gehört, schickt Leute.
+  - Die erste Rate gibt es sofort. Danach wartet das Geld täglich an der Kasse (**T**: kassieren). Im eigenen Revier kassiert deine Gang automatisch.
+  - Lässt du dich 5 Tage nicht blicken, zahlt der Laden nicht mehr. Übernimmt eine Rivalengang den Block, wechselt der Laden die Seite.
+- **Dealer an Ecken:**
+  - Handy › Organisation › Ecken: „Hier eine Ecke eröffnen“ (600 $, Dealer behält 20 %).
+  - Gib ihm Gras, Kristall oder Koks (**E** am Dealer). Er verkauft je nach Viertel, Tageszeit und Revier, auch wenn du weit weg bist oder schläfst. Käufer laufen sichtbar zu ihm.
+  - Es gibt Razzien, besonders in Mitte, seltener im eigenen Revier: Dealer, Ware und Kasse sind dann weg. In fremdem Revier wird er öfter ausgeraubt.
+- **Legale Geschäfte ausbauen:** Renovierung (+25 %), Personal (+20 %), Werbung und Neon (+15 % Tagesumsatz).
+- **Revierkämpfe ohne dich:** Die drei Gangs nehmen sich gegenseitig Blöcke ab, und die größere Gang gewinnt eher. Deine Blöcke greifen sie nur im Krieg an.
+- **Handy › Organisation:** Rang und Ruf, Tageseinnahmen nach Quelle (Geschäfte, Reviere, Schutzgeld, Dealer), alle Läden mit offenen Beträgen, alle Ecken mit Ware und Kasse, Ausbau der Geschäfte.
+
 ### Vice-Look, Ocean Beach & Nachtleben
 - **Vice-Grading** (abschaltbar in den Optionen): lila Schatten, Türkis in den Mitten, Pink und Orange in den Lichtern, zur goldenen Stunde am stärksten.
 - **Palmen-Boulevards** in Mitte, Sonnenhang und am Strand, mit pinken und cyanfarbenen Laternen am Ocean Drive.
@@ -428,7 +444,7 @@ games/kontrakt/
   - `node tools/sim.mjs` spielt Laufen, Schießen, Auftrag, Takedown, Fahren, 5 Spielstunden und Speichern headless durch.
   - `node tools/scenarios.mjs` prüft die KI: Hausfriedensbruch, Verkleidung, Münzen-Ablenkung, Leichenfund, Zeugen mit Polizei, Klaviersaite.
   - `node tools/crime.mjs` prüft Unterwelt, Überfälle, Gangs und Reviere; `node tools/city.mjs` prüft Strand, Clubs, Tänzerinnen und Immobilien; `node tools/cars.mjs` prüft Sprit, Crashs, Verformung, Gurt, Laternen, Reifen, Tuning, Autohaus, Zapfsäule, Werkstatt und Car Service.
-  - `node tools/arms.mjs` prüft Scharfschützengewehre, Scope-Wackeln, Atem anhalten und .50-Durchschlag; `node tools/props.mjs` prüft Platzieren, Container, Schlösser, Stationen, Einbrecher und Speichern der Props; `node tools/hunt.mjs` prüft Notrufe, Funk, Suche, Sternabbau, Verstecke, Hubschrauber, Straßensperren und PIT; `node tools/medical.mjs` prüft Trefferzonen, Blutungen, Brüche, kritischen Zustand, Erste Hilfe und Rettungswagen.
+  - `node tools/arms.mjs` prüft Scharfschützengewehre, Scope-Wackeln, Atem anhalten und .50-Durchschlag; `node tools/props.mjs` prüft Platzieren, Container, Schlösser, Stationen, Einbrecher und Speichern der Props; `node tools/hunt.mjs` prüft Notrufe, Funk, Suche, Sternabbau, Verstecke, Hubschrauber, Straßensperren und PIT; `node tools/medical.mjs` prüft Trefferzonen, Blutungen, Brüche, kritischen Zustand, Erste Hilfe und Rettungswagen; `node tools/org.mjs` prüft Rang, Schutzgeld, Dealer, Geschäfte und Gang-Revierkämpfe.
 - **Speichern** in `localStorage`. Die Stadt wird aus dem Seed neu erzeugt, deshalb bleibt der Spielstand klein.
 
 *Red Dragon Elite · pure HTML · CSS · JavaScript*

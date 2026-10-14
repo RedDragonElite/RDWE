@@ -220,7 +220,7 @@
       const day = Math.floor((this.time - 8 * 60) / 1440);
       if (day > P.lastIncome) {
         if (P.lastIncome > 0 || day > 0) {
-          let inc = 0; for (const id of P.owned) inc += this.propertyDef(id).income || 0;
+          let inc = 0; for (const id of P.owned) inc += Math.round((this.propertyDef(id).income || 0) * (this.bizMult ? this.bizMult(id) : 1));
           if (inc) { P.bank = (P.bank || 0) + inc; this.notify(`Einnahmen deiner Geschäfte aufs Konto: +${U.money(inc)}`, 'money'); this.emit('sfx', { s: 'cash' }); }
         }
         P.lastIncome = day;

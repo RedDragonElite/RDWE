@@ -66,6 +66,7 @@
       if (isP) {
         this.note('shot', { sup });
         this.lastPlayerShotT = this.t;
+        { const bi = this.bldAt(a.x, a.y); if (bi >= 0) this.buildings[bi].scaredT = this.t; }   // shopkeepers remember
         for (const c of this.near(a.x, a.y, 18 * TILE)) if (c.kind === 'cop' && c.alive && !c.inCar && (!sup || Math.hypot(c.x - a.x, c.y - a.y) < 6 * TILE)) { this.lastThreatT = this.t; break; }
         const heroic = this.near(a.x, a.y, 14 * TILE).some((t) => t.kind === 'thug' && t.crim && t.alive && Math.abs(U.angDiff(aim, Math.atan2(t.y - a.y, t.x - a.x))) < 0.3);
         if (!sup && !heroic) this.crimeEvent(a, 'shots', a.x, a.y, null);
@@ -384,6 +385,7 @@
       t.ko = dur; t.state = 'ko'; t.path = null; t.vx *= 0.3; t.vy *= 0.3; t.susp = 0; t.koA = t.angle + Math.PI * (Math.random() < 0.5 ? 0.5 : -0.5);
       this.emit('ko', { id: t.id, x: t.x, y: t.y });
       if (src && src.kind === 'player') { this.crimeEvent(src, 'assault', t.x, t.y, t); this.note('ko', { victim: t }); if (this.heroReward) this.heroReward(t, src); }
+      if (src && src.kind === 'crew' && this.crewKill) this.crewKill(src, t);
     },
     kill(t, src, info = {}) {
       if (!t.alive) return;
