@@ -111,13 +111,14 @@
       // weapon
       const wi = w.curWeapon(), d = K.WEAPONS[wi.id];
       const ammo = d.type === 'gun' ? `${wi.mag}<small> / ${P.ammo[d.ammo] || 0}</small>${wi.sup ? '<span class="sup">GEDÄMPFT</span>' : ''}` : d.consumable || d.stack ? `×${wi.n || 1}` : '';
-      this.set('wname', d.name, (v) => { e.wName.textContent = v; e.wIcon.src = K.iconURL(wi.id); });
+      const down = P.handsDown && P.slot === 0;
+      this.set('wname', down ? 'Hände unten' : d.name, (v) => { e.wName.textContent = v; e.wIcon.src = K.iconURL(wi.id); e.wIcon.style.opacity = down ? 0.35 : 1; });
       this.set('wammo', ammo + (p.reloading ? 'r' : ''), () => { e.wAmmo.innerHTML = p.reloading ? '<small>LÄDT…</small>' : ammo; e.wAmmo.classList.toggle('empty', d.type === 'gun' && wi.mag === 0); });
       const slots = P.weapons.map((x, i) => x.id + (i === P.slot ? '*' : '') + (x.n || '')).join(',');
       this.set('slots', slots, () => {
         e.wSlots.innerHTML = P.weapons.map((x, i) => `<div class="${i === P.slot ? 'on' : ''}"><span>${i + 1}</span><img src="${K.iconURL(x.id)}">${x.n > 1 ? `<b>${x.n}</b>` : ''}</div>`).join('');
       });
-      const st = [p.crouch ? '<b class="on">GEDUCKT</b>' : '', P.instinct ? '<b class="blue">INSTINKT</b>' : '', w.aiming ? '<b>ZIELEN</b>' : '', w.drag ? '<b class="on">ZIEHT LEICHE</b>' : '', P.flashlight ? '<b>LAMPE</b>' : '', K.OUTFITS[P.outfit].disguise ? `<b class="blue">${K.OUTFITS[P.outfit].name.toUpperCase()}</b>` : ''].join('');
+      const st = [P.handsDown && P.slot === 0 ? '<b>HÄNDE UNTEN</b>' : '', p.crouch ? '<b class="on">GEDUCKT</b>' : '', P.instinct ? '<b class="blue">INSTINKT</b>' : '', w.aiming ? '<b>ZIELEN</b>' : '', w.drag ? '<b class="on">ZIEHT LEICHE</b>' : '', P.flashlight ? '<b>LAMPE</b>' : '', K.OUTFITS[P.outfit].disguise ? `<b class="blue">${K.OUTFITS[P.outfit].name.toUpperCase()}</b>` : ''].join('');
       this.set('stance', st, (v) => (e.stance.innerHTML = v));
       // prompt
       const ctx = w.ctx || [];

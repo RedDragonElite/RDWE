@@ -152,7 +152,7 @@
       case 'throw': arm(x, -1, -8.6, 3 - swing, -10, sleeve, skin); arm(x, -1, 8.6, at < 0.25 ? 14 : 8, at < 0.25 ? 4 : 9, sleeve, skin); if (at > 0.25) { x.save(); x.translate(8, 9); K.drawWeaponTop(x, d.id, false); x.restore(); } break;
       default: { // fists / relaxed
         let lh = [3 - swing, -10.2], rh = [3 + swing, 10.2];
-        if (a.kind === 'player' || a.state === 'fight' || a.state === 'hostile') {
+        if ((a.kind === 'player' && !(w.P && w.P.handsDown)) || a.state === 'fight' || a.state === 'hostile') {
           lh = [6, -6]; rh = [6, 6];
           if (at < 0.17) { const k = Math.sin((at / 0.17) * Math.PI); if (a.punchSide) rh = [6 + k * 11, 6 - k * 5]; else lh = [6 + k * 11, -6 + k * 5]; }
           if (a.kind === 'player' && !(a.wi && (a.wi.id === 'fists')) && at > 0.17) { lh = [3 - swing, -10.2]; rh = [3 + swing, 10.2]; }

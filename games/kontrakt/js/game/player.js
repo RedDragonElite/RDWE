@@ -82,7 +82,8 @@
       a.angle = U.turnTo(a.angle, aimAng, dt * 25); a.aim = a.angle;
       this.switchWeapons(inp, pr);
       if (pr.reload) this.reload(a);
-      if (inp.fire || pr.fire) this.attack(a, a.aim, inp.fire, pr.fire);
+      if (P.handsDown && P.slot === 0 && pr.fire) { P.handsDown = false; a.cool = Math.max(a.cool, 0.2); this.emit('equip', { w: 'fists' }); }   // first click raises the fists
+      else if ((inp.fire || pr.fire) && !(P.handsDown && P.slot === 0)) this.attack(a, a.aim, inp.fire, pr.fire);
       if (pr.g) { if (!this.detonate()) this.notify('Keine Sprengladung platziert.', 'bad'); }
       if (pr.l) { if (P.inv.flashlight) { P.flashlight = !P.flashlight; this.emit('sfx', { s: 'click' }); } else this.notify('Keine Taschenlampe.', 'bad'); }
       this.updateDrag(dt);
@@ -103,9 +104,14 @@
     switchWeapons(inp, pr) {
       const P = this.P, a = this.player;
       const set = (i) => { if (i === P.slot || i < 0 || i >= P.weapons.length) return; if (P.slot) P.last = P.slot; P.slot = i; a.reloadT = 0; a.reloading = false; a.wi = this.curWeapon(); a.cool = Math.max(a.cool, 0.25); this.emit('equip', { w: a.wi.id }); };
-      if (inp.slot != null) set(inp.slot);
-      if (inp.wheel) set((P.slot + inp.wheel + P.weapons.length) % P.weapons.length);
-      if (pr.holster) set(P.slot ? 0 : P.last || 1);
+      if (inp.slot != null) { set(inp.slot); if (inp.slot === 0) P.handsDown = false; }
+      if (inp.wheel) { set((P.slot + inp.wheel + P.weapons.length) % P.weapons.length); if (P.slot === 0) P.handsDown = false; }
+      // H: weapon → put it away (hands down) · hands down → draw last weapon · raised fists → lower them
+      if (pr.holster) {
+        if (P.slot) { set(0); P.handsDown = true; this.emit('sfx', { s: 'cloth' }); }
+        else if (P.handsDown && P.last && P.weapons[P.last]) { set(P.last); P.handsDown = false; }
+        else { P.handsDown = !P.handsDown; this.emit('equip', { w: 'fists' }); }
+      }
     },
 
     // ------------------------------------------------------------ bodies

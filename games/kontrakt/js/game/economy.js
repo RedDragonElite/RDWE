@@ -8,7 +8,7 @@
       this.P = {
         money: 1500, outfit: 'suit', outfits: ['suit'],
         weapons: [{ id: 'fists' }, { id: 'p9', mag: 15, sup: false }, { id: 'wire' }, { id: 'coin', n: 4 }],
-        slot: 0, last: 1,
+        slot: 0, last: 1, handsDown: true,
         ammo: { '9mm': 45 }, inv: { sandwich: 1, water: 2, bandage: 2, lockpick: 1, coffee: 1 },
         hunger: 82, thirst: 76, energy: 88, stamina: 100, drunk: 0, painkiller: 0, instinct: false, flashlight: false,
         xp: 0, level: 1, sp: 0, skills: { stealth: 0, marksman: 0, melee: 0, fitness: 0, disguise: 0, survival: 0 },
