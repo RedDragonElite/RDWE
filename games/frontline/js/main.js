@@ -12,7 +12,7 @@
     get(k, d) { try { const v = localStorage.getItem('rde-frontline-' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem('rde-frontline-' + k, JSON.stringify(v)); } catch { /* private mode */ } },
   };
-  const DEFAULT_SETTINGS = { webgl: true, daynight: true, clouds: true, weather: true, fx: true, floats: true, shake: true, volume: 0.55 };
+  const DEFAULT_SETTINGS = { webgl: true, daynight: true, clouds: true, weather: true, fx: true, floats: true, shake: true, volume: 0.55, music: true, musicVol: 0.45, voice: true, cinema: true };
 
   const ACHIEVEMENTS = {
     firstBlood: { e: '🩸', t: 'Erstes Blut', s: 'Erobere Land einer anderen Nation.' },
@@ -28,6 +28,7 @@
     wonder:     { e: '🏛️', t: 'Für die Ewigkeit', s: 'Vollende ein Weltwunder.' },
     survivor:   { e: '🛡️', t: 'Überlebender', s: 'Überstehe einen Atomschlag.' },
     general:    { e: '🎖️', t: 'General', s: 'Zerschlage eine feindliche Armee.' },
+    dragonslayer: { e: '🐉', t: 'Drachentöter', s: 'Erlege den Roten Drachen.' },
   };
 
   // ======================================================================= GAME
@@ -39,6 +40,9 @@
       this.me = this.sim.players.find((p) => p && p.human && p.clientId === cfg.myClientId);
       this.settings = Object.assign({}, DEFAULT_SETTINGS, store.get('settings', {}));
       audio.setVolume(this.settings.volume);
+      audio.musicOn = this.settings.music; audio.musicVol = this.settings.musicVol;
+      audio.setMusic(this.settings.music, this.settings.musicVol);
+      this.slow = 1; this._moodT = 0;
       this.ratio = store.get('ratio', 0.3);
       this.mode = null;
       this.hoverTile = -1;
@@ -66,6 +70,12 @@
       window.addEventListener('resize', this._onResize);
       this.last = performance.now();
       this.ui.feed('🐉 Wähle deinen Startpunkt auf freiem Land – nah an 🥇💎🛢️ lohnt sich!', 'gold', 10000);
+      // intro: camera falls from orbit onto the world
+      const r0 = this.renderer;
+      r0.cam.zoom = r0.minZoom() * 0.45; r0.fitView(false);
+      this.cinema('◢ FRONTLINE ◣  ·  DIE WELT WARTET AUF IHREN HERRSCHER', 3200);
+      audio.play('whoosh');
+      setTimeout(() => this.running && this.ui.say('Willkommen, Kommandant. Wähle deinen Startpunkt – Gold, Edelsteine und Öl machen dich mächtig.', 2), 1400);
       requestAnimationFrame((t) => this.frame(t));
     }
 
@@ -84,12 +94,15 @@
       this.canvas.classList.toggle('mode-build', !!m && !C.NUKES[m]);
       this.canvas.classList.toggle('mode-nuke', !!m && !!C.NUKES[m]);
       if (m) {
-        const tab = C.NUKES[m] ? 'weapons' : C.UNITS[m] ? 'army' : C.BUILD[m].cat;
-        if (this.ui.tab !== tab) this.ui.setTab(tab);
+        const tab = C.NUKES[m] ? 'weapons' : C.UNITS[m] ? 'army' : C.ULTS[m] ? null : C.BUILD[m].cat;
+        if (tab && this.ui.tab !== tab) this.ui.setTab(tab);
       }
     }
     setSetting(k, v) {
       if (k === 'volume') { v /= 100; audio.setVolume(v); } // slider is 0–100
+      if (k === 'musicVol') { v /= 100; audio.setMusic(this.settings.music, v); }
+      if (k === 'music') audio.setMusic(v, this.settings.musicVol);
+      if (k === 'voice' && !v && 'speechSynthesis' in window) speechSynthesis.cancel();
       this.settings[k] = v;
       store.set('settings', this.settings);
     }
@@ -100,6 +113,45 @@
       this.arrows.push({ fx, fy, tx: tile % sim.W + 0.5, ty: ((tile / sim.W) | 0) + 0.5, life: 1.2, max: 1.2, color: o ? [255, 80, 90] : [255, 220, 120] });
       audio.play('attack');
     }
+    // ---------------------------------------------------------------- immersion helpers
+    /** stereo position & distance attenuation of a world point relative to the camera */
+    spatial(x, y) {
+      const r = this.renderer, [sx, sy] = r.worldToScreen(x, y);
+      const pan = (sx / r.cw) * 2 - 1;
+      const off = Math.max(0, Math.hypot(sx - r.cw / 2, sy - r.ch / 2) - Math.max(r.cw, r.ch) * 0.5);
+      return { pan: pan * 0.85, vol: Math.max(0, 1 - off / (Math.max(r.cw, r.ch) * 1.2)) };
+    }
+    sfx(name, x, y) { audio.play(name, x === undefined ? undefined : this.spatial(x, y)); }
+    /** letterbox + optional slow motion + optional camera move */
+    cinema(title, ms, focus, slow) {
+      if (!this.settings.cinema && !title.startsWith('◢')) return;
+      document.body.classList.add('cinema');
+      $('cine-title').textContent = title;
+      if (focus) this.renderer.focus(focus.x, focus.y, focus.z || Math.max(this.renderer.cam.tz, 3.5));
+      this.slow = slow && !this.transport.multiplayer ? slow : 1;
+      clearTimeout(this._cineT);
+      this._cineT = setTimeout(() => { document.body.classList.remove('cinema'); this.slow = 1; }, ms);
+    }
+    punch(big) {
+      if (!this.settings.shake) return;
+      document.body.classList.remove('hit'); void document.body.offsetWidth; document.body.classList.add('hit');
+      if (big) { const f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+    }
+    _mood() {
+      const sim = this.sim, me = this.me;
+      let i = 0.08;
+      if (sim.phase === 'play') {
+        i += Math.min(0.35, sim.attacks.filter(a => a.target === me.id).length * 0.12);
+        i += Math.min(0.2, sim.attacks.filter(a => a.attacker === me.id && a.target).length * 0.07);
+        const v = this.renderer.viewRect();
+        const fights = sim.units.filter(u => u.fight && u.x > v.x0 && u.x < v.x1 && u.y > v.y0 && u.y < v.y1).length;
+        i += Math.min(0.3, fights * 0.06);
+        if (sim.nukes.length) i += 0.3;
+        if (me.ult && me.ult.until > sim.tick) i += 0.2;
+      }
+      audio.mood(i, !!sim.dragon);
+    }
+
     // ---------------------------------------------------------------- armies
     myUnit(id) { const u = this.sim.unitById(id); return u && u.owner === this.me.id ? u : null; }
     pruneSel() { for (const id of this.sel) if (!this.myUnit(id)) this.sel.delete(id); }
@@ -144,7 +196,8 @@
       if (sim.phase !== 'play' || !this.me.alive) return;
       if (this.mode) {
         const m = this.mode;
-        if (C.NUKES[m]) this.send({ type: 'nuke', kind: m, tile });
+        if (C.ULTS[m]) this.send({ type: 'ultimate', kind: m, tile });
+        else if (C.NUKES[m]) this.send({ type: 'nuke', kind: m, tile });
         else if (C.UNITS[m]) this.send({ type: 'deploy', kind: m, tile, ratio: this.ratio });
         else this.send({ type: 'build', kind: m, tile });
         if (!this.input.keys.has('shift')) this.setMode(null);
@@ -208,14 +261,18 @@
         switch (e.type) {
           case 'phase':
             ui.banner('⚔️', 'DER KRIEG BEGINNT', 'Erobere Wildnis, sichere Lagerstätten 🥇💎🛢️ und baue dein Imperium.', 'war');
-            audio.play('launch');
+            audio.play('stinger');
             this.focusMe();
+            ui.say('Der Krieg beginnt! Klick auf Wildnis, um zu expandieren. Unten findest du Bauen, Armee und Raketen.', 3);
             break;
           case 'spawn':
             if (e.pid === me.id) { r.pulse(e.x + 0.5, e.y + 0.5, me.color); r.focus(e.x, e.y, Math.max(r.cam.tz, 3.2)); }
             break;
           case 'attack':
-            if (e.target === me.id && !e.merged) { ui.feed(`🛡️ ${name(P(e.pid))} greift dich an! (${fmt(e.troops)})`, 'bad'); audio.play('attack'); }
+            if (e.target === me.id && !e.merged) {
+              ui.feed(`🛡️ ${name(P(e.pid))} greift dich an! (${fmt(e.troops)})`, 'bad'); audio.play('attack');
+              if (e.troops > me.troops * 0.5) ui.say(`Achtung! ${P(e.pid).name} greift mit ${fmt(e.troops)} Mann an. Halte die Front!`, 2);
+            }
             break;
           case 'clash':
             if (e.pid === me.id || e.target === me.id) ui.feed('💥 Frontalzusammenstoß – Truppen heben sich auf.', '');
@@ -287,14 +344,18 @@
           case 'nukeLaunch': {
             const d = C.NUKES[e.kind];
             if (e.pid === me.id) this.unlock('atomic');
-            if (e.victim === me.id) { ui.feed(`${d.e} <b>RAKETENALARM!</b> ${name(P(e.pid))} feuert eine ${d.name} auf dich!`, 'nuke', 9000); audio.play('alarm'); }
+            if (e.victim === me.id) {
+              ui.feed(`${d.e} <b>RAKETENALARM!</b> ${name(P(e.pid))} feuert eine ${d.name} auf dich!`, 'nuke', 9000); audio.play('alarm');
+              ui.say(`Raketenalarm! Eine ${d.name} aus ${P(e.pid).name} ist im Anflug!`, 4);
+              this.cinema('☢️  RAKETE IM ANFLUG', 2600, { x: e.tx, y: e.ty, z: 3 });
+            }
             else if (e.pid === me.id) { ui.feed(`🚀 ${d.name} gestartet!`, 'gold'); audio.play('launch'); }
             else ui.feed(`🚀 ${name(P(e.pid))} startet eine ${d.name}${e.victim ? ' auf ' + name(P(e.victim)) : ''}.`, e.kind === 'hydro' ? 'nuke' : '');
             break;
           }
           case 'nukeIntercept':
             r.interceptFx(e.x + 0.5, e.y + 0.5);
-            audio.play('intercept');
+            this.sfx('intercept', e.x, e.y);
             if (e.by === me.id) { ui.feed('🛰️ Deine Abwehr hat eine Rakete abgefangen!', 'good'); this.float(e.x + 0.5, e.y, '🛰️ ABGEFANGEN', '#7fd3ff', 18); }
             else if (e.owner === me.id) ui.feed(`🛰️ Deine Rakete wurde von ${name(P(e.by))} abgefangen.`, 'bad');
             break;
@@ -302,7 +363,9 @@
             const big = e.kind === 'hydro';
             r.explosion(e.x + 0.5, e.y + 0.5, e.r, big);
             if (!this.settings.shake) r.shake = 0;
-            if (this.visible(e.x, e.y, 40)) audio.play(big ? 'bigboom' : 'boom'); else r.shake *= 0.3;
+            if (this.visible(e.x, e.y, 10)) this.punch(true);
+            if ((e.owner === me.id || e.victims.includes(me.id)) && this.visible(e.x, e.y, 0)) this.cinema(big ? '💥  WASSERSTOFFBOMBE' : '☢️  EINSCHLAG', 2200, null, 0.35);
+            this.sfx(big ? 'bigboom' : 'boom', e.x, e.y); if (!this.visible(e.x, e.y, 40)) r.shake *= 0.3;
             if (e.victims.includes(me.id)) { ui.feed('☢️ Einschlag auf deinem Gebiet!', 'nuke'); if (me.tiles > 0) setTimeout(() => this.me.alive && this.unlock('survivor'), 3000); }
             break;
           }
@@ -313,6 +376,38 @@
             if (sim.owner[e.y * sim.W + e.x] === me.id) ui.feed(`⚡ EMP-Treffer! ${e.count} Gebäude 60 s lahmgelegt.`, 'nuke');
             break;
           case 'worldEvent': this._worldEvent(e); break;
+          case 'ultimate': {
+            const d = C.ULTS[e.kind];
+            r.legend.ult(e.kind, e.x + 0.5, e.y + 0.5);
+            if (e.kind === 'firestorm') { r.fireFx(e.x + 0.5, e.y + 0.5, d.radius, true); this.sfx('ult_fire', e.x, e.y); if (this.visible(e.x, e.y, 5)) this.punch(false); }
+            else this.sfx(e.kind === 'blitz' ? 'ult_blitz' : 'ult_bulwark', e.x, e.y);
+            if (e.pid === me.id) {
+              ui.banner(d.e, d.name.toUpperCase(), d.desc, 'war');
+              this.cinema(d.e + '  ' + d.name.toUpperCase(), 1600, null, e.kind === 'firestorm' ? 0.45 : 0);
+            } else ui.feed(`${d.e} ${name(P(e.pid))} entfesselt <b>${d.name}</b>!`, 'bad', 5000);
+            break;
+          }
+          case 'glutFull':
+            if (e.pid === me.id) { ui.say('Die Kriegsglut lodert! Klick auf das Feuer unten rechts und entfessle deine Macht.', 2); audio.play('fanfare'); }
+            break;
+          case 'samShot': r.legend.sam(e); this.sfx('sam', e.sx, e.sy); break;
+          case 'dragonArrive':
+            ui.banner('🐉', 'DER ROTE DRACHE ERWACHT', 'Er jagt die mächtigsten Nationen. Erlege ihn mit 🎖️ Armeen, 🛰️ Abwehr oder ☢️ Raketen – sein Hort wartet!', 'war');
+            audio.play('roar'); audio.play('stinger');
+            ui.say(e.targets.includes(me.id) ? 'Der Rote Drache ist erwacht – und er hat es auf uns abgesehen!' : 'Der Rote Drache ist erwacht! Wer ihn erlegt, erhält seinen Hort und das Drachenherz.', 4);
+            this.cinema('🐉  DER ROTE DRACHE ERWACHT', 3400, { x: Math.max(0, Math.min(sim.W, e.x)), y: Math.max(0, Math.min(sim.H, e.y)), z: 2.4 }, 0.5);
+            break;
+          case 'dragonMove': audio.play('roar', this.spatial(e.x, e.y)); break;
+          case 'dragonLeave': ui.feed('🐉 Der Drache verschwindet am Horizont… vorerst.', 'gold', 6000); break;
+          case 'dragonSlain': {
+            const k = P(e.killer);
+            r.explosion(e.x, e.y, 9, true); this.punch(true);
+            audio.play('roar'); audio.play('win');
+            ui.banner('🐉', k ? `${k.name.toUpperCase()} ERLEGT DEN DRACHEN` : 'DER DRACHE FÄLLT', e.killer === me.id ? '❤️‍🔥 Drachenherz: +25% Truppenwachstum · Hort: 💰60K 💎120 ☢️60' : 'Der Hort ist verstreut – schnapp dir die 📦 Kisten!', 'gold');
+            this.cinema('🐉  DER DRACHE IST GEFALLEN', 3000, { x: e.x, y: e.y, z: 3 }, 0.4);
+            if (e.killer === me.id) { ui.say('Unglaublich! Der Drache ist tot. Sein Herz schlägt jetzt für uns.', 4); this.unlock('dragonslayer'); }
+            break;
+          }
           case 'crate':
             r.sparkle(e.x + 0.5, e.y + 0.5, [255, 230, 120], 50);
             if (e.pid === me.id) {
@@ -341,11 +436,11 @@
             else if (e.by === me.id) { ui.feed(`🎯 Feindliche ${C.UNITS[e.kind].name} von ${name(P(e.pid))} zerschlagen!`, 'good', 4000); this.float(e.x, e.y - 1, '🎯 Zerschlagen!', '#9dffb0'); this.unlock('general'); }
             break;
           case 'shellFired':
-            if (this.visible(e.x, e.y, 5)) audio.play('cannon');
+            this.sfx('cannon', e.x, e.y);
             break;
           case 'shellHit':
             r.smallBlast(e.x, e.y);
-            if (this.visible(e.x, e.y, 5)) audio.play('thud');
+            this.sfx('thud', e.x, e.y);
             break;
           case 'stormEnd': ui.feed('🌤️ Der Sturm hat sich gelegt.', '', 4000); break;
           case 'ally': {
@@ -368,13 +463,14 @@
           case 'eliminated':
             if (e.pid === me.id) {
               audio.play('lost');
+              ui.say('Wir sind gefallen, Kommandant. Aber Legenden sterben nie.', 5);
               ui.showEnd(false, '💀', 'NIEDERLAGE', 'Deine Nation ist gefallen.');
             } else { ui.feed(`☠️ ${name(P(e.pid))} wurde ausgelöscht.`, ''); audio.play('eliminated'); }
             break;
           case 'gameOver': {
             const w = P(e.winner);
             const why = { land: 'durch Eroberung', wonder: 'durch das Weltwunder 🏛️', last: 'als letzte Nation', peace: 'durch den Weltfrieden 🕊️' }[e.reason] || '';
-            if (e.winner === me.id || me.allies.has(e.winner)) { audio.play('win'); ui.showEnd(true, '🏆', 'SIEG', e.winner === me.id ? `Die Welt gehört dir, Kommandant – ${why}.` : `Sieg im Bündnis mit ${w.name} – ${why}.`); }
+            if (e.winner === me.id || me.allies.has(e.winner)) { audio.play('win'); ui.say('Sieg! Die Welt gehört uns.', 5); this.cinema('🏆  SIEG', 4000, null, 0.4); ui.showEnd(true, '🏆', 'SIEG', e.winner === me.id ? `Die Welt gehört dir, Kommandant – ${why}.` : `Sieg im Bündnis mit ${w.name} – ${why}.`); }
             else if (me.alive) { audio.play('lost'); ui.showEnd(false, '🏳️', 'NIEDERLAGE', `${w.emblem} ${w.name} beherrscht die Welt ${why}.`); }
             break;
           }
@@ -387,7 +483,7 @@
       let sub = ev.desc;
       switch (e.kind) {
         case 'meteor':
-          e.impacts.forEach((m) => setTimeout(() => { r.meteorFx(m.x + 0.5, m.y + 0.5, m.r); if (this.visible(m.x, m.y)) audio.play('boom'); }, m.delay * 120));
+          e.impacts.forEach((m) => setTimeout(() => { r.meteorFx(m.x + 0.5, m.y + 0.5, m.r); this.sfx('boom', m.x, m.y); }, m.delay * 120));
           break;
         case 'volcano':
           r.volcanoFx(e.x + 0.5, e.y + 0.5, e.r);
@@ -430,7 +526,7 @@
       const dt = Math.min(0.1, (now - this.last) / 1000);
       this.last = now;
       if (!this.paused) {
-        this.acc += dt * 1000 * this.speed;
+        this.acc += dt * 1000 * this.speed * this.slow;
         let steps = 0;
         while (this.acc >= C.TICK_MS && steps < 8 && this.transport.canStep(this.sim.tick)) {
           const tick = this.sim.tick;
@@ -438,6 +534,12 @@
           if (this.transport.multiplayer) this.transport.reportHash(tick, this.sim.hash());
           this.renderer.applyChanges(this.sim.changed);
           this.handleEvents(this.sim.events);
+          const dr = this.sim.dragon;
+          if (dr && dr.breath) {
+            const hx = dr.x + Math.cos(dr.heading) * 4, hy = dr.y + Math.sin(dr.heading) * 4;
+            this.renderer.fireFx(hx, hy, 3, false);
+            this.sfx('fire', hx, hy);
+          }
           if (this.sim.phase !== 'spawn' && tick % 20 === 0) this._sample();
           this.acc -= C.TICK_MS; steps++;
         }
@@ -447,6 +549,7 @@
       const alpha = this.paused ? 1 : Math.min(1, this.acc / C.TICK_MS);
       this.renderer.draw(dt, alpha);
       this._uiTimer -= dt; this._mmTimer -= dt;
+      if ((this._moodT -= dt) <= 0) { this._mood(); this._moodT = 0.5; }
       if (this._uiTimer <= 0) { this.pruneSel(); this.ui.update(); this._achvCheck(); this._uiTimer = 0.15; }
       if (this._mmTimer <= 0) { this.renderer.drawMinimap(this.mmctx, this.mm.width, this.mm.height); this._mmTimer = 0.25; }
     }

@@ -186,6 +186,16 @@
     // ---------- military
     armies(sim, p, D, counts, fill);
 
+    // ---------- Kriegsglut
+    if (p.glut >= C.GLUT_MAX) {
+      const foe = sim.players[p.lastTarget];
+      if (underAttack.length) sim.cmdUltimate(p, 'bulwark', -1);
+      else if (foe && foe.alive && sim.rng.chance(0.5)) {
+        const [x, y] = sim.centroid(foe);
+        sim.cmdUltimate(p, 'firestorm', Math.round(y) * sim.W + Math.round(x));
+      } else sim.cmdUltimate(p, 'blitz', -1);
+    }
+
     const minFill = 0.55 - D.aggr * 0.3;
     if (fill < minFill && !underAttack.length) return;
 

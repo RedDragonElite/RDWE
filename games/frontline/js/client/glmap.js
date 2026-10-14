@@ -28,6 +28,9 @@
   uniform sampler2D uTerr;  // rgb: base colour, a: terrain id/7
   uniform sampler2D uData;  // r: height, g: water depth, b: land mask
   uniform sampler2D uOwn;   // rgb: owner colour, a: flags (0 none)
+  uniform sampler2D uScorch; // r: scorched earth amount (fresh = glowing embers)
+  uniform vec4 uShock[6];   // x, y (tiles), start time, strength
+  uniform int uShockN;
 
   float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
   float noise(vec2 p) {
@@ -45,6 +48,21 @@
   void main() {
     vec2 px = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
     vec2 w = (px - uRes * 0.5) / uCam.z + uCam.xy;     // world position in tiles
+    // shockwaves bend space: a travelling ring that refracts everything behind it
+    float ring = 0.0;
+    for (int i = 0; i < 6; i++) {
+      if (i >= uShockN) break;
+      vec4 sk = uShock[i];
+      float age = uTime - sk.z;
+      if (age < 0.0 || age > 2.6) continue;
+      float R = age * (10.0 + sk.w * 14.0);
+      vec2 dv = w - sk.xy;
+      float dd = length(dv) + 1e-4;
+      float k = exp(-pow((dd - R) / (1.5 + sk.w * 1.2), 2.0));
+      float fade = 1.0 - age / 2.6;
+      w += dv / dd * k * fade * (0.6 + sk.w * 1.4);
+      ring += k * fade * (0.4 + sk.w * 0.3);
+    }
     vec2 uv = w / uMap;
     float zoom = uCam.z;
     bool inside = all(greaterThanEqual(w, vec2(0.0))) && all(lessThan(w, uMap));
@@ -96,6 +114,14 @@
     foam += (1.0 - smoothstep(0.44, 0.49, landN)) * smoothstep(0.38, 0.47, landN) * 0.8;
     waterCol = mix(waterCol, vec3(0.92, 0.97, 1.0), clamp(foam, 0.0, 1.0) * 0.75);
 
+    // scorched earth & embers
+    float sc = texture(uScorch, clamp(uv, vec2(0.0), vec2(1.0))).r * land;
+    if (sc > 0.01) {
+      vec3 ash = vec3(0.09, 0.075, 0.065) * (0.7 + 0.6 * noise(w * 4.0));
+      landCol = mix(landCol, ash, smoothstep(0.0, 0.5, sc) * 0.88);
+      float ember = smoothstep(0.55, 1.0, sc) * pow(noise(w * 3.5 + vec2(t * 0.6, -t * 0.4)), 3.0) * (0.6 + 0.4 * sin(t * 6.0 + w.x));
+      landCol += vec3(1.0, 0.35, 0.06) * ember * 2.2;
+    }
     vec3 col = mix(waterCol, landCol, land);
 
     // ---------- territories: smooth majority contours
@@ -151,6 +177,7 @@
     col = mix(col, col * vec3(1.18, 0.86, 0.62), uDusk * 0.45);
     col *= mix(vec3(1.0), vec3(0.22, 0.30, 0.55), uNight * 0.85);
     if (!inside) col *= 0.55;
+    col += vec3(1.0, 0.85, 0.6) * ring * 0.35;
 
     outColor = vec4(col, 1.0);
   }`;
@@ -175,7 +202,7 @@
       gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
       this.u = {};
-      for (const n of ['uRes', 'uCam', 'uMap', 'uTime', 'uNight', 'uDusk', 'uClouds', 'uCloudA', 'uSun', 'uTerr', 'uData', 'uOwn']) this.u[n] = gl.getUniformLocation(prog, n);
+      for (const n of ['uRes', 'uCam', 'uMap', 'uTime', 'uNight', 'uDusk', 'uClouds', 'uCloudA', 'uSun', 'uTerr', 'uData', 'uOwn', 'uScorch', 'uShock', 'uShockN']) this.u[n] = gl.getUniformLocation(prog, n);
       const { W, H } = sim;
       this.W = W; this.H = H;
       this._buildStatic();
@@ -183,7 +210,10 @@
       this._ft = [];
       this.ownPx = new Uint32Array(W * H);
       this.ownTex = this._tex(W, H, gl.NEAREST, new Uint8Array(this.ownPx.buffer));
-      gl.uniform1i(this.u.uTerr, 0); gl.uniform1i(this.u.uData, 1); gl.uniform1i(this.u.uOwn, 2);
+      this.scorchPx = new Uint8Array(W * H * 4);
+      this.scorchTex = this._tex(W, H, gl.LINEAR, this.scorchPx);
+      this.shocks = [];
+      gl.uniform1i(this.u.uTerr, 0); gl.uniform1i(this.u.uData, 1); gl.uniform1i(this.u.uOwn, 2); gl.uniform1i(this.u.uScorch, 3);
     }
 
     _program(vs, fs) {
@@ -268,9 +298,35 @@
       else if (avg < 1 / 58 && this.scale < 1) this.scale = Math.min(1, this.scale + 0.1);
     }
 
+    /** a refracting shockwave ring (strength ~0.3 small … 2 hydrogen bomb) */
+    addShock(x, y, strength, time) {
+      this.shocks.push([x, y, time, strength]);
+      if (this.shocks.length > 6) this.shocks.shift();
+    }
+    /** burn the ground: radial falloff with ragged noise edges */
+    scorch(cx, cy, R, amount) {
+      const { W, H } = this, px = this.scorchPx;
+      for (let dy = -R - 2; dy <= R + 2; dy++) for (let dx = -R - 2; dx <= R + 2; dx++) {
+        const x = Math.round(cx + dx), y = Math.round(cy + dy);
+        if (x < 0 || y < 0 || x >= W || y >= H) continue;
+        const d = Math.hypot(dx, dy) / (R + 0.01) + (Math.random() - 0.5) * 0.35;
+        if (d > 1) continue;
+        const i = (y * W + x) * 4;
+        px[i] = Math.min(255, Math.max(px[i], Math.round(255 * amount * (1 - d * d * 0.6))));
+      }
+      this.scorchDirty = true; this.anyScorch = true;
+    }
+    /** slowly cool embers and let the land heal */
+    decayScorch() {
+      if (!this.anyScorch) return;
+      const px = this.scorchPx; let any = false;
+      for (let i = 0; i < px.length; i += 4) if (px[i]) { px[i] = px[i] > 3 ? px[i] - 2 : 0; any = true; }
+      this.anyScorch = any; this.scorchDirty = true;
+    }
+
     destroy() {
       const gl = this.gl;
-      for (const t of [this.terrTex, this.dataTex, this.ownTex]) gl.deleteTexture(t);
+      for (const t of [this.terrTex, this.dataTex, this.ownTex, this.scorchTex]) gl.deleteTexture(t);
       gl.deleteProgram(this.prog);
     }
 
@@ -286,6 +342,13 @@
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.terrTex);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.dataTex);
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, this.ownTex);
+      gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, this.scorchTex);
+      if (this.scorchDirty) {
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.W, this.H, gl.RGBA, gl.UNSIGNED_BYTE, this.scorchPx);
+        this.scorchDirty = false;
+      }
+      gl.activeTexture(gl.TEXTURE2);
       if (this.dirty) {
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.W, this.H, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(this.ownPx.buffer));
@@ -301,6 +364,11 @@
       gl.uniform1f(u.uClouds, opts.clouds ? 1 : 0);
       gl.uniform1f(u.uCloudA, Math.max(0, Math.min(0.55, 0.8 - cam.zoom * 0.17)));
       gl.uniform3f(u.uSun, opts.sun[0], opts.sun[1], opts.sun[2]);
+      this.shocks = this.shocks.filter(sk => opts.time - sk[2] < 2.6);
+      const arr = new Float32Array(24);
+      this.shocks.forEach((sk, i) => arr.set(sk, i * 4));
+      gl.uniform4fv(u.uShock, arr);
+      gl.uniform1i(u.uShockN, this.shocks.length);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
   }

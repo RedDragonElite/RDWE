@@ -31,6 +31,7 @@
       this._buildResbar();
       this._buildDockTabs();
       this._bindStatic();
+      this.drawerOpen = true; this.closeDrawer();
       if (innerWidth < 760) $('board').classList.add('collapsed');
     }
 
@@ -49,11 +50,83 @@
     setTab(t) {
       this.tab = t;
       document.querySelectorAll('.dtab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+      this._syncCmdButtons();
       this._renderDock();
     }
     cycleTab() {
+      if (!this.drawerOpen) { this.openDrawer(this.tab); return; }
       const k = Object.keys(C.BUILD_CATS);
       this.setTab(k[(k.indexOf(this.tab) + 1) % k.length]);
+    }
+    // ---------------------------------------------------------------- build drawer (closed by default)
+    openDrawer(tab) {
+      if (tab && tab !== this.tab) this.setTab(tab);
+      this.drawerOpen = true;
+      $('drawer').classList.remove('closed');
+      this.hideUlt();
+      this._syncCmdButtons();
+      this.game.audio.play('open');
+    }
+    closeDrawer() {
+      if (!this.drawerOpen) return;
+      this.drawerOpen = false;
+      $('drawer').classList.add('closed');
+      this._syncCmdButtons();
+    }
+    toggleDrawer(tab) {
+      const group = (t) => (t === 'army' || t === 'weapons' ? t : 'build');
+      if (this.drawerOpen && group(tab) === group(this.tab)) { this.closeDrawer(); this.game.audio.play('close'); } else this.openDrawer(tab === 'eco' && group(this.tab) === 'build' ? this.tab : tab);
+    }
+    _syncCmdButtons() {
+      const grp = this.tab === 'army' || this.tab === 'weapons' ? this.tab : 'eco';
+      document.querySelectorAll('.cb-btn').forEach(b => b.classList.toggle('on', !!this.drawerOpen && b.dataset.drawer === grp));
+    }
+    // ---------------------------------------------------------------- Kriegsglut ultimates
+    showUlt() {
+      const g = this.game, el = $('ultpick');
+      if (g.me.glut < C.GLUT_MAX) { this.feed(`🔥 Kriegsglut bei ${Math.floor(g.me.glut)}% – erobere Feindesland, um sie zu entfachen.`, 'gold', 3500); return; }
+      this.closeDrawer();
+      el.innerHTML = Object.entries(C.ULTS).map(([k, d]) => `<div class="ult" data-u="${k}"><div class="ue">${d.e}</div><div class="un">${d.name.toUpperCase()}</div><div class="ud">${d.desc}</div></div>`).join('');
+      el.querySelectorAll('.ult').forEach(c => {
+        c.addEventListener('pointerenter', () => g.audio.play('hover'));
+        c.addEventListener('click', () => {
+          const k = c.dataset.u;
+          this.hideUlt();
+          if (k === 'firestorm') g.setMode('firestorm');
+          else g.send({ type: 'ultimate', kind: k });
+        });
+      });
+      el.classList.remove('hidden');
+      g.audio.play('open');
+    }
+    hideUlt() { $('ultpick').classList.add('hidden'); }
+
+    // ---------------------------------------------------------------- advisor (subtitles + optional speech)
+    say(text, prio = 1) {
+      const now = performance.now();
+      if (this._advBusy && prio <= this._advPrio && now < this._advBusy) return;
+      this._advBusy = now + 4200; this._advPrio = prio;
+      const box = $('advisor'), out = $('adv-text');
+      box.classList.remove('hidden', 'out');
+      clearInterval(this._advT); clearTimeout(this._advH);
+      let i = 0;
+      out.textContent = '';
+      this._advT = setInterval(() => {
+        out.textContent = text.slice(0, ++i);
+        if (i % 2 === 0) this.game.audio.play('typing');
+        if (i >= text.length) clearInterval(this._advT);
+      }, 22);
+      this._advH = setTimeout(() => { box.classList.add('out'); setTimeout(() => box.classList.add('hidden'), 400); }, Math.max(3800, text.length * 60));
+      if (this.game.settings.voice && 'speechSynthesis' in window && !this.game.audio.muted) {
+        try {
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text.replace(/[^\p{L}\p{N}\s.,!?%:–-]/gu, ''));
+          u.lang = 'de-DE'; u.rate = 1.04; u.pitch = 0.78; u.volume = Math.min(1, this.game.audio.volume * 1.6);
+          const v = speechSynthesis.getVoices().find(x => x.lang && x.lang.startsWith('de'));
+          if (v) u.voice = v;
+          speechSynthesis.speak(u);
+        } catch (e) { /* speech is optional */ }
+      }
     }
     _dockItems() {
       if (this.tab === 'weapons') return Object.keys(C.NUKES).map(k => ({ k, d: C.NUKES[k], nuke: true }));
@@ -75,7 +148,8 @@
       wrap.querySelectorAll('.card').forEach(el => {
         const k = el.dataset.k;
         this.cards[k] = { el, cc: el.querySelector('.cc'), n: el.querySelector('.n'), lock: el.querySelector('.lock'), why: el.querySelector('.tip-why') };
-        el.addEventListener('click', () => { this.game.audio.play('click'); this.game.setMode(this.game.mode === k ? null : k); });
+        el.addEventListener('click', () => { this.game.audio.play('click'); this.game.setMode(this.game.mode === k ? null : k); this.closeDrawer(); });
+        el.addEventListener('pointerenter', () => this.game.audio.play('hover'));
       });
       this._cardKey = '';
       wrap.querySelectorAll('canvas.uicon').forEach(cv => {
@@ -93,6 +167,12 @@
       on(ratio, 'input', () => g.setRatio(ratio.value / 100));
       document.querySelectorAll('.ratio-presets button').forEach((b) => on(b, 'click', () => g.setRatio(+b.dataset.r / 100)));
       on($('dock-tabs'), 'click', (e) => { const b = e.target.closest('.dtab'); if (b) { g.audio.play('click'); this.setTab(b.dataset.tab); } });
+      document.querySelectorAll('.cb-btn').forEach(b => {
+        on(b, 'click', () => { g.audio.play('click'); this.toggleDrawer(b.dataset.drawer); });
+        on(b, 'pointerenter', () => g.audio.play('hover'));
+      });
+      on($('glut'), 'click', () => { g.audio.play('click'); if ($('ultpick').classList.contains('hidden')) this.showUlt(); else this.hideUlt(); });
+      document.querySelectorAll('.rail-btn').forEach(b => on(b, 'pointerenter', () => g.audio.play('hover')));
       on($('board-toggle'), 'click', () => $('board').classList.toggle('collapsed'));
       on($('btn-mute'), 'click', () => g.toggleMute());
       on($('btn-pause'), 'click', () => g.togglePause());
@@ -131,6 +211,7 @@
       if (this.cards) for (const [k, c] of Object.entries(this.cards)) c.el.classList.toggle('active', k === mode);
       const hint = $('mode-hint');
       if (!mode) { hint.classList.add('hidden'); return; }
+      if (C.ULTS[mode]) { hint.innerHTML = `${C.ULTS[mode].e} ZIEL FÜR DEN ${C.ULTS[mode].name.toUpperCase()} WÄHLEN · Esc = Abbruch`; hint.classList.add('nuke'); hint.classList.remove('hidden'); return; }
       const nuke = !!C.NUKES[mode], unit = !!C.UNITS[mode];
       const d = nuke ? C.NUKES[mode] : unit ? C.UNITS[mode] : C.BUILD[mode];
       hint.innerHTML = nuke ? `${d.e} ZIEL FÜR ${d.name.toUpperCase()} WÄHLEN · Rechtsklick/Esc = Abbruch`
@@ -244,6 +325,20 @@
         t.querySelector('.t-bar').style.width = Math.max(0, ((r.expires - sim.tick) / 200) * 100) + '%';
       }
       this.renderSel();
+      // Kriegsglut ring
+      const gl = Math.min(1, me.glut / C.GLUT_MAX), ult = me.ult && me.ult.until > sim.tick;
+      $('glut-ring').style.strokeDashoffset = String(169.6 * (1 - (ult ? (me.ult.until - sim.tick) / C.ULTS[me.ult.kind].dur : gl)));
+      $('glut-val').textContent = ult ? C.ULTS[me.ult.kind].e + Math.ceil((me.ult.until - sim.tick) / 10) + 's' : Math.floor(gl * 100) + '%';
+      $('glut').classList.toggle('full', gl >= 1 && !ult);
+      $('glut').classList.toggle('active', !!ult);
+      // dragon boss bar
+      const d = sim.dragon;
+      $('bossbar').classList.toggle('hidden', !d);
+      if (d) {
+        const pct = Math.max(0, d.hp / d.max) * 100;
+        $('bb-fill').style.width = pct + '%'; $('bb-lag').style.width = pct + '%';
+        $('bb-hp').textContent = fmt(Math.max(0, d.hp)) + ' / ' + fmt(d.max);
+      }
       g.panels.refresh();
     }
 

@@ -55,13 +55,15 @@
     </div>
 
     <div id="bottom">
+      <div id="fronts" class="st-fronts"></div>
       <div id="selbar" class="glass hidden"></div>
-      <div id="dock" class="glass">
+      <div id="drawer" class="glass holo">
         <div id="dock-tabs"></div>
         <div id="dock-cards"></div>
       </div>
-      <div id="stats" class="glass">
-        <div class="st-troops">
+      <div id="ultpick" class="hidden"></div>
+      <div id="cmdbar" class="glass holo">
+        <div class="cb-troops">
           <div class="st-row">
             <span class="emo-lg">⚔️</span><span id="troops" class="big">0</span><span class="slash">/</span><span id="troops-max">0</span>
             <span id="troop-rate" class="rate">+0/s</span>
@@ -69,16 +71,29 @@
           <div class="bar"><div id="troop-bar"></div></div>
           <div class="st-chips"><span id="food-state" class="chip"></span><span id="mod-chips"></span></div>
         </div>
-        <div class="st-ratio">
-          <div class="ratio-head"><span>ANGRIFFSGRÖSSE</span><b id="ratio-val">30%</b><span id="ratio-troops" class="muted"></span></div>
+        <div class="cb-ratio">
+          <div class="ratio-head"><span>ANGRIFF</span><b id="ratio-val">30%</b><span id="ratio-troops" class="muted"></span></div>
           <input id="ratio" type="range" min="1" max="100" value="30">
           <div class="ratio-presets">
-            <button data-r="10">10%</button><button data-r="20">20%</button><button data-r="30" class="on">30%</button><button data-r="50">50%</button><button data-r="75">75%</button><button data-r="100">ALL</button>
+            <button data-r="10">10</button><button data-r="20">20</button><button data-r="30" class="on">30</button><button data-r="50">50</button><button data-r="75">75</button><button data-r="100">ALL</button>
           </div>
         </div>
-        <div id="fronts" class="st-fronts"></div>
+        <div class="cb-btns">
+          <button class="cb-btn" data-drawer="eco" title="Bauen (Tab)"><span class="cbe">🏗️</span><span class="cbl">Bauen</span></button>
+          <button class="cb-btn" data-drawer="army" title="Armee aufstellen"><span class="cbe">🎖️</span><span class="cbl">Armee</span></button>
+          <button class="cb-btn" data-drawer="weapons" title="Raketen"><span class="cbe">🚀</span><span class="cbl">Raketen</span></button>
+        </div>
+        <button id="glut" class="glut" title="Kriegsglut – lädt sich durch Eroberungen auf">
+          <svg viewBox="0 0 64 64"><circle class="g-bg" cx="32" cy="32" r="27"/><circle id="glut-ring" class="g-fg" cx="32" cy="32" r="27"/></svg>
+          <span class="g-e">🔥</span><span id="glut-val" class="g-v">0%</span>
+        </button>
       </div>
     </div>
+
+    <div id="advisor" class="hidden"><div class="adv-face">🐉</div><div class="adv-body"><div class="adv-name">BERATER · ROTER DRACHE</div><div id="adv-text" class="adv-text"></div></div></div>
+    <div id="bossbar" class="hidden"><div class="bb-name">🐉 DER ROTE DRACHE <span id="bb-hp"></span></div><div class="bb-bar"><div id="bb-fill"></div><div id="bb-lag"></div></div></div>
+    <div id="cinebars"><div class="cb-top"></div><div class="cb-bot"></div><div id="cine-title"></div></div>
+    <div id="flash"></div>
 
     <div id="minimap-wrap" class="glass"><canvas id="minimap"></canvas></div>
     <div id="mode-hint" class="hidden"></div>
@@ -170,6 +185,7 @@
   <script src="js/sim/economy.js"></script>
   <script src="js/sim/events.js"></script>
   <script src="js/sim/army.js"></script>
+  <script src="js/sim/legend.js"></script>
   <script src="js/sim/sim.js"></script>
   <!-- network -->
   <script src="js/net/transport.js"></script>
@@ -180,6 +196,7 @@
   <script src="js/client/glmap.js"></script>
   <script src="js/client/renderer.js"></script>
   <script src="js/client/units.js"></script>
+  <script src="js/client/legendfx.js"></script>
   <script src="js/client/ui.js"></script>
   <script src="js/client/panels.js"></script>
   <script src="js/client/input.js"></script>

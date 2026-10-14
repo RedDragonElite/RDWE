@@ -29,7 +29,7 @@
       };
       $('modal-body').oninput = (e) => {
         if (!this.game.running) return;
-        if (e.target.dataset.set === 'volume') this.game.setSetting('volume', +e.target.value);
+        if (e.target.dataset.set === 'volume' || e.target.dataset.set === 'musicVol') this.game.setSetting(e.target.dataset.set, +e.target.value);
       };
       $('modal-body').onpointermove = (e) => this._chartHover(e);
     }
@@ -262,6 +262,9 @@
       const tg = (k, label) => `<label class="opt"><input type="checkbox" data-set="${k}" ${s[k] ? 'checked' : ''}><span>${label}</span></label>`;
       return `<div class="opts">
         ${tg('webgl', '🎨 WebGL2-Grafik (Shader-Wasser, glatte Grenzen) · wirkt ab nächster Runde')}
+        ${tg('music', '🎵 Dynamische Musik')}
+        ${tg('voice', '🗣️ Berater-Sprachausgabe')}
+        ${tg('cinema', '🎬 Kino-Momente (Zeitlupe & Kamerafahrten)')}
         ${tg('daynight', '🌙 Tag-Nacht-Zyklus & Stadtlichter')}
         ${tg('clouds', '☁️ Wolken')}
         ${tg('weather', '🌧️ Wetter (Regen, Blitze, Stürme)')}
@@ -269,6 +272,7 @@
         ${tg('floats', '💬 Schwebende Zahlen')}
         ${tg('shake', '📳 Screenshake')}
         <label class="opt vol"><span>🔊 Lautstärke</span><input type="range" min="0" max="100" data-set="volume" value="${Math.round(s.volume * 100)}"></label>
+        <label class="opt vol"><span>🎵 Musik</span><input type="range" min="0" max="100" data-set="musicVol" value="${Math.round(s.musicVol * 100)}"></label>
       </div>
       <div class="pn-sub">⌨️ Tastenkürzel</div>
       <div class="keys">

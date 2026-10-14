@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const root = new URL('../js/', import.meta.url);
-for (const f of ['core/rng.js', 'core/constants.js', 'sim/mapgen.js', 'sim/ai.js', 'sim/economy.js', 'sim/events.js', 'sim/army.js', 'sim/sim.js']) {
+for (const f of ['core/rng.js', 'core/constants.js', 'sim/mapgen.js', 'sim/ai.js', 'sim/economy.js', 'sim/events.js', 'sim/army.js', 'sim/legend.js', 'sim/sim.js']) {
   vm.runInThisContext(readFileSync(new URL(f, root), 'utf8'), { filename: f });
 }
 const BW = globalThis.BW, C = BW.C;
@@ -114,6 +114,20 @@ step([], 5);
   assert.ok(sim2.units.length > 0 || sim2.events.length >= 0, 'bots ran');
   console.log('armies OK · bot units on field:', sim2.units.length, '· my tiles', me2.tiles);
 }
+
+// legend: Kriegsglut ultimates & the Red Dragon
+me.glut = C.GLUT_MAX;
+ev = step([{ type: 'ultimate', pid: 1, kind: 'blitz' }]);
+assert.ok(ev.some(e => e.type === 'ultimate') && sim.ultActive(me, 'blitz'), 'blitz active');
+me.glut = C.GLUT_MAX;
+ev = step([{ type: 'ultimate', pid: 1, kind: 'firestorm', tile: ft }]);
+assert.ok(ev.some(e => e.type === 'ultimate' && e.kind === 'firestorm') && me.glut < 1, 'firestorm cast');
+sim.nextDragon = sim.tick + 1;
+ev = step([], 3);
+assert.ok(ev.some(e => e.type === 'dragonArrive') && sim.dragon, 'dragon arrived');
+sim.dragon.hp = 1; sim._hurtDragon(1, 5);
+ev = step([], 2);
+assert.ok(ev.some(e => e.type === 'dragonSlain' && e.killer === 1) && me.dragonHeart, 'dragon slain by me');
 
 // determinism under identical intents
 console.log('smoke OK · tiles', me.tiles, '· tick', sim.tick, '· hash', sim.hash());

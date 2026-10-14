@@ -220,7 +220,7 @@
         const D = C.UNITS[u.kind];
         const P = this.players[u.owner];
         if (u.path && !u.fight) {
-          let step = D.speed;
+          let step = D.speed * (this.ultActive(P, 'blitz') ? 1.8 : 1);
           const here = u.path[Math.min(u.path.length - 1, Math.floor(u.pi))];
           step /= Math.sqrt(MOVE_COST[this.terrain[here]] || 1);
           u.pi = Math.min(u.path.length - 1, u.pi + step);
@@ -253,6 +253,7 @@
             if (o) { const Q = this.players[o]; Q.troops = Math.max(0, Q.troops - (Q.troops / Math.max(1, Q.tiles)) * 0.85); }
             this.setOwner(t, u.owner);
             P.stats.conquered++;
+            this.addGlut(P, o ? 0.012 : 0.0012);
             taken++;
           }
         }
@@ -261,7 +262,8 @@
       for (const u of units.slice()) {
         if (u.str >= 20) continue;
         this.units.splice(this.units.indexOf(u), 1);
-        const foe = u.fight ? this.unitById(u.fight) : null;
+        const foe = u.fight > 0 ? this.unitById(u.fight) : null;
+        if (foe) this.addGlut(this.players[foe.owner], 12);
         this.emit('unitLost', { pid: u.owner, uid: u.id, kind: u.kind, x: u.x, y: u.y, by: foe ? foe.owner : 0 });
       }
     },

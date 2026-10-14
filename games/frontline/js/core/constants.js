@@ -103,6 +103,16 @@
               range: 18, reload: 25, desc: 'Beschießt Feinde auf 18 Felder Distanz (benötigt ⚔️ Stahlklingen)' },
     },
     MAX_UNITS: 12,
+
+    // Kriegsglut: commander ultimates, charged by conquest & victories
+    GLUT_MAX: 100,
+    ULTS: {
+      blitz:     { e: '⚡', name: 'Blitzkrieg', dur: 250, desc: '25 s: Fronten rücken doppelt so schnell vor, Armeen +80% Tempo' },
+      bulwark:   { e: '🛡️', name: 'Bollwerk',   dur: 250, desc: '25 s: Feinde zahlen das Dreifache für dein Land' },
+      firestorm: { e: '🔥', name: 'Feuersturm', radius: 10, desc: 'Entfesselt einen Feuersturm auf ein Ziel deiner Wahl' },
+    },
+    // the Red Dragon world boss
+    DRAGON: { hp: 50000, speed: 0.55, first: 4200, every: 6000 },
     MIN_UNIT: 150,
 
     TECH: {

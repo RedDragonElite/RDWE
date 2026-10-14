@@ -44,6 +44,8 @@
       this.floats = [];
       this.atmo = new BW.Atmosphere(this);
       this.unitView = new BW.UnitView(this);
+      this.legend = new BW.LegendView(this);
+      this._scorchT = 0;
       this.time = 0;
       this._labelTimer = 0;
       this.dist = new Uint16Array(W * H);
@@ -291,8 +293,10 @@
       for (const p of this.particles) if (!p.max) p.max = p.life;
       this.fallout.push({ x, y, r: R * 1.05, life: 70, max: 70 });
       this.shake = Math.min(28, this.shake + (big ? 26 : 14));
+      if (this.gl) { this.gl.addShock(x, y, big ? 2 : R > 6 ? 1 : 0.35, this.time); this.gl.scorch(x, y, Math.max(2, R * 0.95), 1); }
     }
     smallBlast(x, y) {
+      if (this.gl) this.gl.scorch(x, y, 1.4, 0.55);
       this.flashes.push({ x, y, r: 2.4, life: 0.25, max: 0.25 });
       this.rings.push({ x, y, r0: 0.3, r1: 3.2, life: 0.5, max: 0.5, color: [255, 200, 140] });
       const n = this.game.settings.fx ? 18 : 8;
@@ -301,6 +305,18 @@
         this.particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (fire ? 0 : 1), life: fire ? 0.4 : 1.5, max: fire ? 0.4 : 1.5,
           size: fire ? 0.35 : 0.7, color: fire ? [255, 180, 80] : [110, 100, 92], glow: fire, smoke: !fire, drag: 2 });
       }
+    }
+    /** firestorms & dragon breath: scorched ground + flames */
+    fireFx(x, y, R, heavy) {
+      if (this.gl) { this.gl.scorch(x, y, R, 1); if (heavy) this.gl.addShock(x, y, 0.8, this.time); }
+      const n = Math.min(160, R * R * (this.game.settings.fx ? 3 : 1));
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 6.283, d = Math.random() * R;
+        this.particles.push({ x: x + Math.cos(a) * d, y: y + Math.sin(a) * d, vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 4, life: 0.6 + Math.random() * 1.2, max: 1.8,
+          size: 0.4 + Math.random() * 0.8, color: [255, 90 + Math.random() * 120, 20], glow: true, drag: 1.2 });
+      }
+      if (heavy) this.flashes.push({ x, y, r: R * 1.4, life: 0.6, max: 0.6 });
+      this.shake = Math.min(28, this.shake + (heavy ? 10 : 2));
     }
     interceptFx(x, y) {
       this.flashes.push({ x, y, r: 6, life: 0.4, max: 0.4 });
@@ -340,6 +356,7 @@
       const set = game.settings, atmo = this.atmo;
       if (this.gl) {
         this.gl.adapt(dt);
+        if ((this._scorchT += dt) > 1.2) { this._scorchT = 0; this.gl.decayScorch(); }
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.gl.render(c, dpr, {
           cw: this.cw, ch: this.ch, cx: c.x - this._sx / z, cy: c.y - this._sy / z, time: this.time,
@@ -463,6 +480,7 @@
       this._drawLabels(ctx);
       this.unitView.draw(ctx, alpha, dt);
       this._drawNukes(ctx, alpha);
+      this.legend.draw(ctx, alpha, dt);
       this._drawFloats(ctx, dt);
       this._drawArrows(ctx, dt);
       this._drawHover(ctx);
@@ -482,6 +500,12 @@
       }
       const mode = g.mode;
       if (!mode) return;
+      if (C.ULTS[mode]) {
+        const R = C.ULTS[mode].radius || 10;
+        ctx.fillStyle = `rgba(255,110,20,${0.14 + 0.1 * pulse})`; ctx.strokeStyle = 'rgba(255,150,40,0.95)'; ctx.lineWidth = lw;
+        ctx.setLineDash([1.5, 1]); ctx.beginPath(); ctx.arc(x, y, R, 0, 6.283); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+        return;
+      }
       if (C.UNITS[mode]) {
         const ok = this.sim.owner[ht] === g.me.id, R = C.UNITS[mode].radius;
         ctx.fillStyle = ok ? `rgba(80,255,160,${0.15 + 0.1 * pulse})` : 'rgba(255,60,60,0.2)';

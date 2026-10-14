@@ -13,6 +13,15 @@ cd games/frontline && python3 -m http.server 8080
 
 ## Was drin ist
 
+### 🐉 DRACHENZEIT – das Unerwartete
+- **Der Rote Drache**: Ein Weltboss erwacht nach rund 7 Minuten, jagt die drei stärksten Nationen, umkreist ihre Kernlande und speit Feuer. Erlegbar mit Armeen, 🛰️ Abwehr, Raketen und Feuersturm. Wer am meisten Schaden macht, bekommt den Hort (💰60K 💎120 ☢️60), das **Drachenherz** (+25 % Truppenwachstum für immer) und eine volle Kriegsglut. Dazu fallen 📦 Kisten an der Absturzstelle
+- **🔥 Kriegsglut**: Lädt sich durch Eroberungen und besiegte Armeen auf. Voll entfesselst du ⚡ **Blitzkrieg** (25 s doppelt so schnelle Fronten), 🛡️ **Bollwerk** (25 s dreifache Kosten für Angreifer) oder 🔥 **Feuersturm** (setzt ein Zielgebiet in Brand)
+- **🎬 Kino-Momente**: Kinobalken, Zeitlupe und Kamerafahrt bei Atomschlägen, Drache und Sieg. Dazu eine Intro-Kamerafahrt beim Start
+- **💥 Shader-Druckwellen** verzerren die Welt, **verbrannte Erde** glüht nach und heilt langsam. Bei großen Treffern blitzt der Bildschirm auf
+- **🗣️ KI-Berater** mit Schreibmaschinen-Untertiteln und deutscher Sprachausgabe über die Browser-Speech-API (abschaltbar)
+- **🎵 Generative Musik**, live synthetisiert: ruhige Pads im Frieden, Arpeggios bei Spannung, Taiko-Trommeln im Krieg, Chor und Ostinato beim Drachen. Dazu Hall und **Stereo-Raumklang**, der sich nach der Position auf dem Bildschirm richtet
+- **🖥️ Holo-UI**: schlanke Kommandoleiste, das Baumenü fährt nur bei Bedarf als Schublade hoch, Eckwinkel und Scanlines
+
 ### 🎨 Grafik (WebGL2-Shader, pures JS)
 - Die ganze Welt wird **pro Pixel auf der GPU** gezeichnet: organische Küsten statt Tile-Pixel, Licht-Relief für Berge, Wälder und Hügel, die Sonne wandert mit der Tageszeit
 - **Animiertes Wasser** mit Wellen-Normalen, Sonnenreflexen, Tiefenverlauf und Gischt an der Küste
@@ -81,9 +90,9 @@ Ressourcenleiste, Bau-Dock mit Kategorien und Kosten-Chips, große Seitenbuttons
 
 ```
 js/core/      rng.js (mulberry32), constants.js (gesamtes Balancing)
-js/sim/       mapgen.js, sim.js, economy.js, events.js, army.js, ai.js   ← DOM-frei, deterministisch, läuft auch in Node
+js/sim/       mapgen.js, sim.js, economy.js, events.js, army.js, legend.js, ai.js   ← DOM-frei, deterministisch, läuft auch in Node
 js/net/       transport.js                                       ← LocalTransport + LockstepTransport (WebSocket)
-js/client/    glmap.js (WebGL2), renderer.js, units.js, atmosphere.js, sprites.js, ui.js, panels.js, input.js, audio.js
+js/client/    glmap.js (WebGL2), renderer.js, units.js, legendfx.js, atmosphere.js, sprites.js, ui.js, panels.js, input.js, audio.js
 js/main.js    Menü, Game-Loop, Events → Effekte/Sound/Erfolge
 tools/        headless.mjs, smoke.mjs                            ← Tests ohne Browser
 ```

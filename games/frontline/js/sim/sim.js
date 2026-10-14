@@ -48,6 +48,7 @@
       this._initEconomy();
       this._initEvents();
       this._initArmy();
+      this._initLegend();
 
       // --- players ------------------------------------------------------
       const used = new Set(), usedEmblems = new Set();
@@ -72,7 +73,7 @@
       const p = {
         id, name: o.name, color: o.color, emblem: o.emblem, human: o.human, clientId: o.clientId ?? null, diff: o.diff,
         alive: true, spawned: false, spawnTile: -1,
-        troops: C.START_TROOPS, armyStr: 0, gold: 1500, tiles: 0, sx: 0, sy: 0,
+        troops: C.START_TROOPS, armyStr: 0, gold: 1500, glut: 0, ult: null, dragonHeart: false, tiles: 0, sx: 0, sy: 0,
         res: { food: 60, wood: 80, iron: 10, silver: 0, gems: 0, oil: 0, uranium: 0, sci: 0 },
         rates: { gold: 0, food: 0, wood: 0, iron: 0, silver: 0, gems: 0, oil: 0, uranium: 0, sci: 0 },
         terr: new Int32Array(8),
@@ -215,6 +216,7 @@
       this._economyTick();
       for (const p of this.players) {
         if (!p || !p.alive) continue;
+        this.addGlut(p, 0.008);
         const max = this.maxTroops(p), total = p.troops + p.armyStr; // fielded armies count toward the cap
         if (total < max) p.troops = Math.min(max - p.armyStr, p.troops + this.troopRate(p));
         else p.troops -= Math.min(p.troops, (total - max) * 0.02);
@@ -230,6 +232,7 @@
       this._processTradeShips();
       this._processNukes();
       this._eventsTick();
+      this._dragonTick();
       this.allyRequests = this.allyRequests.filter(r => r.expires > this.tick);
       this._checkDeaths();
       this._checkWin();
@@ -253,6 +256,7 @@
         case 'move': if (this.phase === 'play') this.cmdMove(p, it.ids, it.tile); break;
         case 'stop': this.cmdStop(p, it.ids); break;
         case 'disband': this.cmdDisband(p, it.ids); break;
+        case 'ultimate': if (this.phase === 'play') this.cmdUltimate(p, it.kind, it.tile); break;
         case 'ally': this.cmdAlly(p, it.target); break;
         case 'allyReply': this.cmdAllyReply(p, it.target, it.accept); break;
         case 'unally': this.cmdUnally(p, it.target); break;
@@ -272,6 +276,7 @@
       mult *= 1 + 0.12 * Math.min(5, p.counts.barracks);
       mult *= p.fed ? 1.15 : 0.7;
       if (this.has(p, 'empire')) mult *= 1.2;
+      if (p.dragonHeart) mult *= 1.25;
       return Math.max(0, (10 + Math.pow(Math.max(p.troops, 1), 0.73) / 4) * (1 - (p.troops + p.armyStr) / max)) * mult;
     }
 
@@ -337,7 +342,7 @@
       this.emit('attackEnd', { pid: a.attacker, target: a.target });
     }
     tileCost(t, attacker, target) {
-      let tm = C.TERRAIN[this.terrain[t]].cost * (this.rad[t] > this.tick ? 4 : 1);
+      let tm = C.TERRAIN[this.terrain[t]].cost * (this.rad[t] > this.tick ? 4 : 1) * (this.burn[t] > this.tick ? 2.5 : 1);
       if (this.has(attacker, 'steel')) tm *= 0.88;
       if (!target) return 6 * tm * (1 + attacker.tiles / 60000);
       const D = this.players[target];
@@ -346,6 +351,7 @@
       if (this._inFort(t, target)) c *= this.has(D, 'fort2') ? 3.5 : 2.5;
       if (this.has(D, 'elite')) c *= 1.25;
       if (D.counts.wonder) c *= 1.3;
+      if (this.ultActive(D, 'bulwark')) c *= 3;
       return c;
     }
     _inFort(t, owner) {
@@ -366,6 +372,7 @@
         if (D && (!D.alive || this.allied(A.id, D.id))) { this._endAttack(a, true); continue; }
         let rate = D ? 0.08 : 0.14;
         if (this.has(A, 'logi')) rate *= 1.3;
+        if (this.ultActive(A, 'blitz')) rate *= 2;
         const n = Math.min(a.cand.length, 1 + Math.floor(a.cand.length * rate));
         let stalled = false;
         for (let k = 0; k < n && a.cand.length; k++) {
@@ -384,6 +391,7 @@
           a.troops -= cost;
           if (D) D.troops = Math.max(0, D.troops - (D.troops / Math.max(1, D.tiles)) * 0.85);
           this.setOwner(bestT, A.id);
+          this.addGlut(A, D ? 0.012 : 0.0012);
           A.stats.conquered++;
           this._removeCand(a, bestT);
           const m = this.nbrs(bestT);
@@ -533,6 +541,8 @@
           if (n.kind === 'emp') this._emp(n);
           else {
             const victims = this._blast(n.tx, n.ty, C.NUKES[n.kind].radius, { rad: 600, troop: 1.6 });
+            const dr = this.dragon, R = C.NUKES[n.kind].radius + 4;
+            if (dr && (dr.x - n.tx) ** 2 + (dr.y - n.ty) ** 2 < R * R) this._hurtDragon(n.owner, n.kind === 'hydro' ? 60000 : 25000);
             this.emit('nukeHit', { nid: n.id, owner: n.owner, kind: n.kind, x: n.tx, y: n.ty, r: C.NUKES[n.kind].radius, victims });
           }
         }
@@ -661,10 +671,11 @@
         for (const k of C.TRADE_RES) { h ^= (p.res[k] * 10) | 0; h = Math.imul(h, 16777619); }
       }
       for (const u of this.units) { h ^= (u.str | 0) ^ ((u.x * 16) | 0); h = Math.imul(h, 16777619); }
+      if (this.dragon) { h ^= this.dragon.hp | 0; h = Math.imul(h, 16777619); }
       return (h ^ this.tick ^ this.structures.length) >>> 0;
     }
   }
 
-  Object.assign(Sim.prototype, BW.SimEconomy, BW.SimEvents, BW.SimArmy);
+  Object.assign(Sim.prototype, BW.SimEconomy, BW.SimEvents, BW.SimArmy, BW.SimLegend);
   BW.Sim = Sim;
 })(globalThis.BW = globalThis.BW || {});
