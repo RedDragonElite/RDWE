@@ -4,7 +4,7 @@
   const U = K.U;
   const $ = (s) => document.querySelector(s);
   const SAVE = 'kontrakt.save.v1', SET = 'kontrakt.settings.v1';
-  const DEF = { post: true, fov: true, gore: true, music: true, voice: true, barks: true, weather: true, clouds: true, shake: true, volume: 0.8, musicVol: 0.5, res: 1, difficulty: 1 };
+  const DEF = { post: true, fov: true, gore: true, music: true, voice: true, barks: true, vice: true, weather: true, clouds: true, shake: true, volume: 0.8, musicVol: 0.5, res: 1, difficulty: 1 };
 
   class Game {
     constructor() {
@@ -134,7 +134,7 @@
           this.hurtFlash = Math.max(0, this.hurtFlash - dt * 1.4);
           this.flash = Math.max(0, this.flash - dt * 3);
           if (this.settings.post && this.post.ok) {
-            this.post.render({ time: performance.now() / 1000, hurt: this.hurtFlash, low: p.alive ? U.clamp(1 - p.hp / 40, 0, 1) : 1, instinct: P.instinct ? 1 : 0, drunk: Math.max(P.drunk, (P.high || 0) * 0.8), flash: this.flash + (w.weather.flash > 0.6 ? 0.2 : 0), bloom: 0.9 + (1 - w.daylight()) * 0.6, grain: 0.045, slow: w.slowmo > 0 ? 1 : 0, tired: P.energy < 12 ? (12 - P.energy) / 12 : 0 });
+            this.post.render({ time: performance.now() / 1000, hurt: this.hurtFlash, low: p.alive ? U.clamp(1 - p.hp / 40, 0, 1) : 1, instinct: P.instinct ? 1 : 0, drunk: Math.max(P.drunk, (P.high || 0) * 0.8), flash: this.flash + (w.weather.flash > 0.6 ? 0.2 : 0), bloom: 0.9 + (1 - w.daylight()) * 0.6, grain: 0.045, slow: w.slowmo > 0 ? 1 : 0, tired: P.energy < 12 ? (12 - P.energy) / 12 : 0, vice: this.settings.vice ? 1 : 0, dusk: (() => { const h = (w.time / 60) % 24; return Math.max(0, 1 - Math.abs(h - 19) / 1.8, 1 - Math.abs(h - 6.8) / 1.2); })() });
           }
           if (!this.title) this.ui.update(dt);
           // dynamic resolution: keep the frame rate up on weaker GPUs

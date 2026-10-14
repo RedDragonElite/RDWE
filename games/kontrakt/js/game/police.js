@@ -269,7 +269,7 @@
     // ============================================================ cops on foot after a call
     ai_incar() {},
     ai_return(a, dt) {
-      const c = this.cars.find((q) => q.id === a.unit && !q.dead);
+      const c = this.cars.find((q) => q.id === a.unit && !q.dead && q.unit);
       if (!c) { a.unit = 0; a.state = 'patrol'; return; }
       if (this.wanted > 0 && a.seesPlayer) { if (this.copMayShoot()) this.alarm(a, this.player); else this.startArrest(a); return; }
       this.goTo(a, c.x, c.y, { tol: 30 });

@@ -418,6 +418,15 @@
       case 'piano': sh(); x.fillStyle = '#0c0c0e'; x.beginPath(); x.moveTo(X + 3, Y + 4); x.lineTo(X + Wd - 3, Y + 4); x.quadraticCurveTo(X + Wd - 3, Y + H - 2, X + Wd * 0.4, Y + H - 4); x.lineTo(X + 3, Y + H - 4); x.closePath(); x.fill(); x.fillStyle = '#eee'; x.fillRect(X + 4, Y + 4, Wd * 0.45, 3); break;
       case 'lamp': x.fillStyle = '#26282c'; circ(x, cx, cy, 4); x.fill(); break;
       case 'atm': sh(); x.fillStyle = '#3a3f46'; rr(x, X + 4, Y + 4, Wd - 8, H - 8, 2); x.fill(); x.fillStyle = '#1b5fb5'; x.fillRect(X + 8, Y + 7, Wd - 16, 7); x.fillStyle = '#b8c0c8'; for (let k = 0; k < 6; k++) x.fillRect(X + 9 + (k % 3) * 5, Y + 17 + Math.floor(k / 3) * 4, 3, 2.5); x.fillStyle = '#e0b000'; x.fillRect(X + 8, Y + H - 9, Wd - 16, 2); break;
+      case 'lounger': { x.fillStyle = 'rgba(0,0,0,0.25)'; rr(x, X + 6, Y + 5, Wd - 8, H - 6, 3); x.fill(); x.fillStyle = '#f4f1ea'; rr(x, X + 4, Y + 3, Wd - 8, H - 6, 3); x.fill(); x.fillStyle = ['#ff6fa8', '#2ec4d6', '#ffb000', '#7fe0a0'][p.id % 4]; rr(x, X + 6, Y + 5, Wd - 12, H - 14, 2); x.fill(); x.fillStyle = '#fff'; x.fillRect(X + 6, Y + 5, Wd - 12, 3); break; }
+      case 'surf': x.save(); x.translate(cx, cy); x.rotate(0.5 + p.id); x.fillStyle = ['#ff3d7f', '#00c2e0', '#ffcc00'][p.id % 3]; x.beginPath(); x.ellipse(0, 0, 14, 4.5, 0, 0, TAU); x.fill(); x.fillStyle = '#fff'; x.fillRect(-12, -0.6, 24, 1.2); x.restore(); break;
+      case 'stage': {
+        x.fillStyle = '#120812'; rr(x, X + 2, Y + 2, Wd - 4, H - 4, 6); x.fill();
+        x.strokeStyle = '#ff2fa0'; x.lineWidth = 2; x.shadowColor = '#ff2fa0'; x.shadowBlur = 8; rr(x, X + 3, Y + 3, Wd - 6, H - 6, 6); x.stroke(); x.shadowBlur = 0;
+        x.fillStyle = 'rgba(255,255,255,0.05)'; x.fillRect(X + 6, Y + 6, Wd - 12, 3);
+        for (const px of [1, 3]) { const qx = X + (px + 0.5) * TILE, qy = Y + (p.h - 1.5) * TILE; x.fillStyle = '#1b1b1f'; circ(x, qx, qy, 4.5); x.fill(); x.fillStyle = '#e6eaef'; circ(x, qx, qy, 3); x.fill(); x.fillStyle = '#fff'; circ(x, qx - 1, qy - 1, 1); x.fill(); }
+        break;
+      }
       case 'pump': sh(); x.fillStyle = '#6b6f76'; rr(x, X + 2, Y + 4, Wd - 4, H - 8, 3); x.fill(); x.fillStyle = '#e6e6e0'; rr(x, X + 7, Y + 6, Wd - 14, H - 12, 3); x.fill(); x.fillStyle = '#1f8a4c'; x.fillRect(X + 7, Y + 6, Wd - 14, 4); x.fillStyle = '#111'; x.fillRect(X + 10, Y + 12, Wd - 20, 5); x.fillStyle = '#ff8a1a'; x.fillRect(X + 11, Y + 13, 6, 3); x.fillStyle = '#222'; circ(x, X + Wd - 6, Y + H / 2 + 4, 2.6); x.fill(); break;
       case 'lift': x.fillStyle = '#2b2d31'; x.fillRect(X + 4, Y + 2, 7, H - 4); x.fillRect(X + Wd - 11, Y + 2, 7, H - 4); x.fillStyle = '#e0a800'; for (let k = 0; k < H - 8; k += 10) { x.fillRect(X + 4, Y + 4 + k, 7, 3); x.fillRect(X + Wd - 11, Y + 4 + k, 7, 3); } break;
       case 'toolbox': sh(); x.fillStyle = '#b3121e'; rr(x, X + 3, Y + 6, Wd - 6, H - 10, 2); x.fill(); x.fillStyle = 'rgba(0,0,0,0.35)'; for (let k = 0; k < 3; k++) x.fillRect(X + 5, Y + 10 + k * 5, Wd - 10, 1.4); x.fillStyle = '#ccc'; x.fillRect(X + cx - X - 4, Y + 7, 8, 2); break;
@@ -459,6 +468,20 @@
         x.fillStyle = U.shade(base, 1.3); circ(x, cx - 3, cy - 3, 6); x.fill();
         break;
       }
+      case 'palm': {
+        const sway = Math.sin(t * 1.1 + p.id) * 1.6 * wind, r = 24 + (p.id % 4) * 2;
+        x.fillStyle = 'rgba(0,0,0,0.2)'; circ(x, cx + 14, cy + 16, r * 0.7); x.fill();
+        x.strokeStyle = '#7a5a36'; x.lineWidth = 4; x.beginPath(); x.moveTo(cx, cy + 4); x.quadraticCurveTo(cx + 4, cy - 6, cx + 6 + sway, cy - 12); x.stroke();
+        const hx = cx + 6 + sway, hy = cy - 12;
+        for (let k = 0; k < 8; k++) {
+          const a = k * 0.785 + p.id * 0.3, ex = hx + Math.cos(a) * r, ey = hy + Math.sin(a) * r;
+          x.strokeStyle = k & 1 ? '#2f7a3a' : '#3f9a48'; x.lineWidth = 5; x.lineCap = 'round';
+          x.beginPath(); x.moveTo(hx, hy); x.quadraticCurveTo(hx + Math.cos(a + 0.4) * r * 0.6, hy + Math.sin(a + 0.4) * r * 0.6, ex, ey); x.stroke();
+        }
+        x.lineCap = 'butt'; x.fillStyle = '#6b4a24'; circ(x, hx, hy, 3.5); x.fill();
+        break;
+      }
+      case 'tower': x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(cx - 10 + 14, cy - 10 + 16, 24, 24); x.fillStyle = '#e8e2d4'; x.fillRect(cx - 14, cy - 14, 28, 22); x.fillStyle = '#ff5a3c'; x.fillRect(cx - 16, cy - 18, 32, 8); x.fillStyle = '#2ec4d6'; x.fillRect(cx - 10, cy - 8, 20, 8); x.fillStyle = '#fff'; x.font = 'bold 7px sans-serif'; x.textAlign = 'center'; x.fillText('LIFEGUARD', cx, cy - 12); break;
       case 'gassign': x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(cx - 4 + 10, cy + 6, 26, 40); x.fillStyle = '#1f8a4c'; rr(x, cx - 16, cy - 30, 32, 40, 3); x.fill(); x.fillStyle = '#f2c200'; x.fillRect(cx - 16, cy - 30, 32, 6); x.fillStyle = '#111'; x.fillRect(cx - 12, cy - 20, 24, 24); x.fillStyle = '#ff8a1a'; x.font = 'bold 7px monospace'; x.textAlign = 'center'; x.fillText('SUPER', cx, cy - 13); x.fillText('1.60', cx, cy - 5); x.fillText('DIESEL', cx, cy + 3); break;
       case 'flag': { const sw = Math.sin(t * 3 + p.id) * 3; x.fillStyle = '#222'; x.fillRect(cx - 1, cy - 30, 2, 34); x.fillStyle = ['#c8102e', '#f2c200', '#0e5fd8'][p.id % 3]; x.beginPath(); x.moveTo(cx + 1, cy - 30); x.lineTo(cx + 22 + sw, cy - 26); x.lineTo(cx + 1, cy - 18); x.closePath(); x.fill(); break; }
       case 'lamp': x.fillStyle = '#1d1f22'; rr(x, cx - 7, cy - 3, 14, 6, 3); x.fill(); x.fillStyle = '#fff3cf'; x.fillRect(cx - 4, cy - 1.5, 8, 3); break;

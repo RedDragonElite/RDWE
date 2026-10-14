@@ -358,6 +358,7 @@
     },
     enterCar(c) {
       const a = this.player;
+      const hadDriver = !!(c.driver && c.driver !== 'player');
       if (c.display) return this.notify(`Ausstellungsstück — ${K.CARMODELS[c.display].name} gibt es beim Verkäufer im Autohaus.`, 'bad');
       if (c.serviceLock) return this.notify('Der Wagen ist gerade auf der Bühne.', 'bad');
       if (c.service && this.svc && this.svc.car === c.id && this.serviceCancel) this.serviceCancel();
@@ -372,11 +373,11 @@
       } else if (c.kind === 'police' && !c.playerOwned) this.crimeEvent(a, 'theft', c.x, c.y, null);
       else if (!c.owned && !c.playerOwned && !c.service) { c.hotwire = true; this.crimeEvent(a, 'theft', c.x, c.y, null); }
       // a car someone was just driving keeps running; a parked one has to be started (or hot-wired)
-      if (!c.driver) { c.engineOn = false; c.crankT = null; }
+      if (!hadDriver) { c.engineOn = false; c.crankT = null; }
       c.belt = false;
       for (const id of c.passengers || []) { const p = this.byId.get(id); if (p) this.ejectFrom(c, p, p.kind !== 'cop'); }
       c.passengers = [];
-      c.driver = 'player'; c.ai = null; c.pursuit = false; c.parked = false; c.siren = false;
+      c.driver = 'player'; c.ai = null; c.pursuit = false; c.parked = false; c.siren = false; c.unit = null; c.route = null;
       a.inCar = c.id; this.drag = null;
       this.emit('carEnter', { id: c.id, kind: c.kind });
     },

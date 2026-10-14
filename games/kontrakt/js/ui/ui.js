@@ -171,20 +171,34 @@
     }
 
     // ------------------------------------------------------------ minimap
+    /** Vice-style map: pastel districts, teal sea, peach sand + a glowing neon street layer */
     buildMapTex() {
       const w = this.g.world, c = K.mkCanvas(w.W, w.H), x = c.getContext('2d'), id = x.createImageData(w.W, w.H);
       const col = {};
-      col[T.WATER] = [22, 48, 70]; col[T.POOL] = [60, 160, 200]; col[T.ROAD] = [58, 60, 66]; col[T.WALK] = [110, 108, 102]; col[T.GRASS] = [52, 88, 44]; col[T.PLAZA] = [120, 114, 104];
-      col[T.DIRT] = [110, 88, 62]; col[T.DOCK] = [100, 78, 54]; col[T.QUAY] = [96, 96, 92]; col[T.HEDGE] = [36, 70, 34]; col[T.FENCE] = [40, 40, 40]; col[T.GATE] = [80, 80, 80]; col[T.CONC] = [86, 88, 90];
+      col[T.WATER] = [18, 92, 128]; col[T.POOL] = [60, 220, 240]; col[T.ROAD] = [44, 30, 64]; col[T.WALK] = [118, 96, 140]; col[T.GRASS] = [70, 150, 96]; col[T.PLAZA] = [150, 124, 160];
+      col[T.DIRT] = [150, 116, 86]; col[T.DOCK] = [120, 92, 70]; col[T.QUAY] = [104, 92, 120]; col[T.HEDGE] = [44, 110, 64]; col[T.FENCE] = [40, 30, 50]; col[T.GATE] = [90, 80, 100]; col[T.CONC] = [104, 96, 124]; col[T.SAND] = [244, 214, 164]; col[T.WOOD] = [190, 140, 100];
+      const PAL = { beach: ['#ff8fb1', '#7fe0d0', '#ffd39a'], down: ['#8fd3ff', '#c79bff', '#7fe0d0', '#ff9ad5'], old: ['#ffb38a', '#ffd39a', '#f29ac0'], res: ['#a8e6a1', '#ffe08a', '#9fd8ff'], hill: ['#ff9a8a', '#ffcf9a'], ind: ['#9a8fb5', '#7f8aa5'], docks: ['#8a9ab5', '#b58aa8'] };
+      const bcol = w.buildings.map((b) => { const p = PAL[b.district] || PAL.down; return U.hex2rgb(p[b.seed % p.length]); });
       for (let i = 0; i < w.N; i++) {
         const t = w.tiles[i], b = w.bmap[i];
-        let c2 = col[t] || [150, 140, 130];
-        if (b >= 0) { const bb = w.buildings[b]; c2 = U.hex2rgb(bb.color).map((v) => v * 0.8 + 30); if (t === T.WALL || t === T.WINDOW) c2 = c2.map((v) => v * 0.6); }
-        if (w.solid[i] & 1 && b < 0 && t !== T.WATER) c2 = c2.map((v) => v * 0.75);
+        let c2 = col[t] || [150, 140, 150];
+        if (t === T.WATER) { const y = (i / w.W) | 0, depth = Math.min(1, (y - w.city.W) / 12); c2 = [18 + (1 - depth) * 40, 92 + (1 - depth) * 70, 128 + (1 - depth) * 40]; }
+        if (b >= 0) { c2 = bcol[b]; if (t === T.WALL || t === T.WINDOW) c2 = c2.map((v) => v * 0.62); }
+        if (w.solid[i] & 1 && b < 0 && t !== T.WATER) c2 = c2.map((v) => v * 0.78);
         id.data[i * 4] = c2[0]; id.data[i * 4 + 1] = c2[1]; id.data[i * 4 + 2] = c2[2]; id.data[i * 4 + 3] = 255;
       }
       x.putImageData(id, 0, 0);
       this.mapTex = c;
+      // neon street layer (4 px per tile)
+      const S = 4, n = K.mkCanvas(w.W * S, w.H * S), nx = n.getContext('2d'), P = w.city.P, NB = w.city.NB;
+      const seg = (fn) => { for (let j = 0; j <= NB; j++) for (let i = 0; i <= NB; i++) { const x0 = (i * P + 2) * S, y0 = (j * P + 2) * S; if (i < NB) fn(x0, y0, x0 + P * S, y0, j); if (j < NB) fn(x0, y0, x0, y0 + P * S, -1); } };
+      nx.lineCap = 'round';
+      nx.shadowColor = '#ff2fa0'; nx.shadowBlur = 14; nx.strokeStyle = 'rgba(255,47,160,0.28)'; nx.lineWidth = 13;
+      seg((a, b, c3, d) => { nx.beginPath(); nx.moveTo(a, b); nx.lineTo(c3, d); nx.stroke(); });
+      nx.shadowColor = '#2ef2ff'; nx.shadowBlur = 6; nx.strokeStyle = 'rgba(46,242,255,0.75)'; nx.lineWidth = 1.6;
+      seg((a, b, c3, d, j) => { nx.lineWidth = j === NB ? 3 : 1.6; nx.beginPath(); nx.moveTo(a, b); nx.lineTo(c3, d); nx.stroke(); });
+      nx.shadowBlur = 0;
+      this.mapNeon = n;
     }
     poiIcons() {
       const w = this.g.world, out = [];
@@ -192,7 +206,7 @@
         const x = (b.x + b.w / 2) * TILE, y = (b.y + b.h / 2) * TILE;
         if (b.owned) out.push({ x, y, e: '🏠', c: '#5fd38d' });
         else if (b.property) out.push({ x, y, e: '🏷️', c: '#f2c86b' });
-        if (b.shop) out.push({ x, y, e: { gun: '🔫', black: '💀', food: '🛒', pharmacy: '💊', cloth: '👔', diner: '🍔', bar: '🍸', hospital: '🏥', grow: '🌱', bank: '🏦', jewel: '💎', gas: '⛽', cars: '🚗', mech: '🔧' }[b.shop] });
+        if (b.shop) out.push({ x, y, e: { gun: '🔫', black: '💀', food: '🛒', pharmacy: '💊', cloth: '👔', diner: '🍔', bar: '🍸', hospital: '🏥', grow: '🌱', bank: '🏦', jewel: '💎', gas: '⛽', cars: '🚗', mech: '🔧', beachbar: '🍹', strip: '💃' }[b.shop] });
         if (b.type === 'police') out.push({ x, y, e: '🚓' });
         if (b.type === 'club') out.push({ x, y, e: '🎵' });
       }
@@ -322,6 +336,7 @@
       x.imageSmoothingEnabled = false;
       x.save(); x.translate(S / 2, S / 2); x.scale(scale, scale); x.translate(-px, -py);
       x.drawImage(this.mapTex, 0, 0);
+      if (this.mapNeon) x.drawImage(this.mapNeon, 0, 0, w.W, w.H);
       this.drawTurf(x, 1, 0, 0, 0.16);
       x.restore();
       x.imageSmoothingEnabled = true;

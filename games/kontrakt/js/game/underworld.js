@@ -203,6 +203,7 @@
       if (this.crewContext && this.crewContext(add)) return false;
       if (this.mechanicContext && this.mechanicContext(add)) return false;
       if (this.dealerContext && this.dealerContext(add)) return false;
+      if (this.nightlifeContext && this.nightlifeContext(add)) return false;
       if (this.gangContext && this.gangContext(add)) return false;
       // people: rob / pickpocket / deal
       let civ = null, bd = 36;
@@ -423,6 +424,7 @@
       if (this.updateCrew) this.updateCrew(dt);
       if (this.updateGangs) this.updateGangs(dt);
       if (this.updateCarService) this.updateCarService(dt);
+      if (this.updateNightlife) this.updateNightlife(dt);
       if (P.surrender) {
         P.surrenderT += dt;
         if (this.wanted <= 0 && !this.actors.some((c) => c.kind === 'cop' && c.state === 'arrest')) P.surrender = false;

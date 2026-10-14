@@ -29,7 +29,7 @@
       const rpos = (t) => [(t.x + 0.5) * TILE, (t.y + 0.5) * TILE];
       for (const b of this.buildings) {
         if (b.keeperPos && b.shop) {
-          const outfit = { gun: 'leather', black: 'gang', food: 'casual', pharmacy: 'doctor', cloth: 'suitgrey', diner: 'waiter', bar: 'waiter', hospital: 'doctor', bank: 'suitgrey', jewel: 'suit', gas: 'casual', cars: 'suit', mech: 'mechanic' }[b.shop] || 'casual';
+          const outfit = { gun: 'leather', black: 'gang', food: 'casual', pharmacy: 'doctor', cloth: 'suitgrey', diner: 'waiter', bar: 'waiter', hospital: 'doctor', bank: 'suitgrey', jewel: 'suit', gas: 'casual', cars: 'suit', mech: 'mechanic', beachbar: 'hawaii', strip: 'waiter' }[b.shop] || 'casual';
           const [x, y] = rpos(b.keeperPos);
           const k = this.spawnActor('keeper', x, y, { outfit, home: b.id, state: 'work', weapon: b.shop === 'gun' ? 'pump' : b.shop === 'black' ? 'p9' : 'fists', reserve: -1 });
           k.brain.post = { x, y }; k.armedKeeper = b.shop === 'gun' || b.shop === 'black'; k.shopB = b.id;
@@ -74,7 +74,7 @@
           const pt = z.patrol[k % z.patrol.length];
           let i = this.nav.nearestFree(pt.y * this.W + pt.x, null, 3); if (i < 0) continue;
           const [x, y] = tc(i, this.W);
-          const g = this.spawnActor('guard', x, y, { outfit: b.type === 'club' ? 'bouncer' : b.type === 'warehouse' ? 'gang' : 'guard', zone: z.id, home: b.id, weapon: Math.random() < 0.3 ? 'mpk' : 'p9', hp: 130, armor: 20, reserve: -1, state: 'patrol', female: Math.random() < 0.2, enforcer: k % 4 === 1 });
+          const g = this.spawnActor('guard', x, y, { outfit: b.type === 'club' || b.type === 'stripclub' ? 'bouncer' : b.type === 'warehouse' ? 'gang' : 'guard', zone: z.id, home: b.id, weapon: Math.random() < 0.3 ? 'mpk' : 'p9', hp: 130, armor: 20, reserve: -1, state: 'patrol', female: Math.random() < 0.2, enforcer: k % 4 === 1 });
           g.acc = 2.2; g.brain.pi = k;
           if (b.type === 'warehouse') g.kind = 'gang';
           // the first guard at villas / clubs stands at the gate/door
@@ -82,7 +82,7 @@
             const md = b.doors[0], ii = this.nav.nearestFree((md.y - md.oy * 2) * this.W + md.x - md.ox * 2 + 2, g, 3);
             if (ii >= 0) { [g.x, g.y] = tc(ii, this.W); g.state = 'post'; g.brain.post = { x: g.x, y: g.y }; g.brain.face = -Math.PI / 2; g.zoneLobby = true; }
           }
-          if (k === 0 && (b.type === 'villa' || b.type === 'club')) {
+          if (k === 0 && (b.type === 'villa' || b.type === 'club' || b.type === 'stripclub')) {
             const e = b.type === 'villa' && z.garden ? { x: z.garden.x + 8, y: z.garden.y + z.garden.h - 3 } : { x: b.entrance.x, y: b.entrance.y };
             const ii = this.nav.nearestFree(e.y * this.W + e.x, g, 3);
             if (ii >= 0) { [g.x, g.y] = tc(ii, this.W); g.state = 'post'; g.brain.post = { x: g.x, y: g.y }; g.brain.face = Math.PI / 2; }

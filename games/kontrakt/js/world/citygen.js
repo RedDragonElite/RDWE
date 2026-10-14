@@ -12,10 +12,10 @@
     'RRDPDDI',
     'RRRDDII',
     'RPRRIII',
-    'KKKKKKK',
+    'BBBKKKK',
   ];
-  const DCODE = { O: 'old', D: 'down', H: 'hill', P: 'park', R: 'res', I: 'ind', K: 'docks' };
-  K.DISTRICTS = { old: 'Altstadt', down: 'Mitte', hill: 'Sonnenhang', park: 'Stadtpark', res: 'Kanalviertel', ind: 'Industriegebiet', docks: 'Hafen', road: 'Straße', sea: 'Hafenbecken' };
+  const DCODE = { B: 'beach', O: 'old', D: 'down', H: 'hill', P: 'park', R: 'res', I: 'ind', K: 'docks' };
+  K.DISTRICTS = { beach: 'Ocean Beach', old: 'Altstadt', down: 'Mitte', hill: 'Sonnenhang', park: 'Stadtpark', res: 'Kanalviertel', ind: 'Industriegebiet', docks: 'Hafen', road: 'Straße', sea: 'Hafenbecken' };
 
   // explicit block plans; others fall back to the district default
   const PLAN = {
@@ -23,7 +23,7 @@
     '3,0': ['cloth', 'flat', 'food', 'flat'], '0,1': ['house', 'house', 'house', 'house'], '1,1': ['house', 'flat', 'house', 'house'],
     '2,1': ['flat', 'jeweler', 'pharmacy', 'house'], '3,1': ['office'], '4,1': ['police'], '2,2': ['gun', 'flat', 'flat', 'food'], '0,2': ['gas'],
     '3,2': ['hotel'], '4,2': ['office'], '5,2': ['club'], '2,3': ['bank'], '4,3': ['flat', 'diner', 'flat', 'flat'],
-    '5,3': ['office', 'flat'], '3,4': ['hospital'], '4,4': ['autohaus'], '6,3': ['warehouse', 'warehouse'],
+    '5,3': ['stripclub'], '0,6': ['beachclub', 'Beachclub „Flamingo“'], '1,6': ['beach'], '2,6': ['beachclub', 'Beachclub „Sunset“'], '3,4': ['hospital'], '4,4': ['autohaus'], '6,3': ['warehouse', 'warehouse'],
     '5,4': ['werkstatt'], '6,4': ['warehouse', 'warehouse'], '4,5': ['gas'], '5,5': ['warehouse', 'warehouse'], '6,5': ['warehouse', 'warehouse'],
     '4,6': ['black'],
   };
@@ -36,6 +36,7 @@
     bench: { s: 1 }, tree: { s: 1, tall: 1 }, bush: { s: 0, bush: 1, tall: 1 }, lamp: { s: 1, tall: 1 }, vending: { s: 3, inter: 'vending' }, trash: { s: 1 },
     fountain: { s: 1 }, piano: { s: 1 }, hbed: { s: 1 }, locker: { s: 3, hide: 1, inter: 'hide' }, sign: { s: 0, inter: 'buy' }, dj: { s: 1 }, dance: { s: 0, low: 1 },
     boat: { s: 0 }, hydrant: { s: 1 }, umbrella: { s: 1, tall: 1 }, cell: { s: 1 }, bollard: { s: 1 }, crane: { s: 0, tall: 1 }, desk2: { s: 1 }, atm: { s: 3, inter: 'atm' },
+    palm: { s: 1, tall: 1 }, lounger: { s: 1 }, tower: { s: 1, tall: 1 }, pole: { s: 1 }, stage: { s: 0, low: 1 }, surf: { s: 0 },
     pump: { s: 1, inter: 'pump' }, gassign: { s: 1, tall: 1 }, lift: { s: 0, low: 1 }, toolbox: { s: 1 }, tires: { s: 1 }, flag: { s: 1, tall: 1 }, cone: { s: 0 },
     deposit: { s: 3, inter: 'deposit' }, showcase: { s: 1, inter: 'showcase' }, cart: { s: 1 },
   };
@@ -60,6 +61,7 @@
     // ---------------------------------------------------------- seafront
     fill(0, W, W, 2, T.QUAY);
     fill(0, W + 2, W, H - W - 2, T.WATER);
+    fill(0, W, 80, 6, T.SAND);   // Ocean Beach shoreline
 
     function addProp(k, x, y, w = 1, h = 1, o = {}) {
       for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) {
@@ -273,6 +275,9 @@
         else if (T0 === 'diner') role = front ? 'dining' : 'kitchen';
         else if (T0 === 'bar') role = front ? 'bar' : 'storage';
         else if (T0 === 'autohaus') role = 'showroom';
+        else if (T0 === 'beachclub') role = front ? 'beachbar' : 'storage';
+        else if (T0 === 'beachhouse') role = front ? 'living' : 'bedroom';
+        else if (T0 === 'stripclub') role = front ? 'stage' : ri === 1 ? 'vip' : 'dressing';
         else if (T0 === 'bank') role = front ? 'banklobby' : vault && r === vault.r ? 'vault' : 'office';
         else if (T0 === 'club') role = front ? 'dance' : 'vip';
         else role = front ? 'shop' : 'storage';
@@ -301,6 +306,16 @@
           case 'bar': placeCounter(b, r, 'barc', { shop: 1 }) || Bf('barc', 4, 'wall', { extra: { shop: 1 } }); B('pooltable', 2, 1, 'center'); B('table', 1, 1, 'center'); B('stool', 1, 1, 'center'); addPois(b, r, 'sit', 5); break;
           case 'dance': B('dance', Math.min(4, r.w - 2), Math.min(4, r.h - 2), 'center'); Bf('barc', 3, 'wall'); B('dj', 2, 1, 'wall'); addPois(b, r, 'dance', 6); break;
           case 'banklobby': placeCounter(b, r, 'counter', { shop: 1 }) || Bf('counter', 3, 'wall', { extra: { shop: 1 } }); Bf('bench', 2, 'wall'); B('plant', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('rug', 3, 2, 'center'); addPois(b, r, 'stand', 4); break;
+          case 'beachbar': placeCounter(b, r, 'barc', { shop: 1 }) || Bf('barc', 3, 'wall', { extra: { shop: 1 } }); B('dance', Math.min(4, r.w - 3), Math.min(3, r.h - 3), 'center'); B('dj', 2, 1, 'wall'); B('plant', 1, 1, 'wall'); B('stool', 1, 1, 'center'); addPois(b, r, 'dance', 6); break;
+          case 'stage': placeCounter(b, r, 'barc', { shop: 1 }) || Bf('barc', 3, 'wall', { extra: { shop: 1 } }); {
+              for (let k = 0; k < 40 && !b.poles; k++) {
+                const sx = r.x + 1 + (k % Math.max(1, r.w - 5)), sy = r.y + 1 + Math.floor(k / Math.max(1, r.w - 5)) % Math.max(1, r.h - 4);
+                const sh = r.h >= 6 ? 3 : 2, st = addProp('stage', sx, sy, 4, sh, { bld: b.id });
+                if (st && reachableOK(b)) b.poles = [[sx + 1, sy + sh - 2], [sx + 3, sy + sh - 2]]; else if (st) removeProp(st);
+              }
+            }
+            Bf('sofa', 2, 'wall'); Bf('sofa', 2, 'wall'); B('table', 1, 1, 'center'); B('table', 1, 1, 'center'); addPois(b, r, 'sit', 6); break;
+          case 'dressing': B('wardrobe', 1, 1, 'wall'); B('table', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); addPois(b, r, 'work', 2); break;
           case 'showroom': placeCounter(b, r, 'counter', { shop: 1 }) || Bf('counter', 3, 'wall', { extra: { shop: 1 } }); Bf('sofa', 2, 'wall'); B('table', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('rug', 3, 2, 'center'); addPois(b, r, 'stand', 3); break;
           case 'vault':
             // no windows into the vault
@@ -316,6 +331,7 @@
           }
         }
         if (role === 'vault') { roomLight(b, r, [255, 236, 190], 0.7); return; }
+        if (role === 'beachbar' || role === 'stage') { roomLight(b, r, role === 'stage' ? [255, 40, 160] : [255, 120, 200], 1); return; }
         const lc = role === 'dance' ? [200, 90, 255] : role === 'vip' ? [255, 80, 120] : ['office', 'lobby', 'ward', 'reception', 'desk', 'cells', 'armory', 'shop'].includes(role) ? cool : role === 'storage' ? neutral : warm;
         roomLight(b, r, lc, role === 'dance' ? 1 : 0.85);
       });
@@ -360,7 +376,7 @@
           z.patrol = z.patrol.filter((p) => !(p.x >= vault.r.x && p.x < vault.r.x + vault.r.w && p.y >= vault.r.y && p.y < vault.r.y + vault.r.h));
           b.vault = vault.r;
         }
-        z.guards = { villa: 0, office: 2, club: 2, bank: 2, police: 0, warehouse: rng.chance(0.5) ? 2 : 0, hotel: 1, diner: 0 }[T0] ?? 1;
+        z.guards = { villa: 0, office: 2, club: 2, bank: 2, stripclub: 1, police: 0, warehouse: rng.chance(0.5) ? 2 : 0, hotel: 1, diner: 0 }[T0] ?? 1;
         if (!z.patrol.length) z.patrol.push({ x: b.x + (b.w >> 1), y: b.y + (b.h >> 1) });
       }
       if (T0 === 'house' || T0 === 'flat') {
@@ -377,10 +393,10 @@
 
     function single(lot, type, d) {
       fill(lot.x, lot.y, lot.w, lot.h, T.PLAZA);
-      const dims = { bank: [14, 12], office: [14, 13], hotel: [16, 12], police: [13, 12], hospital: [14, 12], club: [13, 12] }[type] || [12, 12];
+      const dims = { stripclub: [14, 12], bank: [14, 12], office: [14, 13], hotel: [16, 12], police: [13, 12], hospital: [14, 12], club: [13, 12] }[type] || [12, 12];
       const [bw, bh] = dims;
       const bx = lot.x + ((lot.w - bw) >> 1), by = lot.y + 2;
-      const b = makeBuilding(bx, by, bw, bh, type, type === 'bank' ? ['S'] : ['S', 'N'], { district: d, depth: 2, frontDeep: true });
+      const b = makeBuilding(bx, by, bw, bh, type, type === 'bank' ? ['S'] : ['S', 'N'], { district: d, depth: type === 'stripclub' ? 1 : 2, frontDeep: true });
       furnish(b);
       // plaza decor
       for (const [x, y] of [[lot.x, lot.y + lot.h - 1], [lot.x + lot.w - 1, lot.y + lot.h - 1], [lot.x, lot.y], [lot.x + lot.w - 1, lot.y]]) addProp('tree', x, y);
@@ -545,6 +561,32 @@
       return [b];
     }
 
+    /** Ocean Beach: sand, palms, loungers; a club or a public beach with a beach house */
+    function beachBlock(lot, plan, d) {
+      fill(lot.x - 2, lot.y - 2, lot.w + 4, lot.h + 4, T.SAND);
+      for (let k = 0; k < lot.w + 4; k += 3) { addProp('palm', lot.x - 2 + k, lot.y - 2); }
+      const out = [];
+      if (plan[0] === 'beachclub') {
+        fill(lot.x + 1, lot.y + 1, lot.w - 2, 9, T.WOOD);
+        const b = makeBuilding(lot.x + 3, lot.y + 1, 12, 7, 'beachclub', ['S'], { district: d, depth: 1, name: plan[1] });
+        furnish(b); out.push(b);
+        fill(lot.x + 4, lot.y + 10, 10, 3, T.POOL);
+        lights.push({ x: (lot.x + 9) * TILE, y: (lot.y + 11.5) * TILE, r: 170, c: [80, 220, 255], i: 1, kind: 'pool' });
+        for (let k = 0; k < 4; k++) { addProp('lounger', lot.x + 4 + k * 3, lot.y + 14); addProp('umbrella', lot.x + 5 + k * 3, lot.y + 15); }
+        for (const [x, y] of [[lot.x + 1, lot.y + 10], [lot.x + lot.w - 2, lot.y + 10], [lot.x + 1, lot.y + 16], [lot.x + lot.w - 2, lot.y + 16]]) addProp('palm', x, y);
+        lights.push({ x: (b.doors[0].x + 0.5) * TILE, y: (b.doors[0].y + 1.5) * TILE, r: 150, c: plan[1].includes('Flamingo') ? [255, 60, 170] : [255, 140, 40], i: 1, kind: 'neon' });
+        lights.push({ x: (lot.x + 2) * TILE, y: (lot.y + 12) * TILE, r: 140, c: [0, 230, 255], i: 0.9, kind: 'neon' });
+      } else {
+        const b = makeBuilding(lot.x + 1, lot.y + 1, 7, 6, 'beachhouse', ['S'], { district: d });
+        furnish(b); out.push(b);
+        addProp('tower', lot.x + 13, lot.y + 4);
+        for (let k = 0; k < 5; k++) { addProp('lounger', lot.x + 2 + k * 3, lot.y + 12); addProp('umbrella', lot.x + 3 + k * 3, lot.y + 13); }
+        addProp('surf', lot.x + 10, lot.y + 2); addProp('surf', lot.x + 11, lot.y + 2);
+        for (const [x, y] of [[lot.x + 10, lot.y + 8], [lot.x + 16, lot.y + 9], [lot.x + 2, lot.y + 9]]) addProp('palm', x, y);
+      }
+      return out;
+    }
+
     // ---------------------------------------------------------- blocks
     const blocks = [];
     for (let bj = 0; bj < NB; bj++) for (let bi = 0; bi < NB; bi++) {
@@ -554,7 +596,8 @@
       const lot = { x: ox + 2, y: oy + 2, w: 18, h: 18 };
       const plan = PLAN[bi + ',' + bj];
       let bl;
-      if (d === 'park') bl = park(lot);
+      if (d === 'beach') bl = beachBlock(lot, plan || ['beach'], d);
+      else if (d === 'park') bl = park(lot);
       else if (d === 'hill') bl = villa(lot, d, false);
       else if (d === 'res' && !plan) bl = residential(lot, d);
       else if (d === 'docks') bl = docks(lot, plan, d);
@@ -568,8 +611,9 @@
       const edgeRing = [];
       for (let k = 0; k < 22; k++) edgeRing.push([ox + k, oy], [ox + 21, oy + k], [ox + 21 - k, oy + 21], [ox, oy + 21 - k]);
       edgeRing.forEach(([x, y], k) => {
-        if (k % 9 === 4) lamp(x, y);
-        else if ((d === 'res' || d === 'old' || d === 'hill') && k % 7 === 0 && rng.chance(0.75)) addProp('tree', x, y);
+        if (k % 9 === 4) lamp(x, y, d === 'beach' ? (k & 2 ? [255, 90, 200] : [60, 230, 255]) : undefined);
+        else if ((d === 'down' || d === 'beach' || d === 'hill') && k % 6 === 0) addProp('palm', x, y);   // Vice-style palm boulevards
+        else if ((d === 'res' || d === 'old') && k % 7 === 0 && rng.chance(0.75)) addProp('tree', x, y);
         else if ((d === 'down' || d === 'old') && k % 13 === 9 && rng.chance(0.5)) addProp('trash', x, y);
         else if (k % 29 === 17 && rng.chance(0.4)) addProp('hydrant', x, y);
       });
@@ -587,6 +631,10 @@
     // ---------------------------------------------------------- piers & boats
     for (let bi = 0; bi < NB; bi++) {
       const x0 = bi * P + R + 3;
+      if (bi < 3) {   // Ocean Beach: one wooden pier with a lamp at its end, no cranes
+        if (bi === 1) { fill(x0 + 6, W + 6, 3, 9, T.DOCK); lamp(x0 + 7, W + 14, [255, 120, 210], 160); }
+        continue;
+      }
       for (const px of [x0, x0 + 11]) {
         fill(px, W + 2, 3, 8, T.DOCK);
         addProp('boat', px + 3, W + 4, 2, 5, { c: rng.int(6) });
@@ -598,11 +646,19 @@
     // ---------------------------------------------------------- properties
     const used = new Set();
     for (const def of K.PROPERTIES) {
-      const cands = buildings.filter((b) => b.type === def.btype && b.district === def.district && !used.has(b.id) && !b.shop || (def.btype === 'bar' && b.type === 'bar'));
-      const b = cands.find((c) => c.type === def.btype && !used.has(c.id));
+      const cands = buildings.filter((b) => (b.type === def.btype && (b.district === def.district || def.biz) && !used.has(b.id) && (!b.shop || def.biz)) || (def.btype === 'bar' && b.type === 'bar'));
+      const b = cands.find((c) => c.name === def.name && !used.has(c.id)) || cands.find((c) => c.type === def.btype && c.district === def.district && !used.has(c.id)) || cands.find((c) => c.type === def.btype && !used.has(c.id));
       if (!b) continue;
       used.add(b.id);
       b.property = def.id; b.price = def.price; b.name = def.name; b.loot = 0; b.lit = true;
+      if (def.biz) {   // a business keeps its staff, doors and customers; you get a safe in the back
+        const br = b.rooms.find((r) => !r.front) || b.rooms[b.rooms.length - 1];
+        if (!props.some((p) => p && p.bld === b.id && p.k === 'safe')) put(b, br, 'safe', 1, 1, 'wall');
+        for (const p of props) if (p && p.bld === b.id && p.k === 'safe') p.stash = def.id;
+        const e = b.entrance; const s = addProp('sign', e.x + 1, e.y, 1, 1, { force: true }) || addProp('sign', e.x - 1, e.y, 1, 1, { force: true });
+        if (s) s.property = def.id;
+        continue;
+      }
       if (b.zone != null) { const z = zones[b.zone]; z.guards = 0; z.dead = true; for (let i = 0; i < N; i++) if (zmap[i] === b.zone) zmap[i] = -1; b.zone = null; b.restricted = null; }
       for (const d of b.doors) { d.locked = d.outer; d.access = d.outer ? ['owner'] : null; }
       // stash safe + bed + wardrobe for every home
@@ -625,7 +681,7 @@
     const world = {
       W, H, N, P, R, NB, seed, tiles, solid, bmap, zmap, pmap, doors, buildings, props, lights, zones, blocks, walk, roadNodes, canopies, carSpots, bays, pumps,
       districtAt(x, y) { // tile coords
-        if (y >= W) return 'sea';
+        if (y >= W) return x < 80 && y < W + 6 ? 'beach' : 'sea';
         if (x % P < R || y % P < R) return 'road';
         const bi = Math.min(NB - 1, Math.floor(x / P)), bj = Math.min(NB - 1, Math.floor(y / P));
         return DCODE[DMAP[bj][bi]];

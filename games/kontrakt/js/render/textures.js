@@ -50,7 +50,7 @@
         x.strokeRect(1, 1, 31, 31); x.strokeRect(33, 1, 30, 31); x.strokeRect(1, 33, 31, 30); x.strokeRect(33, 33, 30, 30);
         break;
       case T.DIRT: case T.SAND:
-        noiseFill(x, S, S, t === T.SAND ? [196, 178, 132] : [126, 100, 70], 26, 6, seed);
+        noiseFill(x, S, S, t === T.SAND ? [232, 208, 162] : [126, 100, 70], 26, 6, seed);
         for (let k = 0; k < 9; k++) { x.fillStyle = 'rgba(70,55,40,0.5)'; x.beginPath(); x.arc(U.hash2(k, v, 11) * S, U.hash2(k, v, 12) * S, 1 + U.hash2(k, v, 13) * 2, 0, 7); x.fill(); }
         break;
       case T.CONC:

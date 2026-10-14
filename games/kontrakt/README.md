@@ -162,6 +162,22 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Frieden kann man kaufen. Verliert eine Gang ihr letztes Revier, ist sie zerschlagen.
 - **Einnahmen:** Jeder eigene Block bringt $150 pro Tag. Dealen im eigenen Revier bringt +25%.
 
+### Vice-Look, Ocean Beach & Nachtleben
+- **Vice-Grading** (abschaltbar in den Optionen): lila Schatten, Türkis in den Mitten, Pink und Orange in den Lichtern, zur goldenen Stunde am stärksten.
+- **Palmen-Boulevards** in Mitte, Sonnenhang und am Strand, mit pinken und cyanfarbenen Laternen am Ocean Drive.
+- **Ocean Beach:** Sand bis ans Wasser, ein Holzsteg, Liegen, Sonnenschirme, Surfbretter, ein Rettungsturm und tagsüber Badegäste.
+- **Beachclub „Flamingo“ und Beachclub „Sunset“:** Pooldeck, Cocktailbar, DJ-Pult und Neon. Nachts wird getanzt.
+- **Stripclub „Velvet“:** Neonbühne mit zwei Stangen, Tänzerinnen, Türsteher, Champagner-Bar und VIP-Bereich.
+  - Trinkgeld geben (E) oder einen Privattanz buchen (T).
+  - Stammgäste hören Dinge: Nach ein paar Trinkgeldern verrät dir eine Tänzerin, wo dein Auftragsziel ist (Intel gratis).
+- **Karte im Vice-City-Stil:**
+  - Pastellviertel, Neonstraßen in Pink und Cyan, Sunset-Himmel mit Retro-Sonne.
+  - Viertelnamen in Neon-Schrift, Icons in Neonringen, Minimap mit Pink-Cyan-Rahmen.
+- **14 Immobilien**, davon 7 Geschäfte mit Tageseinnahmen:
+  - Bar ($1.500 pro Tag), Tankstelle ($900), Diner ($700), Werkstatt ($1.200)
+  - Beachclub „Sunset“ ($2.000), Beachclub „Flamingo“ ($2.600), Stripclub „Velvet“ ($3.400)
+  - Neue Wohnungen: Wohnung Kanalviertel und Strandhaus Ocean Drive.
+
 ### Autos: Autohaus, Tanken, Werkstatt, Car Service (nach rde_fuel, rde_mechanic, rde_carservice, rde_carhud)
 - **12 Modelle mit eigener Silhouette:** Brisa Mini, Vela Limousine, Kastenwagen, Hauler-Pickup, Corsa GT, Ranger-SUV, Bulldog V8, Volta E (elektrisch), Furia S und Spectre RS (234 km/h). Im Verkehr fahren alle Modelle mit.
 - **Autohaus Krähenburg** (Mitte):
@@ -288,7 +304,7 @@ games/kontrakt/
 - **Getrennte Simulation:** `K.World` läuft komplett ohne DOM, auch in Node.
   - `node tools/sim.mjs` spielt Laufen, Schießen, Auftrag, Takedown, Fahren, 5 Spielstunden und Speichern headless durch.
   - `node tools/scenarios.mjs` prüft die KI: Hausfriedensbruch, Verkleidung, Münzen-Ablenkung, Leichenfund, Zeugen mit Polizei, Klaviersaite.
-  - `node tools/crime.mjs` prüft Unterwelt, Überfälle, Gangs und Reviere; `node tools/cars.mjs` prüft Sprit, Crashs, Verformung, Gurt, Laternen, Reifen, Tuning, Autohaus, Zapfsäule, Werkstatt und Car Service.
+  - `node tools/crime.mjs` prüft Unterwelt, Überfälle, Gangs und Reviere; `node tools/city.mjs` prüft Strand, Clubs, Tänzerinnen und Immobilien; `node tools/cars.mjs` prüft Sprit, Crashs, Verformung, Gurt, Laternen, Reifen, Tuning, Autohaus, Zapfsäule, Werkstatt und Car Service.
 - **Speichern** in `localStorage`. Die Stadt wird aus dem Seed neu erzeugt, deshalb bleibt der Spielstand klein.
 
 *Red Dragon Elite · pure HTML · CSS · JavaScript*

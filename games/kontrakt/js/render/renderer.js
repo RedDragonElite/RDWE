@@ -252,7 +252,7 @@
       // shop / landmark sign along the main door wall
       const d = b.doors[0];
       if (b.shop || ['club', 'hotel', 'bar', 'police'].includes(b.type) || b.property) {
-        const label = b.property && !b.shop ? b.name : (K.SHOPS[b.shop] && K.SHOPS[b.shop].name) || b.name;
+        const label = (b.property && !b.shop) || ['beachclub', 'stripclub', 'gas', 'autohaus', 'werkstatt'].includes(b.type) ? b.name : (K.SHOPS[b.shop] && K.SHOPS[b.shop].name) || b.name;
         x.font = '600 11px "Oswald", sans-serif';
         const tw = Math.min(Wd - 8, x.measureText(label).width + 14);
         const sy = d.oy > 0 ? H - 18 : d.oy < 0 ? 4 : H / 2 - 7;

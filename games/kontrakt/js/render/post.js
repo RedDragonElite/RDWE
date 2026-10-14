@@ -7,7 +7,7 @@ void main(){ vUv = p*0.5+0.5; vUv.y = 1.0-vUv.y; gl_Position = vec4(p,0.0,1.0); 
   const FS = `#version 300 es
 precision highp float;
 uniform sampler2D uTex; uniform vec2 uRes;
-uniform float uTime, uHurt, uLow, uInstinct, uDrunk, uFlash, uBloom, uGrain, uSlow, uTired;
+uniform float uTime, uHurt, uLow, uInstinct, uDrunk, uFlash, uBloom, uGrain, uSlow, uTired, uVice, uDusk;
 in vec2 vUv; out vec4 o;
 vec3 tx(vec2 uv){ return texture(uTex, uv).rgb; }
 void main(){
@@ -25,6 +25,17 @@ void main(){
   float l = dot(col, vec3(0.299,0.587,0.114));
   col = mix(col, col*vec3(0.9,1.0,1.08), (1.0-l)*0.4);
   col = mix(col, col*vec3(1.07,1.0,0.9), l*0.28);
+  // Vice grade: violet shadows, teal mids, pink-orange highlights — stronger at golden hour
+  if (uVice > 0.0) {
+    float lv = dot(col, vec3(0.299,0.587,0.114));
+    vec3 shadow = vec3(0.10, 0.02, 0.18), high = vec3(1.10, 0.90, 0.95) + vec3(0.06, 0.02, -0.08)*uDusk;
+    col += shadow * (1.0-lv) * (1.0-lv) * 0.55 * uVice;
+    col = mix(col, col*high, smoothstep(0.35, 1.0, lv) * 0.6 * uVice);
+    col = mix(col, col*vec3(0.92,1.04,1.06), (1.0-abs(lv-0.45)*2.0) * 0.25 * uVice);
+    col = mix(col, col*vec3(1.12,0.88,1.02), uDusk*0.35*uVice);
+    float lv2 = dot(col, vec3(0.299,0.587,0.114));
+    col = mix(vec3(lv2), col, 1.0 + 0.16*uVice);
+  }
   float red = clamp((col.r - max(col.g,col.b))*3.0, 0.0, 1.0);
   float sat = 1.08 - uLow*0.75 - uInstinct*0.85;
   col = mix(vec3(l), col, clamp(mix(sat, 1.2, red*uInstinct), 0.0, 1.4));
@@ -57,7 +68,7 @@ void main(){
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         this.u = {};
-        for (const n of ['uTex', 'uRes', 'uTime', 'uHurt', 'uLow', 'uInstinct', 'uDrunk', 'uFlash', 'uBloom', 'uGrain', 'uSlow', 'uTired']) this.u[n] = gl.getUniformLocation(pr, n);
+        for (const n of ['uTex', 'uRes', 'uTime', 'uHurt', 'uLow', 'uInstinct', 'uDrunk', 'uFlash', 'uBloom', 'uGrain', 'uSlow', 'uTired', 'uVice', 'uDusk']) this.u[n] = gl.getUniformLocation(pr, n);
         this.ok = true;
       } catch (e) { console.warn('post fx disabled:', e.message); this.ok = false; }
     }
@@ -71,7 +82,7 @@ void main(){
       const u = this.u;
       gl.uniform1i(u.uTex, 0); gl.uniform2f(u.uRes, d.width, d.height);
       gl.uniform1f(u.uTime, p.time % 1000); gl.uniform1f(u.uHurt, p.hurt); gl.uniform1f(u.uLow, p.low); gl.uniform1f(u.uInstinct, p.instinct);
-      gl.uniform1f(u.uDrunk, p.drunk); gl.uniform1f(u.uFlash, p.flash); gl.uniform1f(u.uBloom, p.bloom); gl.uniform1f(u.uGrain, p.grain); gl.uniform1f(u.uSlow, p.slow); gl.uniform1f(u.uTired, p.tired);
+      gl.uniform1f(u.uDrunk, p.drunk); gl.uniform1f(u.uFlash, p.flash); gl.uniform1f(u.uBloom, p.bloom); gl.uniform1f(u.uGrain, p.grain); gl.uniform1f(u.uSlow, p.slow); gl.uniform1f(u.uTired, p.tired); gl.uniform1f(u.uVice, p.vice || 0); gl.uniform1f(u.uDusk, p.dusk || 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
   }
