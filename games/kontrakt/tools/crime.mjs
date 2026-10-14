@@ -110,6 +110,7 @@ console.log('9) heists: bank vault (keycard, C4) and the jeweler');
   const side = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([a, c]) => [vd.x + a, vd.y + c]).find(([i, j]) => w.bldAt((i + .5) * TILE, (j + .5) * TILE) === bank.id && !(bank.vault && i >= bank.vault.x && i < bank.vault.x + bank.vault.w && j >= bank.vault.y && j < bank.vault.y + bank.vault.h));
   p.x = (side[0] + 0.5) * TILE; p.y = (side[1] + 0.5) * TILE; w.rebuildGrid();
   for (const a of w.actors) if (a.kind === 'guard' || a.kind === 'staff') w.removeActor(a);
+  w.updatePolice = () => {};   // this test is about the alarm, not about getting caught first
   let acts = w.contextActions();
   check(acts.some((o) => o.label.startsWith('Tresortür —')), 'needs a card, drill or C4');
   w.addItem('keycard'); acts = w.contextActions();
@@ -120,7 +121,8 @@ console.log('9) heists: bank vault (keycard, C4) and the jeweler');
   const box = w.props.find((q) => q && q.k === 'deposit' && q.bld === bank.id);
   const m0 = w.P.money; w.lootDeposit(box);
   check(w.P.money > m0 && box.lootDay === w.today(), `deposit box looted (+$${w.P.money - m0})`);
-  run(w, 60 * 37);
+  for (let i = 0; i < 60 * 60 && !(bank.alarmUntil > w.t); i++) run(w, 1);   // the time lock waits 20–45 s
+  run(w, 2);
   check(w.wanted >= 3, `time-lock alarm → 3 stars (wanted=${w.wanted})`);
   check(w.cars.some((c) => c.unit && c.unit.mode !== 'patrol'), 'police units respond to the bank');
 }

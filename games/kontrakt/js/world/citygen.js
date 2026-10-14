@@ -2,23 +2,30 @@
 (function (K) {
   'use strict';
   const T = K.T, TILE = K.TILE;
-  const NB = 7, P = 26, R = 4;
+  // 10 × 10 blocks of 26 tiles: Altstadt NW, a big Mitte, the villas on Sonnenhang NE, canals SW,
+  // industry SE, docks and Ocean Beach on the seafront
+  const NB = 10, P = 26, R = 4;
   const W = NB * P + R, H = W + 14;
+  const BEACHB = 5, BEACHW = BEACHB * P;   // Ocean Beach: the first five seafront blocks
+  K.CITY = { NB, P, R, W, H, BEACHW };
 
   const DMAP = [
-    'OOODHHH',
-    'OOODDHH',
-    'OPDDDDH',
-    'RRDPDDI',
-    'RRRDDII',
-    'RPRRIII',
-    'BBBKKKK',
+    'OOOODDHHHH',
+    'OOOODDDHHH',
+    'OOOODDDDHH',
+    'OOPDDDDDDH',
+    'RRDDDDDDDI',
+    'RRRDDPDDDI',
+    'RRRRDDDIII',
+    'RRRRRDIIII',
+    'RRPRRRIIII',
+    'BBBBBKKKKK',
   ];
   const DCODE = { B: 'beach', O: 'old', D: 'down', H: 'hill', P: 'park', R: 'res', I: 'ind', K: 'docks' };
   K.DISTRICTS = { beach: 'Ocean Beach', old: 'Altstadt', down: 'Mitte', hill: 'Sonnenhang', park: 'Stadtpark', res: 'Kanalviertel', ind: 'Industriegebiet', docks: 'Hafen', road: 'Straße', sea: 'Hafenbecken' };
 
-  // explicit block plans; others fall back to the district default
-  const PLAN = {
+  // explicit block plans (laid out on the old 7 × 7 grid and scaled ×1.5); others fall back to the district default
+  const PLAN7 = {
     '0,0': ['house', 'grow', 'house', 'house'], '1,0': ['bar', 'house', 'house', 'food'], '2,0': ['diner', 'house', 'flat', 'house'],
     '3,0': ['cloth', 'flat', 'food', 'flat'], '0,1': ['house', 'house', 'house', 'house'], '1,1': ['house', 'flat', 'house', 'house'],
     '2,1': ['flat', 'jeweler', 'pharmacy', 'house'], '3,1': ['office'], '4,1': ['police'], '2,2': ['gun', 'flat', 'flat', 'food'], '0,2': ['gas'],
@@ -27,6 +34,14 @@
     '5,4': ['werkstatt'], '6,4': ['warehouse', 'warehouse'], '4,5': ['gas'], '5,5': ['warehouse', 'warehouse'], '6,5': ['warehouse', 'warehouse'],
     '4,6': ['black'],
   };
+  const PLAN = {};
+  for (const k in PLAN7) { const [i, j] = k.split(',').map(Number); PLAN[Math.round(i * 1.5) + ',' + Math.round(j * 1.5)] = PLAN7[k]; }
+  // the new quarters of the bigger city
+  Object.assign(PLAN, {
+    '1,1': ['bar', 'house', 'diner', 'house'], '1,2': ['house', 'cloth', 'house', 'food'], '4,1': ['office'], '7,3': ['hotel'],
+    '4,4': ['club'], '7,4': ['gun', 'flat', 'flat', 'food'], '4,6': ['flat', 'diner', 'pharmacy', 'flat'], '1,7': ['bar', 'house', 'house', 'food'],
+    '4,7': ['diner', 'flat', 'flat', 'food'], '7,1': ['office'], '6,4': ['office'], '7,7': ['warehouse', 'warehouse'],
+  });
 
   // prop kinds: s = blocks: 1 move · 2 bullets · 4 sight · hide = body container · inter = interaction
   const PK = K.PROPK = {
@@ -39,6 +54,11 @@
     palm: { s: 1, tall: 1 }, lounger: { s: 1 }, tower: { s: 1, tall: 1 }, pole: { s: 1 }, stage: { s: 0, low: 1 }, surf: { s: 0 },
     pump: { s: 1, inter: 'pump' }, gassign: { s: 1, tall: 1 }, lift: { s: 0, low: 1 }, toolbox: { s: 1 }, tires: { s: 1 }, flag: { s: 1, tall: 1 }, cone: { s: 0 },
     deposit: { s: 3, inter: 'deposit' }, showcase: { s: 1, inter: 'showcase' }, cart: { s: 1 },
+    // richer interiors
+    bookshelf: { s: 3 }, nightstand: { s: 1 }, dresser: { s: 3 }, bathtub: { s: 1 }, kcounter: { s: 1 }, watercooler: { s: 1 }, printer: { s: 1 },
+    coatrack: { s: 0 }, aquarium: { s: 3 }, fireplace: { s: 1 }, barcart: { s: 1 }, armchair: { s: 1 }, floorlamp: { s: 1 },
+    // street life
+    busstop: { s: 1 }, paperbox: { s: 1 }, bikerack: { s: 1 }, planter: { s: 1 }, phonebooth: { s: 3 }, cafe: { s: 1 },
   };
 
   K.generateCity = function (seed) {
@@ -61,7 +81,7 @@
     // ---------------------------------------------------------- seafront
     fill(0, W, W, 2, T.QUAY);
     fill(0, W + 2, W, H - W - 2, T.WATER);
-    fill(0, W, 80, 6, T.SAND);   // Ocean Beach shoreline
+    fill(0, W, BEACHW, 6, T.SAND);   // Ocean Beach shoreline
 
     function addProp(k, x, y, w = 1, h = 1, o = {}) {
       for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) {
@@ -80,6 +100,8 @@
       for (let j = p.y; j < p.y + p.h; j++) for (let i = p.x; i < p.x + p.w; i++) { solid[idx(i, j)] = 0; pmap[idx(i, j)] = -1; }
       props[p.id] = null;
     }
+    /** street furniture only on pavement */
+    function onWalk(x, y, w = 1, h = 1) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!inb(i, j) || get(i, j) !== T.WALK) return false; return true; }
     function lamp(x, y, c = [255, 196, 130], r = 235) {
       const p = addProp('lamp', x, y);
       if (p) lights.push({ x: (x + 0.5) * TILE, y: (y + 0.5) * TILE, r, c, i: 0.95, kind: 'lamp', flick: rng.chance(0.06) });
@@ -264,10 +286,10 @@
       rooms.forEach((r, ri) => {
         const front = r.front, area = r.w * r.h;
         let role;
-        if (T0 === 'house' || T0 === 'flat') role = front ? 'living' : ri === 1 ? 'bedroom' : ri === 2 ? 'kitchen' : 'bedroom';
+        if (T0 === 'house' || T0 === 'flat') role = front ? 'living' : area <= 9 && ri >= 2 ? 'bath' : ri === 1 ? 'bedroom' : ri === 2 ? 'kitchen' : ri === 3 ? 'bath' : 'bedroom';
         else if (T0 === 'office') role = front ? 'lobby' : area >= 30 && ri === rooms.length - 1 ? 'boss' : 'office';
         else if (T0 === 'hotel') role = front ? 'lobby' : 'suite';
-        else if (T0 === 'villa') role = front ? 'hall' : ['living', 'bedroom', 'study', 'kitchen'][(ri - 1) % 4];
+        else if (T0 === 'villa') role = front ? 'hall' : ['living', 'bedroom', 'study', 'kitchen', 'bath'][(ri - 1) % 5];
         else if (T0 === 'warehouse') role = front ? 'storage' : 'backoffice';
         else if (T0 === 'black') role = front ? 'blackshop' : 'storage';
         else if (T0 === 'police') role = front ? 'desk' : ri === 1 ? 'cells' : ri === 2 ? 'armory' : 'office';
@@ -285,15 +307,16 @@
         const B = (k, w, h, where, o) => put(b, r, k, w, h, where, o);
         const Bf = (k, len, where, o) => putFlex(b, r, k, len, where, o);
         switch (role) {
-          case 'living': Bf('sofa', 2, 'wall'); B('tv', 1, 1, 'wall'); B('table', 1, 1, 'center'); B('plant', 1, 1, 'wall'); if (area > 12) B('rug', 2, 2, 'center'); B('shelf', 1, 1, 'wall'); addPois(b, r, 'sit', 2); break;
-          case 'bedroom': Bf('bed', 2, 'wall'); B('wardrobe', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); addPois(b, r, 'sleep', 1); break;
-          case 'kitchen': B('fridge', 1, 1, 'wall'); B('stove', 1, 1, 'wall'); B('sink', 1, 1, 'wall'); B('table', 1, 1, 'center'); B('chair', 1, 1, 'center'); addPois(b, r, 'work', 2); break;
+          case 'living': Bf('sofa', 2, 'wall'); B('tv', 1, 1, 'wall'); B('table', 1, 1, 'center'); B('plant', 1, 1, 'wall'); if (area > 12) B('rug', 2, 2, 'center'); B('shelf', 1, 1, 'wall'); B('armchair', 1, 1, 'wall'); B('bookshelf', 1, 1, 'wall'); B('floorlamp', 1, 1, 'wall'); addPois(b, r, 'sit', 2); break;
+          case 'bedroom': Bf('bed', 2, 'wall'); B('wardrobe', 1, 1, 'wall'); B('nightstand', 1, 1, 'wall'); B('dresser', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); addPois(b, r, 'sleep', 1); break;
+          case 'bath': B('toilet', 1, 1, 'wall'); B('sink', 1, 1, 'wall'); Bf('bathtub', 2, 'wall'); B('plant', 1, 1, 'wall'); break;
+          case 'kitchen': B('fridge', 1, 1, 'wall'); B('stove', 1, 1, 'wall'); B('sink', 1, 1, 'wall'); Bf('kcounter', 2, 'wall'); B('table', 1, 1, 'center'); B('chair', 1, 1, 'center'); addPois(b, r, 'work', 2); break;
           case 'lobby': Bf('counter', 3, 'wall'); B('plant', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); Bf('sofa', 2, 'wall'); if (T0 === 'hotel') { B('piano', 2, 1, 'center'); B('rug', 3, 2, 'center'); } addPois(b, r, 'stand', 4); break;
-          case 'office': for (let k = 0; k < Math.max(1, area / 10); k++) Bf('desk', 2, 'wall'); B('shelf', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); addPois(b, r, 'work', 3); break;
-          case 'boss': Bf('desk2', 2, 'center'); B('rug', 3, 2, 'center'); B('safe', 1, 1, 'wall'); Bf('sofa', 2, 'wall'); B('plant', 1, 1, 'wall'); addPois(b, r, 'work', 2); break;
-          case 'suite': Bf('bed', 2, 'wall'); Bf('sofa', 2, 'wall'); B('tv', 1, 1, 'wall'); B('wardrobe', 1, 1, 'wall'); addPois(b, r, 'sit', 2); break;
-          case 'hall': B('rug', 3, 2, 'center'); B('plant', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('piano', 2, 1, 'wall'); addPois(b, r, 'stand', 3); break;
-          case 'study': Bf('desk2', 2, 'center'); B('shelf', 1, 1, 'wall'); B('shelf', 1, 1, 'wall'); B('safe', 1, 1, 'wall'); addPois(b, r, 'work', 2); break;
+          case 'office': for (let k = 0; k < Math.max(1, area / 10); k++) Bf('desk', 2, 'wall'); B('shelf', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('watercooler', 1, 1, 'wall'); B('printer', 1, 1, 'wall'); B('coatrack', 1, 1, 'wall'); addPois(b, r, 'work', 3); break;
+          case 'boss': Bf('desk2', 2, 'center'); B('rug', 3, 2, 'center'); B('safe', 1, 1, 'wall'); Bf('sofa', 2, 'wall'); B('plant', 1, 1, 'wall'); B('bookshelf', 1, 1, 'wall'); Bf('aquarium', 2, 'wall'); B('barcart', 1, 1, 'wall'); addPois(b, r, 'work', 2); break;
+          case 'suite': Bf('bed', 2, 'wall'); Bf('sofa', 2, 'wall'); B('tv', 1, 1, 'wall'); B('wardrobe', 1, 1, 'wall'); B('nightstand', 1, 1, 'wall'); B('armchair', 1, 1, 'wall'); addPois(b, r, 'sit', 2); break;
+          case 'hall': B('rug', 3, 2, 'center'); B('plant', 1, 1, 'wall'); B('plant', 1, 1, 'wall'); B('piano', 2, 1, 'wall'); Bf('fireplace', 2, 'wall'); Bf('aquarium', 2, 'wall'); B('armchair', 1, 1, 'wall'); addPois(b, r, 'stand', 3); break;
+          case 'study': Bf('desk2', 2, 'center'); B('bookshelf', 1, 1, 'wall'); B('bookshelf', 1, 1, 'wall'); B('safe', 1, 1, 'wall'); B('armchair', 1, 1, 'wall'); B('floorlamp', 1, 1, 'wall'); addPois(b, r, 'work', 2); break;
           case 'storage': for (let k = 0; k < area / 6; k++) B(rng.chance(0.5) ? 'crate' : 'shelf', 1, 1, 'wall'); B('locker', 1, 1, 'wall'); addPois(b, r, 'work', 2); break;
           case 'backoffice': Bf('desk', 2, 'wall'); B('locker', 1, 1, 'wall'); B('safe', 1, 1, 'wall'); addPois(b, r, 'work', 2); break;
           case 'blackshop': placeCounter(b, r, 'counter', { shop: 1 }) || Bf('counter', 3, 'wall', { extra: { shop: 1 } }); B('crate', 1, 1, 'wall'); B('crate', 1, 1, 'wall'); B('rack', 1, 1, 'wall'); addPois(b, r, 'stand', 3); break;
@@ -616,6 +639,12 @@
         else if ((d === 'res' || d === 'old') && k % 7 === 0 && rng.chance(0.75)) addProp('tree', x, y);
         else if ((d === 'down' || d === 'old') && k % 13 === 9 && rng.chance(0.5)) addProp('trash', x, y);
         else if (k % 29 === 17 && rng.chance(0.4)) addProp('hydrant', x, y);
+        // street life: bus stops, newspaper boxes, bikes, planters, phone booths
+        else if ((d === 'down' || d === 'old' || d === 'res') && k % 44 === 31 && rng.chance(0.6) && onWalk(x, y, k % 2 ? 1 : 2, k % 2 ? 2 : 1)) addProp('busstop', x, y, k % 2 ? 1 : 2, k % 2 ? 2 : 1);   // sides 1/3 run vertically
+        else if ((d === 'down' || d === 'old') && k % 17 === 11 && rng.chance(0.45)) addProp('paperbox', x, y);
+        else if ((d === 'old' || d === 'res' || d === 'beach') && k % 23 === 7 && rng.chance(0.5)) addProp('bikerack', x, y);
+        else if ((d === 'down' || d === 'hill') && k % 19 === 3 && rng.chance(0.5)) addProp('planter', x, y);
+        else if ((d === 'down' || d === 'old' || d === 'docks') && k % 53 === 47 && rng.chance(0.5)) addProp('phonebooth', x, y);
       });
       // vending machines and cash machines against the inner sidewalk edge
       if ((d === 'down' || d === 'old' || d === 'res') && rng.chance(0.65)) {
@@ -628,11 +657,22 @@
       }
     }
 
+    // ---------------------------------------------------------- café tables outside bars & diners
+    for (const b of buildings) {
+      if (!['diner', 'bar', 'beachclub'].includes(b.type) && b.shop !== 'food') continue;
+      const e = b.entrance; if (!e) continue;
+      let dir = null;
+      for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) if (inb(e.x + dx, e.y + dy) && bmap[idx(e.x + dx, e.y + dy)] < 0) { dir = [dx, dy]; break; }
+      if (!dir) continue;
+      const [dx, dy] = dir, px = -dy, py = dx;
+      for (const k of [-3, -2, 2, 3]) for (const o of [2, 1]) { const cx = e.x + dx * o + px * k, cy = e.y + dy * o + py * k; if (onWalk(cx, cy) && bmap[idx(cx, cy)] < 0) { if (rng.chance(0.85)) addProp('cafe', cx, cy); break; } }
+    }
+
     // ---------------------------------------------------------- piers & boats
     for (let bi = 0; bi < NB; bi++) {
       const x0 = bi * P + R + 3;
-      if (bi < 3) {   // Ocean Beach: one wooden pier with a lamp at its end, no cranes
-        if (bi === 1) { fill(x0 + 6, W + 6, 3, 9, T.DOCK); lamp(x0 + 7, W + 14, [255, 120, 210], 160); }
+      if (bi < BEACHB) {   // Ocean Beach: wooden piers with a lamp at their end, no cranes
+        if (bi === 1 || bi === 3) { fill(x0 + 6, W + 6, 3, 9, T.DOCK); lamp(x0 + 7, W + 14, [255, 120, 210], 160); }
         continue;
       }
       for (const px of [x0, x0 + 11]) {
@@ -679,9 +719,9 @@
     for (let j = 0; j <= NB; j++) for (let i = 0; i <= NB; i++) roadNodes.push({ i, j, x: (i * P + 2) * TILE, y: (j * P + 2) * TILE });
 
     const world = {
-      W, H, N, P, R, NB, seed, tiles, solid, bmap, zmap, pmap, doors, buildings, props, lights, zones, blocks, walk, roadNodes, canopies, carSpots, bays, pumps,
+      W, H, N, P, R, NB, BEACHW, seed, tiles, solid, bmap, zmap, pmap, doors, buildings, props, lights, zones, blocks, walk, roadNodes, canopies, carSpots, bays, pumps,
       districtAt(x, y) { // tile coords
-        if (y >= W) return x < 80 && y < W + 6 ? 'beach' : 'sea';
+        if (y >= W) return x < BEACHW && y < W + 6 ? 'beach' : 'sea';
         if (x % P < R || y % P < R) return 'road';
         const bi = Math.min(NB - 1, Math.floor(x / P)), bj = Math.min(NB - 1, Math.floor(y / P));
         return DCODE[DMAP[bj][bi]];

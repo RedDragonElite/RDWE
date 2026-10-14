@@ -13,9 +13,14 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 ## Features
 
 ### Die Stadt
-- **Prozedurale Stadt (186×200 Tiles), 7 Viertel:**
-  - Altstadt, Mitte, Sonnenhang (Villen), Stadtpark, Kanalviertel, Industriegebiet und Hafen mit Piers, Booten und Kränen.
-- **108 betretbare Gebäude mit echten Innenräumen.** Wenn du ein Gebäude betrittst, blenden die Dächer aus.
+- **Prozedurale Großstadt (264×278 Tiles, 10×10 Blöcke), 8 Viertel:**
+  - Altstadt, eine große Mitte, Sonnenhang (Villen), Stadtparks, Kanalviertel, Industriegebiet, Hafen mit Piers, Booten und Kränen, Ocean Beach.
+- **Rund 230 betretbare Gebäude mit echten Innenräumen.** Wenn du ein Gebäude betrittst, blenden die Dächer aus.
+  - Bäder mit Wanne, WC und Waschbecken; Wohnzimmer mit Sessel, Bücherregal und Stehlampe; Schlafzimmer mit Nachttisch und Kommode; Küchenzeilen.
+  - Büros mit Wasserspender, Drucker und Garderobe; Villen und Chefbüros mit Kamin, Aquarium und Barwagen.
+- **Straßenleben:**
+  - Bushaltestellen, Zeitungsboxen, Fahrradständer, Blumenkübel, Telefonzellen
+  - Café-Tische mit Sonnenschirmen vor Bars und Dinern
   - Wohnhäuser, Büros, Grand Hotel, Villen mit Pool und Garten, Lagerhallen, Polizeirevier, Klinik, Club, Bar, Diner, Späti, Apotheke, Boutique, Waffenladen und Schwarzmarkt.
 - **Leben in den Straßen:**
   - Passanten mit Tagesrhythmus

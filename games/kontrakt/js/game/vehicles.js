@@ -10,7 +10,7 @@
     police:{ l: 66, w: 31, max: 520, acc: 330, colors: ['#10141c'] },
     ambulance: { l: 82, w: 35, max: 380, acc: 220, colors: ['#f4f4f0'] },
   };
-  const P = 26, NB = 7, LANE = 32;
+  const P = 26, NB = K.CITY.NB, LANE = 32;
   const nodeXY = (i, j) => [(i * P + 2) * TILE, (j * P + 2) * TILE];
 
   K.mixin({

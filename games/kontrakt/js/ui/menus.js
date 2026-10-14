@@ -761,7 +761,7 @@
       if ('letterSpacing' in x) x.letterSpacing = `${Math.round(s * 0.9)}px`;
       const seen = new Set();
       for (const bl of w.city.blocks) { if (seen.has(bl.d)) continue; seen.add(bl.d); const [mx, my] = toM((bl.ox + 11) * TILE, (bl.oy + 11) * TILE); x.save(); x.shadowColor = 'rgba(0,0,0,0.9)'; x.shadowBlur = 6; x.fillStyle = 'rgba(240,238,232,0.82)'; x.fillText(K.DISTRICTS[bl.d].toUpperCase(), mx, my); x.restore(); }
-      { const [mx, my] = toM(40 * TILE, (w.city.W + 3) * TILE); x.save(); x.font = `500 ${Math.round(s * 2)}px "Oswald", sans-serif`; x.fillStyle = 'rgba(240,238,232,0.55)'; x.fillText('OCEAN DRIVE', mx, my - s * 5.5); x.restore(); }
+      { const [mx, my] = toM((w.city.BEACHW || 80) / 2 * TILE, (w.city.W + 3) * TILE); x.save(); x.font = `500 ${Math.round(s * 2)}px "Oswald", sans-serif`; x.fillStyle = 'rgba(240,238,232,0.55)'; x.fillText('OCEAN DRIVE', mx, my - s * 5.5); x.restore(); }
       if ('letterSpacing' in x) x.letterSpacing = '0px';
       x.font = `${Math.round(s * 4.2)}px sans-serif`; x.textBaseline = 'middle';
       for (const q of ui.poiIcons()) { const [mx, my] = toM(q.x, q.y); if (!q.small) { x.fillStyle = 'rgba(10,11,14,0.88)'; x.beginPath(); x.arc(mx, my, s * 3, 0, 6.3); x.fill(); x.strokeStyle = q.c || 'rgba(240,238,232,0.7)'; x.lineWidth = 1.5; x.stroke(); } x.fillStyle = '#fff'; x.fillText(q.e, mx, my + 1); }

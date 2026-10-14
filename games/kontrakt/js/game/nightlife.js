@@ -23,13 +23,13 @@
       this.beachT = (this.beachT || 0) - dt;
       if (this.beachT > 0) return;
       this.beachT = 4;
-      const nearBeach = this.districtAt(p.x, p.y) === 'beach' || (p.y > 150 * TILE && p.x < 90 * TILE);
+      const nearBeach = this.districtAt(p.x, p.y) === 'beach' || (p.y > (this.city.W - 30) * TILE && p.x < (this.city.BEACHW + 10) * TILE);
       if (!nearBeach) return;
       const night = this.isNight(), live = this.actors.filter((a) => a.beachgoer && a.alive && !a.removed);
       const want = night ? 4 : 12;
       if (live.length < want) {
         for (let n = 0; n < 3; n++) {
-          const x = (2 + Math.random() * 76) * TILE, y = (this.city.W + 0.5 + Math.random() * 4.5) * TILE;
+          const x = U.clamp(p.x / TILE + U.rnd(-35, 35), 2, this.city.BEACHW - 2) * TILE, y = (this.city.W + 0.5 + Math.random() * 4.5) * TILE;
           if (this.blockedTile(this.tileIdx(x, y), null) || (Math.hypot(x - p.x, y - p.y) < 10 * TILE && K.los(this, p.x, p.y, x, y))) continue;
           const a = this.spawnActor('civ', x, y, { outfit: U.pick(BEACHWEAR), state: 'hang' });
           a.beachgoer = true; a.brain.post = { x, y };

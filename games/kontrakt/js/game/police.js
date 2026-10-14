@@ -5,7 +5,7 @@
 (function (K) {
   'use strict';
   const U = K.U, TILE = K.TILE;
-  const P_ = 26, NB = 7, LANE = 32;
+  const P_ = 26, NB = K.CITY.NB, LANE = 32;
   const nodeXY = (i, j) => [(i * P_ + 2) * TILE, (j * P_ + 2) * TILE];
 
   K.mixin({
