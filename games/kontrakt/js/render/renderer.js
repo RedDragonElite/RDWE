@@ -781,6 +781,12 @@
         const hy = sy - 22 * zs;
         const st = a.state;
         if (a.ko > 0) { if (Math.floor(this.time * 1.5 + a.id) % 3 === 0) { o.fillStyle = 'rgba(200,220,255,0.8)'; o.font = `bold ${11 * s}px sans-serif`; o.textAlign = 'center'; o.fillText('z', sx + 8 * s, hy + 6 * s); } continue; }
+        if (a.kind === 'crew') {   // your people: green chevron + name
+          o.fillStyle = st === 'hostile' ? '#ffd34d' : '#3ddc84'; o.beginPath(); o.moveTo(sx - 5 * s, hy - 3 * s); o.lineTo(sx, hy + 3 * s); o.lineTo(sx + 5 * s, hy - 3 * s); o.closePath(); o.fill();
+          o.font = `600 ${9.5 * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.textBaseline = 'bottom'; o.fillStyle = 'rgba(220,255,230,0.85)'; o.fillText(a.name.split(' ')[0], sx, hy - 5 * s);
+          if (a.bark && g.settings.barks) this.bubble(o, sx, hy - 20 * s, a.bark.text, Math.min(1, a.bark.t * 2), a.kind, s);
+          continue;
+        }
         if (st === 'hostile' || a.susp > 0.04 || st === 'warn' || st === 'search' || st === 'investigate') {
           const k = st === 'hostile' ? 1 : a.susp;
           const col = st === 'hostile' ? '#ff2a2a' : st === 'search' ? '#ffb000' : k > 0.66 ? '#ff7a00' : '#f2f2f2';

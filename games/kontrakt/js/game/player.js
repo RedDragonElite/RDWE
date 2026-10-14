@@ -38,6 +38,7 @@
 
       // -------------------------------------------------------- surrender
       if (pr.x) this.toggleSurrender();
+      if (pr.v && this.crewActors && this.crewActors().length) this.crewCommand('attack');
       if (P.surrender) {
         if (inp.up || inp.down || inp.left || inp.right || pr.fire) this.cancelSurrender(true);
         else { this.moveActor(a, 0, 0, dt, 14); this.ctx = [{ key: 'X', label: 'Doch nicht ergeben (Widerstand!)' }]; return; }

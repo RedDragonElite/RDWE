@@ -110,6 +110,7 @@
         return d.access.includes(this.role(a));
       }
       if (d.vault) return false;   // nobody strolls into the vault
+      if (a.kind === 'crew') return this.hasAccess(this.player, d);   // your people go where you go
       if (a.kind === 'target' || a.kind === 'bodyguard') return true;
       return d.access.includes(this.role(a)) || (a.home === d.bld);
     }

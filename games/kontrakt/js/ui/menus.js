@@ -158,6 +158,68 @@
       else if (e.open === 'sleep') this.sleep(e.prop);
       else if (e.open === 'property') this.property(e.id);
       else if (e.open === 'bank') this.bank();
+      else if (e.open === 'recruit') this.recruit();
+      else if (e.open === 'crew') this.crew();
+    }
+    crewCard(m, buttons) {
+      const C = K.CREW, rar = C.rarities.find((x) => x.key === m.rarity) || C.rarities[0];
+      const bars = Object.entries(C.skills).map(([k, n]) => `<div class="sk"><span>${n}</span><i><b style="width:${m.skills[k]}%;background:${rar.col}"></b></i><em>${m.skills[k]}</em></div>`).join('');
+      let meta = `<div class="sub" style="color:${rar.col}">${rar.name} · ${C.pers[m.pers].name}</div>`;
+      if (m.level) {
+        const t = C.tiers[K.crewTier(m)], mo = K.crewMorale(m);
+        const st = m.state === 'active' ? '🟢 im Einsatz' : m.state === 'down' ? `🏥 Klinik (bis ${U.clock(m.downUntil)})` : '⚪ bereit';
+        meta += `<div class="crewmeta"><span>Stufe ${m.level}</span><span style="color:${t.col}">♥ ${t.name}</span><span style="color:${mo.col}">${mo.name} (${Math.round(m.morale)})</span><span>${st}</span><span>☠ ${m.kills}</span><span>🩹 ${m.kits}</span><span>${esc(W8[m.weapon] ? W8[m.weapon].name : m.weapon)}</span><span>Lohn ${U.money(m.wage)}/Tag</span></div>`;
+      } else meta += `<div class="crewmeta"><span>${esc(W8[m.weapon].name)}</span><span>Lohn ${U.money(m.wage)}/Tag</span></div>`;
+      return `<div class="card crewcard" style="border-color:${rar.col}55"><canvas class="crewpic" data-pic="${m.id || 'o' + m.name}" width="96" height="96"></canvas><div class="cbody"><h4>${esc(m.name)}</h4>${meta}<div class="skills">${bars}</div><div class="btns">${buttons}</div></div></div>`;
+    }
+    drawCrewPics(body, list) {
+      body.querySelectorAll('canvas.crewpic').forEach((cv, i) => {
+        const m = list[i]; if (!m || !K.portrait) return;
+        try { K.portrait(cv, { outfit: m.outfit, skin: m.skin, hair: m.hair, female: m.female }); } catch (e) { /* portrait is cosmetic */ }
+      });
+    }
+    recruit() {
+      const w = this.g.world, P = w.P, offers = w.crewOffers(), R = w.crewRoster();
+      let h = `<p class="lead">„Gute Leute kosten. Die besten noch mehr. Jeden Tag hab ich drei neue Gesichter.“ — Kralle</p><div class="sec">Heute verfügbar</div><div class="crewgrid">`;
+      offers.forEach((c, i) => { h += this.crewCard(c, c.hired ? '<span class="tag">Vergeben</span>' : `<button class="btn" data-hire="${i}">Anheuern · ${U.money(c.price)}</button>`); });
+      h += `</div><div class="sec">Deine Crew <small>${R.length}/${K.CREW.maxOwned} · max. ${K.CREW.maxActive} gleichzeitig · Lohn wird täglich fällig</small></div><div class="crewgrid">`;
+      R.forEach((m) => { h += this.crewCard(m, this.rosterButtons(m)); });
+      if (!R.length) h += '<p style="color:#888">Noch niemand. Allein ist man schnell tot.</p>';
+      h += '</div>';
+      const body = this.panel('CREW ANHEUERN', h, 'recruit');
+      this.drawCrewPics(body, [...offers, ...R]);
+      body.querySelectorAll('[data-hire]').forEach((b) => (b.onclick = () => { w.hireCrew(+b.dataset.hire); this.recruit(); }));
+      this.bindRoster(body, () => this.recruit());
+    }
+    rosterButtons(m) {
+      if (m.state === 'down') return `<button class="btn" data-rev="${m.id}">Sofort entlassen · ${U.money(this.g.world.crewHospitalFee(m))}</button><button class="btn ghost" data-fire="${m.id}">Rauswerfen</button>`;
+      return (m.state === 'active' ? `<button class="btn ghost" data-home="${m.id}">Heimschicken</button><button class="btn ghost" data-give="${m.id}">Aktuelle Waffe geben</button>` : `<button class="btn" data-call="${m.id}">Rufen</button>`) + `<button class="btn ghost" data-fire="${m.id}">Rauswerfen</button>`;
+    }
+    bindRoster(body, again) {
+      const w = this.g.world;
+      body.querySelectorAll('[data-call]').forEach((b) => (b.onclick = () => { w.callCrew(+b.dataset.call); again(); }));
+      body.querySelectorAll('[data-home]').forEach((b) => (b.onclick = () => { w.sendHome(+b.dataset.home); again(); }));
+      body.querySelectorAll('[data-give]').forEach((b) => (b.onclick = () => { w.crewCommand('give', +b.dataset.give); again(); }));
+      body.querySelectorAll('[data-rev]').forEach((b) => (b.onclick = () => { w.crewRevive(+b.dataset.rev); again(); }));
+      body.querySelectorAll('[data-fire]').forEach((b) => (b.onclick = () => { if (b.dataset.sure) { w.fireCrew(+b.dataset.fire); again(); } else { b.dataset.sure = 1; b.textContent = 'Sicher?'; } }));
+    }
+    crew() {
+      const w = this.g.world, P = w.P, R = w.crewRoster(), C = K.CREW;
+      const form = P.crewForm || 'follow', stance = P.crewStance || 'defensive', mode = P.crewMode || 'follow';
+      const cmd = (c, label, on, arg) => `<button class="btn ${on ? '' : 'ghost'}" data-cmd="${c}"${arg ? ` data-arg="${arg}"` : ''}>${label}</button>`;
+      let h = `<div class="sec">Befehle <small>[V] im Spiel: Ziel unterm Fadenkreuz angreifen</small></div><div class="btns cmdrow">
+        ${cmd('follow', '🚶 Folgen', mode === 'follow')}${cmd('stay', '🛑 Position halten', mode === 'stay')}${cmd('formation', '◇ Formation: ' + C.formations[form].name, true)}
+        ${cmd('attackAll', '⚔ Alles angreifen')}${cmd('heal', '🩹 Mich verarzten')}${cmd('holster', P.crewHolster ? '🔫 Waffen ziehen' : '✋ Waffen weg')}${cmd('dismissAll', '🏠 Alle heimschicken')}</div>
+        <div class="sec">Haltung</div><div class="btns cmdrow">${Object.entries(C.stances).map(([k, n]) => cmd('stance', n, stance === k, k)).join('')}</div>
+        <p style="color:#888;font-size:12px">Friedlich: wehren sich nur. Defensiv: schützen dich vor allem, was dich angreift. Aggressiv: gehen auch auf Gangs und Räuber los.</p>
+        <div class="sec">Crew <small>Neue Leute gibt es beim Vermittler in der Bar „Blauer Engel“</small></div><div class="crewgrid">`;
+      R.forEach((m) => { h += this.crewCard(m, this.rosterButtons(m)); });
+      if (!R.length) h += '<p style="color:#888">Du hast noch keine Crew. Sprich mit Kralle in der Bar „Blauer Engel“.</p>';
+      h += '</div>';
+      const body = this.panel('CREW', h, 'crew');
+      this.drawCrewPics(body, R);
+      body.querySelectorAll('[data-cmd]').forEach((b) => (b.onclick = () => { w.crewCommand(b.dataset.cmd, b.dataset.arg); this.crew(); }));
+      this.bindRoster(body, () => this.crew());
     }
     bank() {
       const w = this.g.world, P = w.P;
@@ -322,7 +384,7 @@
 
     // ============================================================ title / pause / results
     controls() {
-      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Waffe wählen', 'H', 'Waffe holstern'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen']];
+      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Waffe wählen', 'H', 'Waffe holstern'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen']];
       const h = `<div class="kbd-grid">${k.map((r) => `<kbd>${r[0]}</kbd><span>${r[1]}</span><kbd>${r[2]}</kbd><span>${r[3]}</span>`).join('')}</div>
         <div class="sec" style="margin-top:18px">So spielst du</div>
         <p style="font-size:13px;color:#cfc9be;line-height:1.6">Aufträge kommen aufs <b>Handy (P)</b>. Finde das Ziel — mit gekauftem Intel wird es markiert, sonst kennst du nur grob den Bereich. Nimm Verkleidungen von bewusstlosen oder toten Wachen (<b>T</b>), um in Sperrgebiete zu kommen. Wirf <b>Münzen</b>, um Wachen wegzulocken, und erledige Ziele lautlos von hinten (<b>F</b>) mit der Klaviersaite. Leichen versteckst du in Containern und Schränken (<b>E</b>). Zeugen rufen die Polizei — wechsle das Outfit ungesehen, um die Fahndung zu senken. Willst du nicht sterben, ergib dich mit <b>X</b>: weniger Haft, aber Knast ist Knast. Halt Passanten oder Ladenbesitzer mit gezogener Waffe (<b>RMB</b>) in Schach und raub sie aus, zieh Brieftaschen von hinten, durchwühl fremde Wohnungen, hack Geldautomaten. Mit einer Sturmhaube erkennt dich niemand. Im Growshop gibt es Samen und Töpfe — pflanz in deiner Bude, gieß, dünge, ernte und verkauf an Passanten (<b>T</b>) oder am Schwarzmarkt. Iss, trink, schlaf in deinem eigenen Bett, kauf Waffen, Häuser und Geschäfte. Krähenburg lebt — Tag und Nacht, Regen und Nebel.</p>`;

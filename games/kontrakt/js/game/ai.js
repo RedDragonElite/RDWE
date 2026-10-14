@@ -46,6 +46,15 @@
         if (b.type === 'hotel') { spawnStaff(b.rooms[1], 'waiter'); spawnStaff(b.rooms[2], 'waiter'); }
         if (b.type === 'hospital') { spawnStaff(b.rooms[1], 'doctor'); spawnStaff(b.rooms[2], 'doctor'); }
         if (b.type === 'office') spawnStaff(b.rooms[1], 'suitgrey', 'staff');
+        if (b.type === 'bar') {   // the broker: hires out fighters
+          const r = b.rooms[0];
+          for (let k = 0; k < 12; k++) {
+            const x = (r.x + 0.5 + Math.random() * (r.w - 1)) * TILE, y = (r.y + 0.5 + Math.random() * (r.h - 1)) * TILE;
+            if (this.blockedTile(this.tileIdx(x, y), null)) continue;
+            const m = this.spawnActor('staff', x, y, { outfit: 'leather', home: b.id, state: 'hang', female: false, name: 'Vermittler „Kralle“' });
+            m.broker = true; m.brain.post = { x, y }; m.important = true; break;
+          }
+        }
         if (b.type === 'bank') {   // the director carries the vault keycard
           let m = null; const offs = b.rooms.filter((r) => r.role === 'office');
           for (let k = 0; k < 12 && !m && offs.length; k++) m = spawnStaff(offs[k % offs.length], 'suit', 'staff');
@@ -464,6 +473,8 @@
       // nearby escorts react, contract bookkeeping
       if (t.kind === 'target' || t.target) this.contractTargetKilled(t, src, info);
       if (this.heroReward) this.heroReward(t, src);
+      if (t.kind === 'crew' && this.crewDown) this.crewDown(t, src);
+      if (src && src.kind === 'crew' && this.crewKill) this.crewKill(src, t);
       for (const g of this.near(t.x, t.y, 12 * TILE)) {
         if (!g.alive || g.ko > 0 || g === t) continue;
         if (g.kind === 'bodyguard' && g.guarding === t.id) { g.state = 'search'; g.brain.sx = t.x; g.brain.sy = t.y; g.brain.searchT = 40; }

@@ -127,6 +127,18 @@
         e.prompt.innerHTML = ctx.slice(0, 3).map((c) => `<div class="${c.fn ? '' : 'off'}"><kbd>${c.key}</kbd>${U.esc(c.label)}${c.hold ? ' <small style="opacity:.6">(halten)</small>' : ''}</div>`).join('');
       });
       this.tracker();
+      // crew cards
+      const R = (P.crew || []).filter((m) => m.state === 'active');
+      const ck = R.map((m) => { const a = w.crewActor(m); return m.id + ':' + (a ? Math.ceil(a.hp / 5) + a.state + !!a.inCar : 'x'); }).join(',');
+      this.set('crew', ck, () => {
+        const el = document.getElementById('crewhud'); if (!el) return;
+        el.innerHTML = R.map((m) => {
+          const a = w.crewActor(m), rar = K.CREW.rarities.find((x) => x.key === m.rarity);
+          const st = !a ? 'unterwegs' : a.inCar ? 'im Auto' : a.state === 'hostile' ? 'im Gefecht' : a.state === 'stay' ? 'hält Position' : Math.hypot(a.x - p.x, a.y - p.y) > 12 * K.TILE ? 'kommt' : 'folgt';
+          const hp = a ? Math.max(0, a.hp / a.maxHp * 100) : 100;
+          return `<div class="cm" style="--c:${rar.col}">${U.esc(m.name.split(' ')[0])}<small>${st}</small><i><b style="width:${hp}%;background:${hp < 35 ? '#ff3b4e' : '#3ddc84'}"></b></i></div>`;
+        }).join('');
+      });
       // banner timeout
       if (this.bannerT > 0) { this.bannerT -= dt; if (this.bannerT <= 0) e.banner.classList.remove('on'); }
       this.minimap();
@@ -211,7 +223,8 @@
         if (!a.alive || a.removed || a.hidden || a === p || a.inCar) continue;
         const [mx, my] = toM(a.x, a.y); if (mx < 0 || my < 0 || mx > S || my > S) continue;
         const known = a.seesPlayer || w.P.instinct || a.kind === 'cop' && w.wanted > 0;
-        if (a.kind === 'cop') { x.fillStyle = '#4f9bff'; }
+        if (a.kind === 'crew') x.fillStyle = '#3ddc84';
+        else if (a.kind === 'cop') { x.fillStyle = '#4f9bff'; }
         else if (a.state === 'hostile') x.fillStyle = '#ff2a2a';
         else if ((a.kind === 'guard' || a.kind === 'bodyguard' || a.kind === 'gang') && known) x.fillStyle = '#ffb000';
         else continue;

@@ -262,3 +262,26 @@ body.wanted #hud::after { content: ''; position: fixed; inset: 0; pointer-events
   #phone { right: 50%; transform: translateX(50%); bottom: 10px; }
   .ph-frame { height: 82vh; }
 }
+
+/* crew */
+.crewgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+.crewcard { display: flex; gap: 12px; border-width: 1px; }
+.crewcard .crewpic { width: 72px; height: 72px; border-radius: 10px; flex: none; }
+.crewcard .cbody { flex: 1; min-width: 0; }
+.crewcard h4 { margin: 0 0 2px; font: 600 16px var(--f-head); letter-spacing: 1px; }
+.crewmeta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: #bbb; margin: 4px 0 6px; }
+.crewcard .skills { display: grid; gap: 3px; margin-bottom: 8px; }
+.crewcard .sk { display: grid; grid-template-columns: 70px 1fr 26px; align-items: center; gap: 6px; font-size: 11px; color: #aaa; }
+.crewcard .sk i { height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.crewcard .sk i b { display: block; height: 100%; }
+.crewcard .sk em { font-style: normal; text-align: right; color: #ddd; }
+.crewcard .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.crewcard .tag { font-size: 12px; color: #888; }
+.cmdrow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.lead { color: #c9b28a; font-style: italic; margin: 0 0 10px; }
+#crewhud { position: absolute; right: 24px; bottom: 150px; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; pointer-events: none; }
+#crewhud .cm { background: rgba(10,10,14,.72); border: 1px solid rgba(255,255,255,.1); border-left: 3px solid var(--c, #3ddc84); border-radius: 8px; padding: 5px 9px; min-width: 150px; font: 600 12px var(--f-head); letter-spacing: 1px; color: #eee; }
+#crewhud .cm small { color: #9a9a9a; font-weight: 400; letter-spacing: 0; margin-left: 6px; }
+#crewhud .cm i { display: block; height: 3px; margin-top: 4px; background: rgba(255,255,255,.1); border-radius: 2px; overflow: hidden; }
+#crewhud .cm i b { display: block; height: 100%; background: #3ddc84; }
+@media (max-width: 700px) { .crewgrid { grid-template-columns: 1fr; } #crewhud { bottom: 120px; right: 12px; } }

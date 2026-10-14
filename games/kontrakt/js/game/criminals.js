@@ -16,7 +16,7 @@
     },
     spawnThug(plan) {
       const p = this.player;
-      for (let k = 0; k < 30; k++) {
+      for (let k = 0; k < 150; k++) {
         const i = U.pick(this.city.walk), x = (i % this.W + 0.5) * TILE, y = (((i / this.W) | 0) + 0.5) * TILE;
         const d = Math.hypot(x - p.x, y - p.y);
         if (d < 16 * TILE || d > 34 * TILE || (d < 26 * TILE && K.los(this, p.x, p.y, x, y))) continue;

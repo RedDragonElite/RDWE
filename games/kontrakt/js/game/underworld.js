@@ -199,6 +199,7 @@
         return true;
       }
       if (this.drag) return false;
+      if (this.crewContext && this.crewContext(add)) return false;
       // people: rob / pickpocket / deal
       let civ = null, bd = 36;
       for (const b of this.near(a.x, a.y, 40)) {
@@ -415,6 +416,7 @@
       this.updateHoldup(dt);
       if (this.updateCriminals) this.updateCriminals(dt);
       if (this.updateHeists) this.updateHeists(dt);
+      if (this.updateCrew) this.updateCrew(dt);
       if (P.surrender) {
         P.surrenderT += dt;
         if (this.wanted <= 0 && !this.actors.some((c) => c.kind === 'cop' && c.state === 'arrest')) P.surrender = false;

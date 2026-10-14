@@ -183,7 +183,7 @@
       for (const { b, ang } of hits) {
         if (!b.alive) { this.emit('blood', { x: b.x, y: b.y, a: ang, n: 6 }); continue; }
         const unaware = b.kind !== 'player' && !['hostile', 'warn', 'fight'].includes(b.state) && Math.abs(U.angDiff(b.angle, Math.atan2(a.y - b.y, a.x - b.x))) > 1.8;
-        let dmg = d.dmg * (isP ? 1 + this.sk('melee') * 0.15 : 1);
+        let dmg = d.dmg * (isP ? 1 + this.sk('melee') * 0.15 : a.meleeMul || 1);
         if (a.combo === 2) dmg *= 1.6;
         if ((unaware || b.ko > 0) && d.sharp) { this.kill(b, a, { kind: 'melee', w: d.id, dir: ang, silent: true, sharp: true, backstab: true }); continue; }
         if (unaware && d.type === 'fist') dmg *= 1.8;
@@ -357,6 +357,7 @@
         return;
       }
       if (!isP) this.onAttacked(t, src, info);
+      else if (src && src !== t && this.crewProtect) this.crewProtect(src);
       if (src && src.kind === 'player' && !isP) { if (t.kind === 'cop') this.lastThreatT = this.t; this.crimeEvent(src, 'assault', t.x, t.y, t); }
     },
     knockout(t, src, dur) {
