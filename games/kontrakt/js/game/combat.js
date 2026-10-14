@@ -44,7 +44,8 @@
         const P = this.P;
         spread *= 1 + Math.min(1.6, a.speed / 110);
         if (a.crouch) spread *= 0.72;
-        if (this.aiming) spread *= d.scope ? 0.25 : 0.55;
+        if (this.aiming) spread *= d.scope ? (this.holdBreath ? 0.12 : 0.25) : 0.55;
+        else if (d.scope) spread += 0.06 * d.scope;   // hip-firing a scoped rifle
         spread *= 1 - this.sk('marksman') * 0.1;
         spread *= 1 + P.drunk * 1.5;
         spread += P.recoil;
@@ -57,7 +58,7 @@
       const n = d.pellets || 1;
       for (let k = 0; k < n; k++) {
         const ang = aim + U.gauss() * spread;
-        this.projectiles.push({ x: a.x + Math.cos(aim) * 12, y: a.y + Math.sin(aim) * 12, vx: Math.cos(ang) * d.speed, vy: Math.sin(ang) * d.speed, dmg: d.dmg * (sup ? 0.92 : 1) * (isP ? 1 + this.sk('marksman') * 0.05 : a.dmgMul || 1), owner: a.id, car: a.inCar || 0, w: d.id, life: (d.scope ? 3200 : d.pellets ? 520 : 1500) / d.speed, pierce: d.pierce || 0, dist: 0, fall: d.falloff || 0 });
+        this.projectiles.push({ x: a.x + Math.cos(aim) * 12, y: a.y + Math.sin(aim) * 12, vx: Math.cos(ang) * d.speed, vy: Math.sin(ang) * d.speed, dmg: d.dmg * (sup ? 0.92 : 1) * (isP ? 1 + this.sk('marksman') * 0.05 : a.dmgMul || 1), owner: a.id, car: a.inCar || 0, w: d.id, life: (d.range || (d.scope ? 3600 : d.pellets ? 520 : 1500)) / d.speed, pierce: d.pierce || 0, dist: 0, fall: d.falloff || 0 });
       }
       this.emit('shot', { x: mx, y: my, a: aim, w: d.id, sup, id: a.id, player: isP, cls: d.cls });
       this.noise(a.x, a.y, sup ? 3 : d.noise, 'shot', a);
@@ -119,14 +120,24 @@
             if (p.pierce > 0) { p.pierce--; p.dmg *= 0.6; p.skip = a.id; } else { alive = false; break; }
           }
           const car = this.bulletCar(x, y, p.car);
-          if (car) {
+          if (car && W8[p.w] && W8[p.w].amr && p.pierce > 0 && p.skipCar !== car.id) {
+            // .50 BMG goes straight through the body work — and whoever sits behind it
+            if (this.carHit) this.carHit(car, x, y, p.dmg * 0.6, this.byId.get(p.owner), 'bullet'); else this.damageCar(car, p.dmg * 0.25, this.byId.get(p.owner));
+            this.emit('impact', { x, y, a: Math.atan2(p.vy, p.vx), mat: 'metal' });
+            const occ = [car.driver, ...(car.passengers || [])].map((id) => (id === 'player' ? this.player : this.byId.get(id))).filter((o) => o && o.alive);
+            if (occ.length && Math.random() < 0.6) this.hurt(U.pick(occ), p.dmg * 0.7, this.byId.get(p.owner), { kind: 'bullet', dir: Math.atan2(p.vy, p.vx), w: p.w });
+            p.pierce--; p.dmg *= 0.7; p.skipCar = car.id;
+          } else if (car && p.skipCar !== car.id) {
             if (this.carHit) this.carHit(car, x, y, p.dmg, this.byId.get(p.owner), 'bullet'); else this.damageCar(car, p.dmg * 0.35, this.byId.get(p.owner));
             this.emit('impact', { x, y, a: Math.atan2(p.vy, p.vx), mat: 'metal' });
             if (car.driver === 'player' && Math.random() < 0.3) this.hurt(this.player, p.dmg * 0.7, this.byId.get(p.owner), { kind: 'bullet', dir: Math.atan2(p.vy, p.vx), w: p.w });
             alive = false; break;
           }
           if (t === T.WINDOW && !this.brokenGlass(i)) { this.breakGlass(i, x, y); }
-          if (TF[t] & 4 || this.solid[i] & 2 || (t === T.DOOR && this.opaque[i])) {
+          if (t === T.DOOR && this.opaque[i] && p.pierce > 0 && p.skipDoor !== i && W8[p.w] && W8[p.w].amr) {
+            this.emit('impact', { x, y, a: Math.atan2(p.vy, p.vx), mat: 'wood', tx, ty }); p.pierce--; p.dmg *= 0.8; p.skipDoor = i;
+          }
+          if (TF[t] & 4 || this.solid[i] & 2 || (t === T.DOOR && this.opaque[i] && p.skipDoor !== i)) {
             this.emit('impact', { x: sx, y: sy, a: Math.atan2(p.vy, p.vx), mat: t === T.DOOR ? 'wood' : this.solid[i] & 2 ? 'prop' : 'wall', tx, ty });
             alive = false; break;
           }

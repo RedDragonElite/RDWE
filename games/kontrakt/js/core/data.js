@@ -32,7 +32,12 @@
     mpk:      { name: 'MP-K', type: 'gun', ammo: '9mm', mag: 30, dmg: 24, rate: 0.072, spread: 0.075, reload: 1.8, speed: 1900, noise: 26, recoil: 0.035, auto: true, w: 2.4, price: 4200, canSup: true, cls: 'smg' },
     pump:     { name: 'Pump-12', type: 'gun', ammo: '12g', mag: 6, dmg: 17, pellets: 9, rate: 0.85, spread: 0.2, reload: 0.42, perShell: true, speed: 1600, noise: 34, recoil: 0.22, w: 3.4, price: 3600, cls: 'shotgun', falloff: 0.55 },
     k47:      { name: 'K-47 Sturmgewehr', type: 'gun', ammo: '762', mag: 30, dmg: 40, rate: 0.1, spread: 0.055, reload: 2.2, speed: 2300, noise: 34, recoil: 0.06, auto: true, w: 3.6, price: 9500, canSup: true, cls: 'rifle' },
-    jaeger:   { name: 'Jäger 700', type: 'gun', ammo: '308', mag: 5, dmg: 170, rate: 1.25, spread: 0.004, reload: 2.6, speed: 3200, noise: 38, recoil: 0.25, scope: true, w: 4.5, price: 16000, canSup: true, cls: 'sniper', pierce: 1 },
+    ar15:     { name: 'Kolibri AR-15', type: 'gun', ammo: '556', mag: 30, dmg: 33, rate: 0.088, spread: 0.034, reload: 2.0, speed: 2500, noise: 33, recoil: 0.045, auto: true, w: 3.1, price: 8200, canSup: true, cls: 'rifle', desc: 'Leicht, präzise, beherrschbar.' },
+    lmg:      { name: 'Brecher M60', type: 'gun', ammo: '762', mag: 100, dmg: 38, rate: 0.085, spread: 0.085, reload: 4.6, speed: 2300, noise: 40, recoil: 0.05, auto: true, w: 9, slow: 0.78, price: 19500, cls: 'lmg', desc: '100 Schuss Gurt. Macht dich langsam — und alles andere tot.' },
+    dmr:      { name: 'Falke DMR', type: 'gun', ammo: '308', mag: 10, dmg: 96, rate: 0.36, spread: 0.01, reload: 2.4, speed: 3000, noise: 36, recoil: 0.14, scope: 1, w: 4.2, price: 12500, canSup: true, cls: 'dmr', pierce: 1, desc: 'Halbautomatisches Präzisionsgewehr mit 4× Optik.' },
+    jaeger:   { name: 'Jäger 700', type: 'gun', ammo: '308', mag: 5, dmg: 170, rate: 1.25, spread: 0.004, reload: 2.6, speed: 3200, noise: 38, recoil: 0.25, scope: 2, bolt: true, w: 4.5, price: 16000, canSup: true, cls: 'sniper', pierce: 1, desc: 'Repetierer mit 8× Zielfernrohr. [Shift] hält den Atem an.' },
+    vss:      { name: 'Wisper VSS', type: 'gun', ammo: '9x39', mag: 10, dmg: 88, rate: 0.32, spread: 0.011, reload: 2.2, speed: 1500, noise: 8, recoil: 0.08, scope: 1, sup: true, w: 3.2, price: 24000, cls: 'dmr', pierce: 0, desc: 'Integrierter Schalldämpfer. Das Werkzeug des stillen Profis.' },
+    kodiak:   { name: 'Kodiak .50 BMG', type: 'gun', ammo: '50', mag: 5, dmg: 330, rate: 1.7, spread: 0.003, reload: 3.6, speed: 4200, range: 5600, noise: 55, recoil: 0.42, scope: 2, bolt: true, amr: true, w: 13, slow: 0.82, price: 42000, cls: 'sniper', pierce: 3, desc: 'Anti-Material-Gewehr. Geht durch Autos, Türen und Leute.' },
     coin:     { name: 'Münze', type: 'throw', rate: 0.5, noise: 7, w: 0.01, price: 1, stack: true, consumable: true, desc: 'Werfen lenkt ab. Wachen gehen nachsehen.' },
     grenade:  { name: 'Granate', type: 'throw', explosive: true, rate: 0.9, noise: 45, w: 0.4, price: 900, consumable: true },
     c4:       { name: 'C4-Sprengladung', type: 'throw', place: true, explosive: true, rate: 0.6, noise: 50, w: 0.6, price: 2500, consumable: true, desc: 'Platzieren, mit [G] fernzünden.' },
@@ -46,6 +51,9 @@
     '12g': { name: 'Kaliber 12', box: 12, price: 60 },
     '762': { name: '7.62mm', box: 30, price: 120 },
     '308': { name: '.308 Win', box: 10, price: 160 },
+    '556': { name: '5.56 NATO', box: 30, price: 110 },
+    '9x39': { name: '9×39 SP-5', box: 20, price: 240 },
+    '50': { name: '.50 BMG', box: 5, price: 420 },
   };
 
   // ------------------------------------------------------------------ items
@@ -144,8 +152,8 @@
 
   // ------------------------------------------------------------------ shops
   K.SHOPS = {
-    gun: { name: 'Waffen Krause & Söhne', open: [9, 21], keeper: 'guard', till: 1800, items: ['p9', 'magnum', 'mpk', 'pump', 'k47', 'knife', 'bat', 'crowbar', 'machete', 'a:9mm', 'a:45', 'a:357', 'a:12g', 'a:762', 'vest', 'silencer'] },
-    black: { name: 'Schwarzmarkt „Der Kran“', open: [20, 6], keeper: 'gang', buysAll: true, items: ['silber', 'jaeger', 'katana', 'wire', 'syringe', 'sedative', 'c4', 'grenade', 'lockpick', 'a:45', 'a:308', 'a:762', 'o:police', 'o:guard', 'silencer', 'hackkit', 'drill', 'mask', 'seed', 'spray'] },
+    gun: { name: 'Waffen Krause & Söhne', open: [9, 21], keeper: 'guard', till: 1800, items: ['p9', 'magnum', 'mpk', 'pump', 'ar15', 'k47', 'dmr', 'knife', 'bat', 'crowbar', 'machete', 'a:9mm', 'a:45', 'a:357', 'a:12g', 'a:556', 'a:762', 'a:308', 'vest', 'silencer'] },
+    black: { name: 'Schwarzmarkt „Der Kran“', open: [20, 6], keeper: 'gang', buysAll: true, items: ['silber', 'jaeger', 'vss', 'kodiak', 'lmg', 'katana', 'wire', 'syringe', 'sedative', 'c4', 'grenade', 'lockpick', 'a:45', 'a:308', 'a:762', 'a:9x39', 'a:50', 'o:police', 'o:guard', 'silencer', 'hackkit', 'drill', 'mask', 'seed', 'spray'] },
     food: { name: 'Späti 24/7', open: [0, 24], keeper: 'civ', till: 450, items: ['apple', 'sandwich', 'pizza', 'fries', 'water', 'cola', 'coffee', 'energy', 'beer', 'cig', 'coin', 'flashlight', 'bandage', 'mask', 'spray'] },
     grow: { name: 'Grünes Glück Gartenbedarf', open: [8, 20], keeper: 'civ', till: 700, items: ['seed', 'growkit', 'fert', 'can', 'water'] },
     pharmacy: { name: 'Stadt-Apotheke', open: [7, 22], keeper: 'medic', till: 650, items: ['bandage', 'medkit', 'pills', 'energy', 'water', 'sedative'] },

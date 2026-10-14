@@ -14,6 +14,7 @@
     shotgun: { crack: 850, thump: 68, boom: 1.45, tail: 0.65, vol: 1.0, wide: true, echo: 1.2 },
     pump: { crack: 850, thump: 68, boom: 1.45, tail: 0.65, vol: 1.0, wide: true, echo: 1.2 },
     rifle: { crack: 2000, thump: 100, boom: 1.05, tail: 0.42, snap: 0.6, vol: 0.85, echo: 1.1 },
+    ar15: { crack: 2250, thump: 112, boom: 0.95, tail: 0.38, snap: 0.65, vol: 0.82, echo: 1.05 },
     k47: { crack: 1950, thump: 98, boom: 1.05, tail: 0.42, snap: 0.6, vol: 0.85, echo: 1.1 },
     lmg: { crack: 1850, thump: 92, boom: 1.1, tail: 0.45, snap: 0.55, vol: 0.88, echo: 1.1 },
     dmr: { crack: 1750, thump: 88, boom: 1.2, tail: 0.65, snap: 0.85, vol: 0.95, echo: 1.3, range: 4200 },
@@ -136,6 +137,9 @@
       if (P.boom > 1.15) this.tone(drive, t, 0.25 + P.boom * 0.15, 'triangle', P.thump * pv, P.thump * 0.35, 0.6 * (P.boom - 0.8), 0.002);
       this.noise(lp, t + 0.01, P.tail, 'lowpass', 1100, 140, 0.7, 0.55 * P.boom, this.brown);
       if (P.wide) this.noise(lp, t, 0.18, 'bandpass', 420, 160, 0.6, 0.9);
+      if (d.bolt && player) {   // work the bolt
+        const b = this.out(null, null, 0.35); if (b) { this.noise(b, t + 0.42, 0.05, 'bandpass', 2600, 1800, 2, 0.6); this.tone(b, t + 0.5, 0.03, 'square', 900, null, 0.12); this.noise(b, t + 0.62, 0.06, 'bandpass', 2100, 3000, 2, 0.5); this.tone(b, t + 0.66, 0.03, 'square', 1300, null, 0.12); }
+      }
       // room / street reflections are fed from the distance-attenuated signal
       if (this.inside) this.send(g, 0.55 + far * 0.3);
       else { const e = c.createGain(); e.gain.value = (0.3 + far * 0.5) * (P.echo || 1); g.connect(e); e.connect(this.echoIn); this.send(g, 0.1); }
@@ -194,6 +198,9 @@
       const c = this.ctx, t = c.currentTime, g = this.out(null, null, 0.5); if (!g) return;
       switch (s) {
         case 'click': this.tone(g, t, 0.04, 'sine', 900, 700, 0.25); break;
+        case 'breathIn': this.noise(g, t, 0.45, 'bandpass', 900, 1500, 1.2, 0.18, this.brown); break;
+        case 'breathOut': this.noise(g, t, 0.7, 'bandpass', 1300, 600, 1, 0.22, this.brown); break;
+        case 'gasp': for (let k = 0; k < 3; k++) { this.noise(g, t + k * 0.45, 0.3, 'bandpass', 1100, 1700, 1.4, 0.3, this.brown); this.noise(g, t + k * 0.45 + 0.25, 0.25, 'bandpass', 1400, 700, 1, 0.24, this.brown); } break;
         case 'hover': this.tone(g, t, 0.03, 'sine', 1400, null, 0.08); break;
         case 'error': this.tone(g, t, 0.18, 'square', 140, 110, 0.18); break;
         case 'cash': case 'coins': this.tone(g, t, 0.12, 'sine', 2100, null, 0.25); this.tone(g, t + 0.06, 0.25, 'sine', 2800, null, 0.25); this.noise(g, t, 0.15, 'highpass', 5000, null, 1, 0.2); break;

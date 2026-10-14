@@ -4,11 +4,37 @@
   const U = K.U, T = K.T, TILE = K.TILE, W8 = K.WEAPONS;
 
   K.mixin({
+    /** scoped rifles sway with your pulse; [Shift] holds the breath until the lungs give out */
+    scopeSway(a, P, inp, dt) {
+      const d = W8[this.curWeapon().id], sc = this.aiming && d && d.type === 'gun' && !P.handsDown ? d.scope | 0 : 0;
+      if (P.breath == null) P.breath = 100;
+      P.gasp = Math.max(0, (P.gasp || 0) - dt);
+      const was = this.holdBreath;
+      this.scoped = sc;
+      this.holdBreath = !!(sc && inp.sprint && P.breath > 0 && P.gasp <= 0);
+      if (this.holdBreath) { P.breath = Math.max(0, P.breath - dt * 20); if (P.breath <= 0) { P.gasp = 3.5; this.holdBreath = false; this.emit('sfx', { s: 'gasp' }); } }
+      else P.breath = Math.min(100, P.breath + dt * (P.gasp > 0 ? 8 : 16));
+      if (this.holdBreath && !was) this.emit('sfx', { s: 'breathIn' });
+      if (!this.holdBreath && was && P.gasp <= 0) this.emit('sfx', { s: 'breathOut' });
+      if (!sc) { this.swayX = this.swayY = 0; return; }
+      this.swT = (this.swT || 0) + dt;
+      const t = this.swT, dist = Math.hypot(this.aimX - a.x, this.aimY - a.y);
+      const amp = (4 + dist * (sc === 2 ? 0.026 : 0.016))
+        * (a.crouch ? 0.6 : 1) * (1 + Math.min(1.5, (a.speed || 0) / 60)) * (1 + P.drunk * 2)
+        * (1 + Math.max(0, 60 - P.stamina) / 80) * (1 - this.sk('marksman') * 0.08)
+        * (P.gasp > 0 ? 2.3 : this.holdBreath ? 0.1 : 1);
+      const tx = (Math.sin(t * 1.27) + 0.45 * Math.sin(t * 2.91 + 1.3) + 0.2 * Math.sin(t * 7.3)) * amp * 0.7;
+      const ty = (Math.sin(t * 1.63 + 2.1) * 0.8 + 0.4 * Math.cos(t * 3.37) + 0.2 * Math.sin(t * 6.1 + 0.5)) * amp * 0.7;
+      const k = Math.min(1, dt * 8);
+      this.swayX = (this.swayX || 0) + (tx - (this.swayX || 0)) * k; this.swayY = (this.swayY || 0) + (ty - (this.swayY || 0)) * k;
+      this.aimX += this.swayX; this.aimY += this.swayY;
+    },
     updatePlayer(dt, inp) {
       const a = this.player, P = this.P, pr = inp.pressed || {};
       this.aimX = inp.ax != null ? inp.ax : a.x + Math.cos(a.angle) * 100;
       this.aimY = inp.ay != null ? inp.ay : a.y + Math.sin(a.angle) * 100;
       this.aiming = !!inp.aim && !a.inCar && a.alive;
+      this.scopeSway(a, P, inp, dt);
       P.recoil = Math.max(0, P.recoil - dt * 0.55);
       P.instinct = !!inp.instinct && a.alive;
       if (a.bark) { a.bark.t -= dt; if (a.bark.t <= 0) a.bark = null; }
@@ -72,7 +98,8 @@
       let sp = a.sprint ? 178 : a.crouch ? 58 : 98;
       if (a.slowT > 0) { a.slowT -= dt; sp *= 0.35; }
       if (this.drag) sp = 52;
-      if (this.aiming) sp *= 0.68;
+      if (this.aiming) sp *= this.scoped ? 0.45 : 0.68;
+      const wd = W8[a.wi.id]; if (wd && wd.slow && !P.handsDown) sp *= wd.slow;
       if (P.energy < 12) sp *= 0.82;
       if (this.carried() > this.weightLimit()) sp *= 0.72;
       if (P.instinct) sp = Math.min(sp, 76);

@@ -146,7 +146,7 @@
     },
     spawnCop(x, y, state, tx, ty) {
       const swat = this.wanted >= 4;
-      const c = this.spawnActor('cop', x, y, { outfit: 'police', weapon: swat ? (Math.random() < 0.5 ? 'k47' : 'pump') : Math.random() < 0.15 ? 'pump' : 'p9', hp: swat ? 160 : 120, armor: swat ? 60 : 20, state: state || 'patrol', reserve: -1, female: Math.random() < 0.3 });
+      const c = this.spawnActor('cop', x, y, { outfit: 'police', weapon: swat ? U.pick(['ar15', 'ar15', 'pump', 'dmr']) : Math.random() < 0.15 ? 'pump' : 'p9', hp: swat ? 160 : 120, armor: swat ? 60 : 20, state: state || 'patrol', reserve: -1, female: Math.random() < 0.3 });
       c.acc = swat ? 2.0 : 2.7; c.swat = swat; c.brain.tx = tx; c.brain.ty = ty; c.crossOk = true;
       return c;
     },

@@ -275,16 +275,16 @@
       const fx = car ? car.x : p.x, fy = car ? car.y : p.y;
       let look = 0.22;
       const d = K.WEAPONS[w.curWeapon().id];
-      if (w.aiming) look = d.scope ? 0.62 : 0.34;
+      if (w.aiming) look = d.scope ? (d.scope > 1 ? 0.86 : 0.72) : 0.34;
       let tx = fx, ty = fy;
-      if (!car && g.input.hasMouse && isFinite(w.aimX) && isFinite(w.aimY)) { tx += U.clamp(w.aimX - p.x, -900, 900) * look; ty += U.clamp(w.aimY - p.y, -600, 600) * look; }
+      if (!car && g.input.hasMouse && isFinite(w.aimX) && isFinite(w.aimY)) { const lim = w.scoped ? 1800 : 900; tx += U.clamp(w.aimX - p.x, -lim, lim) * look; ty += U.clamp(w.aimY - p.y, -lim * 0.66, lim * 0.66) * look; }
       if (car) { tx += car.vx * 0.35; ty += car.vy * 0.35; }
       const k = Math.min(1, dt * (car ? 5 : 7));
       cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
       if (!isFinite(cam.x) || !isFinite(cam.y)) { cam.x = fx; cam.y = fy; }
       let zm = g.zoomLevel || 1;
       if (car) zm *= U.clamp(1 - car.speed / 900, 0.62, 1);
-      if (w.aiming && d.scope) zm *= 0.72;
+      if (w.aiming && d.scope) zm *= d.scope > 1 ? 0.5 : 0.64;
       if (w.slowmo > 0) zm *= 1.12;
       cam.zoomMul += (zm - cam.zoomMul) * Math.min(1, dt * 3);
       const base = this.cw / (TILE * 28);
@@ -922,11 +922,63 @@
       o.restore();
       o.fillStyle = col; o.font = `600 ${10 * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.fillText(label, x - Math.cos(a) * 20 * s, y - Math.sin(a) * 20 * s);
     }
+    /** rifle scope: darkened surroundings, lens ring, mil-dot reticle, range and breath read-outs */
+    scopeOverlay(o, s, x, y, d) {
+      const w = this.w, p = w.player, W = o.canvas.width, H = o.canvas.height, P = w.P;
+      const R = Math.min(W, H) * (d.scope > 1 ? 0.34 : 0.24);
+      o.save();
+      o.fillStyle = 'rgba(2,4,8,0.62)'; o.beginPath(); o.rect(0, 0, W, H); o.arc(x, y, R, 0, Math.PI * 2, true); o.fill();
+      const vg = o.createRadialGradient(x, y, R * 0.72, x, y, R);
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(0.85, 'rgba(0,0,0,0.35)'); vg.addColorStop(1, 'rgba(0,0,0,0.9)');
+      o.fillStyle = vg; o.beginPath(); o.arc(x, y, R, 0, Math.PI * 2); o.fill();
+      // faint lens tint + glare
+      const gl = o.createLinearGradient(x - R, y - R, x + R, y + R); gl.addColorStop(0, 'rgba(120,200,255,0.07)'); gl.addColorStop(0.5, 'rgba(0,0,0,0)'); gl.addColorStop(1, 'rgba(255,120,200,0.05)');
+      o.fillStyle = gl; o.beginPath(); o.arc(x, y, R, 0, Math.PI * 2); o.fill();
+      o.strokeStyle = '#050608'; o.lineWidth = 7 * s; o.beginPath(); o.arc(x, y, R, 0, Math.PI * 2); o.stroke();
+      o.strokeStyle = 'rgba(255,255,255,0.12)'; o.lineWidth = 1 * s; o.beginPath(); o.arc(x, y, R - 5 * s, 0, Math.PI * 2); o.stroke();
+      // reticle: heavy posts outside, fine crosshair inside, mil dots
+      const hit = this.hitMark > 0, rc = hit ? '#ff3a3a' : 'rgba(10,10,10,0.95)';
+      o.fillStyle = rc;
+      const post = 3.2 * s, gap = R * 0.42;
+      o.fillRect(x - R, y - post / 2, R - gap, post); o.fillRect(x + gap, y - post / 2, R - gap, post);
+      o.fillRect(x - post / 2, y + gap, post, R - gap); o.fillRect(x - post / 2, y - R, post, R - gap);
+      o.strokeStyle = rc; o.lineWidth = 1 * s; o.beginPath(); o.moveTo(x - gap, y); o.lineTo(x + gap, y); o.moveTo(x, y - gap); o.lineTo(x, y + gap); o.stroke();
+      for (let k = 1; k <= 4; k++) { const m = gap * k / 4.6; for (const [u, v] of [[m, 0], [-m, 0], [0, m], [0, -m]]) { o.beginPath(); o.arc(x + u, y + v, 1.7 * s, 0, 6.3); o.fill(); } }
+      o.fillStyle = hit ? '#ff3a3a' : '#ff2a4a'; o.beginPath(); o.arc(x, y, 1.6 * s, 0, 6.3); o.fill();
+      // target under the reticle?
+      let tgt = null;
+      for (const a of w.near(w.aimX, w.aimY, 22)) if (a !== p && a.alive && !a.inCar) { tgt = a; break; }
+      const dist = Math.hypot(w.aimX - p.x, w.aimY - p.y), m = Math.round(dist / K.TILE * 1.4);
+      o.font = `600 ${11 * s}px "Oswald", sans-serif`; o.textAlign = 'left'; o.fillStyle = 'rgba(180,255,200,0.85)';
+      o.fillText(`${m} m`, x + R * 0.48, y + R * 0.2);
+      o.fillText(d.name.toUpperCase(), x + R * 0.48, y + R * 0.2 + 14 * s);
+      const wi = w.curWeapon(); o.fillText(`${wi.mag}/${P.ammo[d.ammo] || 0}`, x + R * 0.48, y + R * 0.2 + 28 * s);
+      if (tgt) {
+        const isT = w.contract && w.contract.targetId === tgt.id;
+        o.fillStyle = isT ? '#ff3a5a' : 'rgba(255,220,120,0.9)'; o.textAlign = 'right';
+        o.fillText(isT ? `ZIEL · ${tgt.name || ''}` : (tgt.name || K.KIND_NAMES?.[tgt.kind] || tgt.kind).toString().toUpperCase(), x - R * 0.48, y - R * 0.22);
+      }
+      // breath meter
+      const bw = R * 0.8, by = y + R + 16 * s;
+      o.fillStyle = 'rgba(0,0,0,0.6)'; o.fillRect(x - bw / 2, by, bw, 5 * s);
+      o.fillStyle = P.gasp > 0 ? '#ff4d4d' : w.holdBreath ? '#7cf2ff' : 'rgba(255,255,255,0.7)';
+      o.fillRect(x - bw / 2, by, bw * (P.breath || 0) / 100, 5 * s);
+      o.textAlign = 'center'; o.font = `600 ${10 * s}px "Oswald", sans-serif`; o.fillStyle = 'rgba(255,255,255,0.75)';
+      o.fillText(P.gasp > 0 ? 'AUSSER ATEM' : w.holdBreath ? 'ATEM ANGEHALTEN' : 'SHIFT · ATEM ANHALTEN', x, by + 18 * s);
+      if (wi.mag === 0 && (P.ammo[d.ammo] || 0) > 0) { o.fillStyle = '#ffb000'; o.fillText('R — NACHLADEN', x, y - R - 12 * s); }
+      o.restore();
+    }
     crosshair(o, s) {
       const g = this.g, w = this.w, inp = g.input;
-      const x = inp.mx * s, y = inp.my * s;
+      let x = inp.mx * s, y = inp.my * s;
       const d = K.WEAPONS[w.curWeapon().id];
       const p = w.player;
+      if (w.scoped && w.aiming && isFinite(w.aimX)) {
+        // the reticle sits where the swaying barrel actually points
+        x = ((w.aimX - this.cam.vx) * this.cam.z) / this.dpr * s; y = ((w.aimY - this.cam.vy) * this.cam.z) / this.dpr * s;
+        this.scopeOverlay(o, s, x, y, d);
+        return;
+      }
       if (d.type === 'gun') {
         let spread = d.spread * (1 + Math.min(1.6, p.speed / 110)) * (p.crouch ? 0.72 : 1) * (w.aiming ? (d.scope ? 0.25 : 0.55) : 1) + w.P.recoil;
         const dist = Math.hypot(w.aimX - p.x, w.aimY - p.y) * this.cam.z / this.dpr * s;
@@ -957,7 +1009,8 @@
       switch (e.type) {
         case 'shot': {
           const d = K.WEAPONS[e.w];
-          if (!e.sup) fx.light(e.x, e.y, d.cls === 'shotgun' || d.cls === 'rifle' ? 200 : 150, [255, 200, 120], 1, 0.07);
+          if (!e.sup) fx.light(e.x, e.y, d.amr ? 320 : d.cls === 'sniper' || d.cls === 'dmr' ? 240 : d.cls === 'shotgun' || d.cls === 'rifle' || d.cls === 'lmg' ? 200 : 150, [255, 200, 120], d.amr ? 1.4 : 1, 0.07);
+          if (d.amr) { fx.dust(e.x - Math.cos(e.a) * 14, e.y - Math.sin(e.a) * 14, 10, [190, 180, 160]); for (const side of [-1.9, 1.9]) fx.add({ k: 'smoke', x: e.x, y: e.y, vx: Math.cos(e.a + side) * 160, vy: Math.sin(e.a + side) * 160, life: 0.8, max: 0.8, size: 6, grow: 40, col: [200, 195, 185], a: 0.45 }); }
           else fx.light(e.x, e.y, 50, [255, 220, 160], 0.4, 0.05);
           fx.add({ k: 'smoke', x: e.x, y: e.y, vx: Math.cos(e.a) * 40, vy: Math.sin(e.a) * 40, life: 0.5, max: 0.5, size: e.sup ? 2 : 4, grow: 20, col: [180, 180, 175], a: 0.35 });
           if (!e.sup) fx.sparks(e.x, e.y, e.a + Math.PI, 3, [255, 220, 140]);
@@ -967,7 +1020,7 @@
           else fx.ring(e.x, e.y, 3 * TILE, 'rgba(160,200,255,A)', 0.6);
           break;
         }
-        case 'tracer': fx.tracers.push({ x0: e.x0, y0: e.y0, x1: e.x1, y1: e.y1, life: 0.05, max: 0.05, w: K.WEAPONS[e.w] && K.WEAPONS[e.w].cls === 'sniper' ? 2.2 : 1.2 }); break;
+        case 'tracer': fx.tracers.push({ x0: e.x0, y0: e.y0, x1: e.x1, y1: e.y1, life: 0.05, max: 0.05, w: K.WEAPONS[e.w] && K.WEAPONS[e.w].amr ? 3.4 : K.WEAPONS[e.w] && (K.WEAPONS[e.w].cls === 'sniper' || K.WEAPONS[e.w].cls === 'dmr') ? 2.2 : 1.2 }); break;
         case 'impact':
           fx.sparks(e.x, e.y, e.a, e.mat === 'metal' ? 8 : 4, e.mat === 'metal' ? [255, 230, 160] : [255, 200, 130]);
           fx.dust(e.x, e.y, e.mat === 'wood' ? 3 : 2, e.mat === 'wood' ? [140, 100, 60] : [150, 145, 135]);

@@ -57,8 +57,19 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - **Pistolen:** P9 Kompakt, Silberbaron .45 SD, Magnum .357
   - **Maschinenpistole:** MP-K
   - **Schrotflinte:** Pump-12
-  - **Sturmgewehr:** K-47
-  - **Scharfschützengewehr:** Jäger 700 mit Zielfernrohr
+  - **Sturmgewehre:** K-47, Kolibri AR-15 (5.56)
+  - **MG:** Brecher M60 mit 100-Schuss-Gurt; macht dich langsamer
+  - **Präzisionsgewehre:** Falke DMR (halbautomatisch, 4×), Wisper VSS (integrierter Schalldämpfer, 9×39)
+  - **Scharfschützengewehre:**
+    - Jäger 700 (Repetierer, 8×)
+    - Kodiak .50 BMG: Anti-Material, schießt durch Autos, Türen und die Leute dahinter
+- **Zielfernrohr (RMB):**
+  - Die Kamera zoomt weit heraus und schaut voraus.
+  - Ein Scope-Overlay zeigt Absehen mit Mil-Dots, Entfernung, Magazin und Zielerkennung.
+  - Das Gewehr wackelt mit dem Puls, stärker auf Distanz, beim Laufen, betrunken oder außer Puste. Ducken beruhigt.
+  - **Shift** hält den Atem an: Das Absehen steht fast still, bis die Luft ausgeht. Danach keuchst du ein paar Sekunden.
+  - Aus der Hüfte streuen Zielfernrohr-Waffen stark.
+- **Bezugsquellen:** AR-15, DMR und 5.56 gibt es im Waffenladen. VSS, Kodiak, M60, .50 BMG und 9×39 gibt es auf dem Schwarzmarkt. Das SEK rückt jetzt mit AR-15 und DMR-Schützen an.
 - **Nahkampf:** Fäuste mit Kombos, Messer, Baseballschläger, Brecheisen, Machete, Katana.
 - **Wurfwaffen:** Granaten, Münzen und C4 zum Fernzünden.
 - **Munitionstypen und Nachladen (R):**
@@ -259,7 +270,17 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Instinkt-Entsättigung (Rot bleibt), Trunkenheits-Wabern, Film-Grain
 - **Dynamische Auflösung** hält die Framerate.
 - **Prozeduraler 3D-Sound:**
-  - Waffen je Kaliber mit Distanz-Filter und Hall
+  - **Schüsse in Schichten** je Waffe:
+    - Verschlussklick, Überschallknall, gesättigter Mündungsknall, tiefer Wumms und Körper
+    - Bei Repetierern hörst du den Kammerstängel.
+  - Ferne Schüsse kommen mit Schallverzögerung an, dumpfer, mit Echo von den Fassaden; drinnen mit Raumhall.
+  - **Martinshorn:** Zweiton (A–D) mit Doppler-Effekt und Entfernungsfilter statt Dauerjaulen; im eigenen Streifenwagen leise.
+  - **Motor-Synthese nach Drehzahl:**
+    - 6-Gang-Getriebe, Zylinderzahl je Modell (Vierzylinder bis V12), Ansaugrauschen
+    - Turbo-Pfeifen mit Blow-off, Schaltrucke, Fehlzündungen beim Gaswegnehmen
+    - Elektroauto mit Surren
+    - Das nächste Auto im Verkehr hat eine eigene Motorstimme.
+  - Atem anhalten und Keuchen beim Zielen
   - Schritte je nach Untergrund, Hülsen, Glas, Explosionen mit Ohrenklingeln
   - Sirenen, Motor, Regen, Wind, Grillen nachts im Park, Möwen am Hafen, Club-Bass
 - **Generative Noir-Musik:** Rhodes, Kontrabass, Besen und eine Nacht-Trompete. Spannung und Kampf werden dynamisch überblendet.
@@ -291,6 +312,7 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 | **Im Auto B / N** | Gurt · Motor | **Im Auto X / L** | Tempomat · Licht |
 | **Im Auto Q / E** | Blinker | **Im Auto Shift / T** | Nitro · Werkstatt |
 | **Im Auto LMB / RMB** | Drive-by bzw. MG · Raketen | **Im Auto F** | Aussteigen |
+| **RMB mit Zielfernrohr** | Scope | **Shift im Scope** | Atem anhalten |
 
 ---
 
