@@ -4,6 +4,21 @@
   const U = K.U, TILE = K.TILE, W8 = K.WEAPONS;
   const $ = (s) => document.querySelector(s);
   const esc = U.esc;
+  /** one hotbar / inventory tile (weapon or item) */
+  K.slotIcon = (t, id) => {
+    if (t === 'w') return `<img src="${K.iconURL(id)}">`;
+    const it = K.ITEMS[id]; if (!it) return '';
+    return it.g ? `<img src="${K.iconURL(it.g)}">` : `<i class="emo">${it.e || '•'}</i>`;
+  };
+  K.hotbarHTML = (w, drag) => {
+    const P = w.P, hb = w.hotbar(), down = P.handsDown && P.slot === 0, curId = !down && P.weapons[P.slot] ? P.weapons[P.slot].id : null;
+    return hb.map((e, i) => {
+      if (!e) return `<div class="hb empty" data-hb="${i}"><span>${i + 1}</span></div>`;
+      const n = e.t === 'w' ? (P.weapons.find((q) => q.id === e.id) || {}).n : P.inv[e.id] || 0;
+      const on = (e.t === 'w' && e.id === curId) || (e.id === 'mask' && P.masked);
+      return `<div class="hb ${on ? 'on' : ''} ${e.t === 'i' && !n ? 'out' : ''}" data-hb="${i}" ${drag ? 'data-drag="hb"' : ''} data-t="${e.t}" data-id="${e.id}"><span>${i + 1}</span>${K.slotIcon(e.t, e.id)}${e.t === 'i' || n > 1 ? `<b>${n}</b>` : ''}</div>`;
+    }).join('');
+  };
   const icon = (key) => {
     if (W8[key]) return `<img src="${K.iconURL(key)}">`;
     if (key.startsWith('a:')) return '<span style="font:600 13px Oswald;color:#d4a63a">▮▮▮</span>';
@@ -417,34 +432,99 @@
       el.querySelector('#dead-ok').onclick = () => { el.classList.add('hidden'); this.sync(); this.g.fadeIn(); };
     }
     inventory() {
-      const w = this.g.world, P = w.P;
+      const w = this.g.world, P = w.P, hb = w.hotbar();
       const wl = w.carried(), lim = w.weightLimit();
-      let h = `<div class="cols"><div><div class="sec">Waffen <small>1–9 wählen</small></div><div class="list">`;
-      P.weapons.forEach((x, i) => {
+      const tile = (t, id, extra, sub) => {
+        const inHb = hb.findIndex((e) => e && e.t === t && e.id === id);
+        return `<div class="tile ${this.invSel && this.invSel.t === t && this.invSel.id === id ? 'sel' : ''}" data-drag="${t}" data-t="${t}" data-id="${id}" title="${esc(t === 'w' ? W8[id].name : K.ITEMS[id].name)}">${K.slotIcon(t, id)}${extra ? `<b>${extra}</b>` : ''}${inHb >= 0 ? `<u>${inHb + 1}</u>` : ''}<small>${esc(sub)}</small></div>`;
+      };
+      let h = `<div class="inv2"><div class="inv-left"><div class="sec">Waffen <small>in die Hotbar ziehen</small></div><div class="tiles">`;
+      for (const x of P.weapons) {
+        if (x.id === 'fists') continue;
         const d = W8[x.id];
-        const am = d.type === 'gun' ? `${x.mag}/${P.ammo[d.ammo] || 0}${x.sup ? ' · gedämpft' : ''}` : x.n ? `×${x.n}` : '';
-        h += `<div class="it ${i === P.slot ? 'on' : ''}"><div class="ic">${icon(x.id)}</div><div class="nm">${i + 1}. ${esc(d.name)}<small>${esc(am)} ${d.desc ? '· ' + esc(d.desc) : ''}</small></div>${i ? `<button class="btn ghost" data-eq="${i}">Wählen</button><button class="btn ghost" data-dropw="${i}">Ablegen</button>` : ''}</div>`;
-      });
-      h += `</div><div class="sec" style="margin-top:14px">Munition</div><div class="list">`;
-      const cals = Object.keys(P.ammo).filter((k) => P.ammo[k] > 0);
-      h += cals.length ? cals.map((k) => `<div class="it"><div class="ic">${icon('a:' + k)}</div><div class="nm">${K.AMMO[k].name}</div><div class="q">${P.ammo[k]}</div></div>`).join('') : '<div class="it"><div class="nm"><small>Keine Munition.</small></div></div>';
-      h += `</div></div><div><div class="sec">Gegenstände <small>${wl.toFixed(1)} / ${lim} kg</small></div><div class="list">`;
-      const keys = Object.keys(P.inv);
-      if (!keys.length) h += '<div class="it"><div class="nm"><small>Leer.</small></div></div>';
-      for (const k of keys) {
-        const it = K.ITEMS[k];
-        const usable = !it.sellOnly && !it.quest && k !== 'lockpick';
-        const stats = [it.food ? `Hunger +${it.food}` : '', it.water ? `Durst +${it.water}` : '', it.energy ? `Energie +${it.energy}` : '', it.hp ? `HP +${it.hp}` : '', it.desc || ''].filter(Boolean).join(' · ');
-        h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(it.name)}<small>${esc(stats)}</small></div><div class="q">×${P.inv[k]}</div>${usable ? `<button class="btn" data-use="${k}">${k === 'mask' ? (P.masked ? 'Abnehmen' : 'Aufsetzen') : k === 'growkit' || k === 'seed' ? 'Pflanzen' : k === 'bud' ? 'Rauchen' : 'Benutzen'}</button>` : ''}<button class="btn ghost" data-drop="${k}">✕</button></div>`;
+        h += tile('w', x.id, d.type === 'gun' ? `${x.mag}` : x.n > 1 ? `×${x.n}` : '', d.name);
       }
-      h += `</div><div class="sec" style="margin-top:14px">Outfit</div><div class="it"><div class="ic">👔</div><div class="nm">${esc(K.OUTFITS[P.outfit].name)}<small>${K.OUTFITS[P.outfit].disguise ? 'Verkleidung — Zugang: ' + K.OUTFITS[P.outfit].role : 'Zivil'}</small></div></div>
-        <div class="sec" style="margin-top:14px">Status</div>
-        <div class="stat"><span>Gesundheit</span><b>${Math.ceil(w.player.hp)} / ${w.maxHp()}</b></div><div class="stat"><span>Hunger · Durst · Energie</span><b>${Math.round(P.hunger)}% · ${Math.round(P.thirst)}% · ${Math.round(P.energy)}%</b></div><div class="stat"><span>Weste</span><b>${Math.round(w.player.armor)}%</b></div></div></div>`;
+      h += `</div><div class="sec" style="margin-top:12px">Gegenstände <small>${wl.toFixed(1)} / ${lim} kg</small></div><div class="tiles">`;
+      const keys = Object.keys(P.inv);
+      if (!keys.length) h += '<p style="color:#888">Leer.</p>';
+      for (const k of keys) h += tile('i', k, `×${P.inv[k]}`, K.ITEMS[k].name);
+      h += `</div><div class="sec" style="margin-top:12px">Munition</div><div class="ammo">`;
+      const cals = Object.keys(P.ammo).filter((k) => P.ammo[k] > 0);
+      h += cals.length ? cals.map((k) => `<span>${K.AMMO[k].name} <b>${P.ammo[k]}</b></span>`).join('') : '<span>Keine Munition.</span>';
+      h += `</div></div><div class="inv-right"><div class="sec">Details</div><div id="inv-det" class="card">${this.invDetails(w)}</div>
+        <div class="sec">Outfit & Status</div><div class="stat"><span>${esc(K.OUTFITS[P.outfit].name)}</span><b>${K.OUTFITS[P.outfit].disguise ? 'Verkleidung' : 'Zivil'}</b></div>
+        <div class="stat"><span>Gesundheit</span><b>${Math.ceil(w.player.hp)} / ${w.maxHp()}</b></div><div class="stat"><span>Hunger · Durst · Energie</span><b>${Math.round(P.hunger)}% · ${Math.round(P.thirst)}% · ${Math.round(P.energy)}%</b></div><div class="stat"><span>Weste</span><b>${Math.round(w.player.armor)}%</b></div></div></div>
+        <div class="sec" style="margin-top:12px">Hotbar <small>ziehen = belegen · Slots tauschen · rausziehen/Rechtsklick = leeren · Maus über Kachel + 1–9</small></div>
+        <div class="inv-hb">${K.hotbarHTML(w, true)}</div>
+        <div class="inv-zones"><div class="zone" data-zone="use">✋ Benutzen / Ausrüsten</div><div class="zone" data-zone="holster">🫳 Alles wegstecken</div><div class="zone bad" data-zone="drop">🗑 Wegwerfen</div></div>`;
       const b = this.panel('INVENTAR', h, 'inv');
-      b.querySelectorAll('[data-use]').forEach((x) => (x.onclick = () => { w.useItem(x.dataset.use); this.inventory(); }));
-      b.querySelectorAll('[data-drop]').forEach((x) => (x.onclick = () => { const k = x.dataset.drop; if (w.takeItem(k)) w.dropItem({ kind: 'item', item: k }, w.player.x + U.rnd(-10, 10), w.player.y + U.rnd(-10, 10)); this.inventory(); }));
-      b.querySelectorAll('[data-eq]').forEach((x) => (x.onclick = () => { P.slot = +x.dataset.eq; w.player.wi = w.curWeapon(); this.inventory(); }));
-      b.querySelectorAll('[data-dropw]').forEach((x) => (x.onclick = () => { const i = +x.dataset.dropw, wi = P.weapons[i]; w.dropItem({ kind: 'weapon', wid: wi.id, mag: wi.mag, sup: wi.sup }, w.player.x + U.rnd(-10, 10), w.player.y + U.rnd(-10, 10)); w.removeWeaponAt(i); this.inventory(); }));
+      this.bindInventoryDnD(b);
+    }
+    invDetails(w) {
+      const P = w.P, s = this.invSel;
+      if (!s || (s.t === 'w' ? !P.weapons.some((q) => q.id === s.id) : !P.inv[s.id])) return '<p style="color:#888">Klick auf eine Kachel für Details. Doppelklick benutzt sie.</p>';
+      if (s.t === 'w') {
+        const d = W8[s.id], x = P.weapons.find((q) => q.id === s.id);
+        const st = d.type === 'gun' ? `${K.AMMO[d.ammo].name} · Magazin ${x.mag}/${d.mag} · Reserve ${P.ammo[d.ammo] || 0} · Schaden ${d.dmg}${d.pellets ? '×' + d.pellets : ''}${x.sup ? ' · gedämpft' : ''}` : d.desc || `Schaden ${d.dmg}`;
+        return `<div class="det-h">${K.slotIcon('w', s.id)}<h4>${esc(d.name)}</h4></div><p>${esc(st)}</p><div class="btns"><button class="btn" data-act="use">Ausrüsten</button><button class="btn ghost" data-act="drop">Ablegen</button></div>`;
+      }
+      const it = K.ITEMS[s.id], usable = !it.sellOnly && !it.quest && s.id !== 'lockpick';
+      const st = [it.food ? `Hunger +${it.food}` : '', it.water ? `Durst +${it.water}` : '', it.energy ? `Energie +${it.energy}` : '', it.hp ? `HP +${it.hp}` : '', it.desc || '', it.hot ? 'Heiße Ware' : ''].filter(Boolean).join(' · ');
+      const label = s.id === 'mask' ? (P.masked ? 'Abnehmen' : 'Aufsetzen') : s.id === 'growkit' || s.id === 'seed' ? 'Pflanzen' : s.id === 'bud' ? 'Rauchen' : 'Benutzen';
+      return `<div class="det-h">${K.slotIcon('i', s.id)}<h4>${esc(it.name)} <small>×${P.inv[s.id]}</small></h4></div><p>${esc(st || '—')}</p><div class="btns">${usable ? `<button class="btn" data-act="use">${label}</button>` : ''}<button class="btn ghost" data-act="drop">Wegwerfen</button></div>`;
+    }
+    /** act on a dragged/selected thing: use · drop · put into hotbar slot */
+    invAct(t, id, act, slot) {
+      const w = this.g.world, P = w.P;
+      if (act === 'use') { if (t === 'w') w.equipWeapon(id); else w.useItem(id); }
+      else if (act === 'holster') w.holsterAll();
+      else if (act === 'drop') {
+        if (t === 'w') { const i = P.weapons.findIndex((q) => q.id === id); if (i > 0) { const wi = P.weapons[i]; w.dropItem({ kind: 'weapon', wid: wi.id, mag: wi.mag, sup: wi.sup }, w.player.x + U.rnd(-10, 10), w.player.y + U.rnd(-10, 10)); w.removeWeaponAt(i); } }
+        else if (w.takeItem(id)) w.dropItem({ kind: 'item', item: id }, w.player.x + U.rnd(-10, 10), w.player.y + U.rnd(-10, 10));
+      } else if (act === 'slot') w.hotbarSet(slot, { t, id });
+      this.g.audio.ui('click');
+      this.inventory();
+    }
+    bindInventoryDnD(b) {
+      const w = this.g.world;
+      b.querySelectorAll('[data-act]').forEach((x) => (x.onclick = () => this.invAct(this.invSel.t, this.invSel.id, x.dataset.act)));
+      b.querySelectorAll('.inv-hb [data-hb]').forEach((x) => (x.oncontextmenu = (e) => { e.preventDefault(); w.hotbarSet(+x.dataset.hb, null); this.inventory(); }));
+      b.querySelectorAll('[data-drag]').forEach((el) => {
+        el.addEventListener('mouseenter', () => (this.invHover = { t: el.dataset.t, id: el.dataset.id }));
+        el.addEventListener('mouseleave', () => (this.invHover = null));
+        el.ondblclick = () => this.invAct(el.dataset.t, el.dataset.id, 'use');
+        el.onpointerdown = (e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          const src = { t: el.dataset.t, id: el.dataset.id, hb: el.dataset.drag === 'hb' ? +el.dataset.hb : -1 }, x0 = e.clientX, y0 = e.clientY;
+          let ghost = null, over = null;
+          const move = (ev) => {
+            if (!ghost && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+            if (!ghost) { ghost = document.createElement('div'); ghost.className = 'drag-ghost'; ghost.innerHTML = K.slotIcon(src.t, src.id); document.body.appendChild(ghost); el.classList.add('dragging'); }
+            ghost.style.left = ev.clientX + 'px'; ghost.style.top = ev.clientY + 'px';
+            const tg = document.elementFromPoint(ev.clientX, ev.clientY), t2 = tg && tg.closest('[data-hb],[data-zone]');
+            if (over !== t2) { if (over) over.classList.remove('over'); over = t2; if (over) over.classList.add('over'); }
+          };
+          const up = (ev) => {
+            window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+            if (over) over.classList.remove('over');
+            el.classList.remove('dragging');
+            if (!ghost) { this.invSel = { t: src.t, id: src.id }; const det = b.querySelector('#inv-det'); if (det) { det.innerHTML = this.invDetails(w); det.querySelectorAll('[data-act]').forEach((x) => (x.onclick = () => this.invAct(src.t, src.id, x.dataset.act))); } b.querySelectorAll('.tile').forEach((q) => q.classList.toggle('sel', q.dataset.t === src.t && q.dataset.id === src.id)); return; }
+            ghost.remove();
+            const tg = document.elementFromPoint(ev.clientX, ev.clientY), t2 = tg && tg.closest('[data-hb],[data-zone]');
+            if (t2 && t2.dataset.hb != null) { if (src.hb >= 0) { w.hotbarSwap(src.hb, +t2.dataset.hb); this.g.audio.ui('click'); this.inventory(); } else this.invAct(src.t, src.id, 'slot', +t2.dataset.hb); }
+            else if (t2 && t2.dataset.zone) { if (src.hb >= 0 && t2.dataset.zone === 'drop') { w.hotbarSet(src.hb, null); this.inventory(); } else this.invAct(src.t, src.id, t2.dataset.zone); }
+            else if (src.hb >= 0) { w.hotbarSet(src.hb, null); this.inventory(); }   // dragged off the bar → slot cleared
+          };
+          window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+        };
+      });
+    }
+    /** inventory open + mouse over a tile + number key → put it into that slot */
+    assignHover(n) {
+      if (!this.invHover) return false;
+      this.g.world.hotbarSet(n, this.invHover); this.g.audio.ui('click'); this.inventory();
+      return true;
     }
     shop(id, bid, tab = 'buy') {
       const w = this.g.world, P = w.P, s = K.SHOPS[id];
@@ -566,7 +646,7 @@
 
     // ============================================================ title / pause / results
     controls() {
-      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Waffe wählen', 'H', 'Waffe / Fäuste wegstecken'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['Im Auto: B / N', 'Gurt an/aus · Motor an/aus', 'Im Auto: X / L', 'Tempomat · Licht (Abblend/Fern)'], ['Im Auto: Q / E', 'Blinker links / rechts (beide = Warnblinker)', 'Im Auto: Shift / T', 'Nitro · Werkstatt-Aktion'], ['Im Auto: LMB / RMB', 'Drive-by oder Bord-MG · Raketen', 'Im Auto: F / H', 'Aussteigen · Hupe'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen']];
+      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Hotbar: Waffe ziehen/wegstecken, Item benutzen', 'H / 0', 'Alles wegstecken · Fäuste'], ['TAB', 'Inventar: Drag & Drop in die Hotbar', 'Maus über Kachel + 1–9', 'Slot direkt belegen'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['Im Auto: B / N', 'Gurt an/aus · Motor an/aus', 'Im Auto: X / L', 'Tempomat · Licht (Abblend/Fern)'], ['Im Auto: Q / E', 'Blinker links / rechts (beide = Warnblinker)', 'Im Auto: Shift / T', 'Nitro · Werkstatt-Aktion'], ['Im Auto: LMB / RMB', 'Drive-by oder Bord-MG · Raketen', 'Im Auto: F / H', 'Aussteigen · Hupe'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen']];
       const h = `<div class="kbd-grid">${k.map((r) => `<kbd>${r[0]}</kbd><span>${r[1]}</span><kbd>${r[2]}</kbd><span>${r[3]}</span>`).join('')}</div>
         <div class="sec" style="margin-top:18px">So spielst du</div>
         <p style="font-size:13px;color:#cfc9be;line-height:1.6">Aufträge kommen aufs <b>Handy (P)</b>. Finde das Ziel — mit gekauftem Intel wird es markiert, sonst kennst du nur grob den Bereich. Nimm Verkleidungen von bewusstlosen oder toten Wachen (<b>T</b>), um in Sperrgebiete zu kommen. Wirf <b>Münzen</b>, um Wachen wegzulocken, und erledige Ziele lautlos von hinten (<b>F</b>) mit der Klaviersaite. Leichen versteckst du in Containern und Schränken (<b>E</b>). Zeugen rufen die Polizei — wechsle das Outfit ungesehen, um die Fahndung zu senken. Willst du nicht sterben, ergib dich mit <b>X</b>: weniger Haft, aber Knast ist Knast. Halt Passanten oder Ladenbesitzer mit gezogener Waffe (<b>RMB</b>) in Schach und raub sie aus, zieh Brieftaschen von hinten, durchwühl fremde Wohnungen, hack Geldautomaten. Mit einer Sturmhaube erkennt dich niemand. Im Growshop gibt es Samen und Töpfe — pflanz in deiner Bude, gieß, dünge, ernte und verkauf an Passanten (<b>T</b>) oder am Schwarzmarkt. Iss, trink, schlaf in deinem eigenen Bett, kauf Waffen, Häuser und Geschäfte. Krähenburg lebt — Tag und Nacht, Regen und Nebel.</p>`;

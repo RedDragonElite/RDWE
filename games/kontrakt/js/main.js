@@ -122,7 +122,9 @@
             this.acc -= 1 / 60; n++;
           }
           if (n >= 4) this.acc = 0;
-          this.input.consume();
+          // only drop one-shot presses once a simulation step has actually seen them —
+          // on 120/144 Hz screens many frames run no step and used to swallow key presses
+          if (n > 0) this.input.consume();
           this.saveT += dt;
           if (this.saveT > 180 && !w.wanted && w.player.alive && !w.contract) { this.saveT = 0; this.save(true); }
         } else this.input.consume();

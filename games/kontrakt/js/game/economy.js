@@ -37,16 +37,17 @@
       if (d.stack || d.consumable) {
         const ex = P.weapons.find((w) => w.id === id);
         if (ex) { ex.n = (ex.n || 1) + (o.n || 1); return ex; }
-        const w = { id, n: o.n || 1 }; P.weapons.push(w); return w;
+        const w = { id, n: o.n || 1 }; P.weapons.push(w); if (this.hotbarAdd) this.hotbarAdd('w', id); return w;
       }
       if (P.weapons.some((w) => w.id === id)) {
         // duplicate gun → keep the ammo
         if (d.type === 'gun') { P.ammo[d.ammo] = (P.ammo[d.ammo] || 0) + (o.mag != null ? o.mag : d.mag); this.notify(`+${o.mag != null ? o.mag : d.mag} ${K.AMMO[d.ammo].name}`, 'loot'); }
         return null;
       }
-      if (P.weapons.length >= 9) { this.notify('Kein Platz mehr für Waffen (max. 8).', 'bad'); return null; }
+      if (P.weapons.length >= 16) { this.notify('Kein Platz mehr für Waffen (max. 15).', 'bad'); return null; }
       const w = { id, mag: d.type === 'gun' ? (o.mag != null ? o.mag : d.mag) : undefined, sup: !!(o.sup || d.sup), n: o.n };
       P.weapons.push(w);
+      if (this.hotbarAdd) this.hotbarAdd('w', id);
       return w;
     },
     removeWeaponAt(i) {

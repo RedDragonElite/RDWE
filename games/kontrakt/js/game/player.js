@@ -108,13 +108,14 @@
     switchWeapons(inp, pr) {
       const P = this.P, a = this.player;
       const set = (i) => { if (i === P.slot || i < 0 || i >= P.weapons.length) return; if (P.slot) P.last = P.slot; P.slot = i; a.reloadT = 0; a.reloading = false; a.wi = this.curWeapon(); a.cool = Math.max(a.cool, 0.25); this.emit('equip', { w: a.wi.id }); };
-      if (inp.slot != null) { set(inp.slot); if (inp.slot === 0) P.handsDown = false; }
-      if (inp.wheel) { set((P.slot + inp.wheel + P.weapons.length) % P.weapons.length); if (P.slot === 0) P.handsDown = false; }
-      // H: weapon → put it away (hands down) · hands down → draw last weapon · raised fists → lower them
+      void set;
+      // hotbar: 1–9 use the slot (weapons toggle, items get used), 0 = fists, wheel cycles weapons
+      if (inp.slot != null) { if (inp.slot < 0) this.equipWeapon('fists'); else this.hotbarUse(inp.slot); }
+      if (inp.wheel) this.hotbarCycle(Math.sign(inp.wheel));
+      // H: everything away (hands down) · again: draw the last weapon
       if (pr.holster) {
-        if (P.slot) { set(0); P.handsDown = true; this.emit('sfx', { s: 'cloth' }); }
-        else if (P.handsDown && P.last && P.weapons[P.last]) { set(P.last); P.handsDown = false; }
-        else { P.handsDown = !P.handsDown; this.emit('equip', { w: 'fists' }); }
+        if (P.slot || !P.handsDown) this.holsterAll();
+        else if (P.last && P.weapons[P.last]) this.equipWeapon(P.weapons[P.last].id);
       }
     },
 

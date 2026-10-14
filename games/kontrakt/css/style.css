@@ -384,3 +384,40 @@ body.driving #prompt { bottom: 205px; }
 #mapview .mv-box { background: linear-gradient(160deg,#1a0b2e,#2a0f3a 60%,#3a1236); border: 1px solid rgba(255,47,160,.35); box-shadow: 0 0 40px rgba(255,47,160,.25); }
 #mapview header h2 { font-family: 'Kaushan Script', cursive; font-size: 34px; letter-spacing: 2px; color: #ffe3f5; text-shadow: 0 0 10px #ff2fa0, 0 0 24px #ff2fa0; text-transform: none; }
 #mv-legend { background: rgba(20,8,30,.82); border: 1px solid rgba(46,242,255,.3); }
+
+/* ---- drag & drop inventory + hotbar ---- */
+.inv2 { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.tile { position: relative; height: 78px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--line); display: grid; place-items: center; cursor: grab; user-select: none; touch-action: none; transition: transform .08s, border-color .1s; }
+.tile:hover { border-color: rgba(46,242,255,.5); transform: translateY(-1px); }
+.tile.sel { border-color: #ff2fa0; box-shadow: 0 0 12px rgba(255,47,160,.35); }
+.tile.dragging { opacity: .35; }
+.tile img { width: 70px; height: 30px; object-fit: contain; pointer-events: none; }
+.tile .emo, .hb .emo, .drag-ghost .emo { font-style: normal; font-size: 26px; pointer-events: none; }
+.tile b { position: absolute; top: 4px; right: 6px; font: 600 11px var(--f-head); color: var(--gold); }
+.tile u { position: absolute; top: 4px; left: 6px; text-decoration: none; font: 700 10px var(--f-head); color: #111; background: #2ef2ff; border-radius: 4px; padding: 0 4px; }
+.tile small { position: absolute; bottom: 4px; left: 4px; right: 4px; text-align: center; font-size: 10px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.ammo { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: #aaa; } .ammo b { color: #ddd; }
+#inv-det .det-h { display: flex; align-items: center; gap: 10px; } #inv-det .det-h img { width: 70px; height: 30px; } #inv-det h4 { margin: 0; } #inv-det p { color: #aaa; font-size: 12px; }
+.inv-hb { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; }
+.inv-hb .hb { height: 62px; }
+.hb { position: relative; border-radius: 8px; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.12); display: grid; place-items: center; user-select: none; touch-action: none; }
+.hb[data-drag] { cursor: grab; }
+.hb.empty { border-style: dashed; opacity: .6; }
+.hb.on { border-color: #ff2fa0; background: rgba(255,47,160,.16); box-shadow: 0 0 10px rgba(255,47,160,.35); }
+.hb.out { opacity: .4; }
+.hb.over, .zone.over { border-color: #2ef2ff !important; background: rgba(46,242,255,.15) !important; }
+.hb img { width: 46px; height: 20px; object-fit: contain; pointer-events: none; }
+.hb span { position: absolute; top: 1px; left: 4px; font: 600 9px var(--f-head); color: var(--dim); pointer-events: none; }
+.hb b { position: absolute; bottom: 1px; right: 4px; font: 600 9px var(--f-head); color: var(--gold); pointer-events: none; }
+.inv-zones { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+.zone { border: 1px dashed rgba(255,255,255,.25); border-radius: 10px; padding: 12px; text-align: center; color: #bbb; font: 600 13px var(--f-head); letter-spacing: 1px; }
+.zone.bad { border-color: rgba(239,68,68,.45); color: #f88; }
+.drag-ghost { position: fixed; z-index: 9999; pointer-events: none; transform: translate(-50%, -50%) scale(1.15); background: rgba(20,8,30,.9); border: 1px solid #ff2fa0; border-radius: 10px; padding: 6px 8px; box-shadow: 0 8px 24px rgba(0,0,0,.5), 0 0 14px rgba(255,47,160,.4); }
+.drag-ghost img { width: 70px; height: 30px; }
+/* HUD hotbar */
+#w-slots { display: grid; grid-template-columns: repeat(9, 40px); gap: 4px; justify-content: end; margin-bottom: 6px; }
+#w-slots .hb { width: 40px; height: 32px; }
+#w-slots .hb img { width: 36px; height: 15px; }
+#w-slots .hb .emo { font-size: 17px; }
+@media (max-width: 900px) { .inv2 { grid-template-columns: 1fr; } .inv-hb .hb { height: 48px; } #w-slots { grid-template-columns: repeat(9, 30px); } #w-slots .hb { width: 30px; height: 26px; } }

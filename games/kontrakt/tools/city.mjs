@@ -33,5 +33,30 @@ for (const seed of [1337, 7]) {
   const m0 = w.P.money + (w.P.bank || 0); w.time = Math.ceil(w.time / 1440) * 1440 + 8 * 60 - 5; run(w, 60 * 10);
   check(w.P.money + (w.P.bank || 0) >= m0 + 3400, `daily income arrives (+$${w.P.money + (w.P.bank || 0) - m0})`);
 }
+console.log('hotbar: weapons + items, keys, holster');
+{
+  const w = new K.World({ seed: 1337 }); w.time = 12 * 60; run(w, 2);
+  const P = w.P, p = w.player, hb = w.hotbar();
+  check(hb.length === 9 && hb.some((e) => e && e.t === 'w' && e.id === 'p9') && hb.some((e) => e && e.t === 'i'), `default hotbar from your gear (${hb.map((e) => (e ? e.id : '·')).join(' ')})`);
+  const pi = hb.findIndex((e) => e && e.id === 'p9');
+  run(w, 1, { slot: pi });
+  check(P.weapons[P.slot].id === 'p9' && !P.handsDown, 'key → draw the P9');
+  run(w, 1, { slot: pi });
+  check(P.slot === 0 && P.handsDown, 'same key again → put it away');
+  w.addItem('mask'); w.hotbarSet(8, { t: 'i', id: 'mask' });
+  run(w, 1, { slot: 8 });
+  check(P.masked, 'mask from the hotbar goes on');
+  run(w, 1, { slot: 8 });
+  check(!P.masked, '…and off again');
+  run(w, 1, { slot: -1 });
+  check(P.slot === 0 && !P.handsDown, '0 → fists up');
+  run(w, 1, { pressed: { holster: true } });
+  check(P.handsDown, 'H → everything away');
+  w.addWeapon('pump'); 
+  check(w.hotbarIndexOf('w', 'pump') >= 0, 'a new weapon lands in a free slot');
+  w.hotbarSwap(0, 1); check(w.hotbar()[0] && w.hotbar()[1], 'slots can be swapped');
+  const pumpIdx = P.weapons.findIndex((q) => q.id === 'pump'); w.removeWeaponAt(pumpIdx);
+  check(w.hotbarIndexOf('w', 'pump') < 0, 'dropped weapons leave the bar');
+}
 console.log(`\n${ok} ok, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -112,12 +112,12 @@
       const wi = w.curWeapon(), d = K.WEAPONS[wi.id];
       const ammo = d.type === 'gun' ? `${wi.mag}<small> / ${P.ammo[d.ammo] || 0}</small>${wi.sup ? '<span class="sup">GEDÄMPFT</span>' : ''}` : d.consumable || d.stack ? `×${wi.n || 1}` : '';
       const down = P.handsDown && P.slot === 0;
-      this.set('wname', down ? 'Hände unten' : d.name, (v) => { e.wName.textContent = v; e.wIcon.src = K.iconURL(wi.id); e.wIcon.style.opacity = down ? 0.35 : 1; });
+      this.set('wname', down ? 'Weggesteckt' : d.name, (v) => { e.wName.textContent = v; e.wIcon.src = K.iconURL(wi.id); e.wIcon.style.opacity = down ? 0.35 : 1; });
       this.set('wammo', ammo + (p.reloading ? 'r' : ''), () => { e.wAmmo.innerHTML = p.reloading ? '<small>LÄDT…</small>' : ammo; e.wAmmo.classList.toggle('empty', d.type === 'gun' && wi.mag === 0); });
-      const slots = P.weapons.map((x, i) => x.id + (i === P.slot ? '*' : '') + (x.n || '')).join(',');
-      this.set('slots', slots, () => {
-        e.wSlots.innerHTML = P.weapons.map((x, i) => `<div class="${i === P.slot ? 'on' : ''}"><span>${i + 1}</span><img src="${K.iconURL(x.id)}">${x.n > 1 ? `<b>${x.n}</b>` : ''}</div>`).join('');
-      });
+      // hotbar: weapons and items, keys 1–9
+      const hb = w.hotbar(), curId = !down && P.weapons[P.slot] ? P.weapons[P.slot].id : null;
+      const slots = hb.map((x) => (x ? x.t + x.id + (x.t === 'w' ? (x.id === curId ? '*' : '') + ((P.weapons.find((q) => q.id === x.id) || {}).n || '') : P.inv[x.id] || 0) + (x.id === 'mask' && P.masked ? 'm' : '') : '-')).join(',');
+      this.set('slots', slots, () => { e.wSlots.innerHTML = K.hotbarHTML(w); });
       const st = [P.handsDown && P.slot === 0 ? '<b>HÄNDE UNTEN</b>' : '', p.crouch ? '<b class="on">GEDUCKT</b>' : '', P.instinct ? '<b class="blue">INSTINKT</b>' : '', w.aiming ? '<b>ZIELEN</b>' : '', w.drag ? '<b class="on">ZIEHT LEICHE</b>' : '', P.flashlight ? '<b>LAMPE</b>' : '', K.OUTFITS[P.outfit].disguise ? `<b class="blue">${K.OUTFITS[P.outfit].name.toUpperCase()}</b>` : ''].join('');
       this.set('stance', st, (v) => (e.stance.innerHTML = v));
       // prompt
@@ -154,7 +154,7 @@
       if (P.surrender) h = '<b>🙌 ERGEBEN</b><span>Halt still. Die Polizei nimmt dich fest. Bewegen = Widerstand.</span>';
       else if (J && J.escaped) h = '<b>⛓ AUF DER FLUCHT</b><span>Wechsle die Kleidung und tauch unter.</span>';
       else if (J) { const left = Math.max(0, J.until - w.time); h = `<b>⛓ HAFT · ${Math.floor(left / 60)}h ${String(Math.floor(left % 60)).padStart(2, '0')}m</b><span><kbd>K</kbd> Kaution ${U.money(J.bail)} · <kbd>E</kbd> an der Zellentür: Ausbruch (wenn kein Wärter hinsieht)</span><i style="width:${(1 - left / J.total) * 100}%"></i>`; }
-      else h = '<b>🎭 VERMUMMT</b><span>Zeugen erkennen dich nicht. Maske ungesehen abnehmen (Inventar) = Fahndung weg.</span>';
+      else h = '<b>🎭 VERMUMMT</b><span>Zeugen erkennen dich nicht. Maske ungesehen abnehmen (Hotbar oder Inventar) = Fahndung weg.</span>';
       this.set('jail', h, (v) => { el.classList.remove('hidden'); el.innerHTML = v; });
     }
     tracker() {

@@ -220,6 +220,19 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Außerdem Tempomat (X), Blinker (Q/E), Abblend- und Fernlicht (L) und Nitro (Shift).
 - **Fäuste wegstecken (H):** Hände unten, kein versehentlicher Schlag. Der erste Klick hebt die Fäuste.
 
+### Inventar & Hotbar
+- **Drag-&-Drop-Inventar (TAB):**
+  - Waffen und Gegenstände liegen als Kacheln im Inventar und lassen sich in die 9 Hotbar-Slots ziehen.
+  - Slots kannst du untereinander tauschen. Zieh einen Slot aus der Leiste oder klick ihn rechts an, dann ist er wieder leer.
+  - Zieh eine Kachel auf „Benutzen“, „Alles wegstecken“ oder „Wegwerfen“. Ein Doppelklick benutzt sie direkt.
+  - Maus über eine Kachel halten und 1–9 drücken belegt den Slot sofort. Das klappt mit Maus und Touch.
+- **Hotbar (1–9):**
+  - Waffen werden gezogen, ein zweiter Druck steckt sie wieder weg.
+  - Items wie Sturmhaube, Medkit, Essen oder Kanister werden direkt benutzt.
+  - **0** nimmt die Fäuste, **H** steckt alles weg, das Mausrad wechselt zwischen den Waffen der Leiste.
+  - Neue Waffen landen automatisch im nächsten freien Slot. Insgesamt passen jetzt 15 Waffen ins Inventar.
+- **Flüssigere Steuerung:** Auf 120- und 144-Hz-Monitoren gingen Tastendrücke und Klicks verloren, wenn ein Bild keinen Logik-Schritt hatte. Behoben.
+
 ### Leben, Wirtschaft, RPG
 - **Hunger, Durst, Energie, Ausdauer, Blutungen, Trunkenheit und Schmerzmittel.**
 - **Essen und Trinken** im Diner, in der Bar, im Späti und an Getränkeautomaten.
@@ -274,7 +287,7 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 | **B** | Crew-Menü & Gang | **V** | Crew: Ziel angreifen |
 | **E/T an Tresortür** | Keycard / Bohrer | **T an Vitrine** | Einschlagen |
 | **E am Tag-Spot** | Revier sprühen | **Z (Tag-Editor)** | Rückgängig |
-| **H** | Waffe / Fäuste wegstecken | **E an Zapfsäule** | Zapfpistole / Tanken |
+| **1–9 / 0 / H** | Hotbar · Fäuste · alles wegstecken | **E an Zapfsäule** | Zapfpistole / Tanken |
 | **Im Auto B / N** | Gurt · Motor | **Im Auto X / L** | Tempomat · Licht |
 | **Im Auto Q / E** | Blinker | **Im Auto Shift / T** | Nitro · Werkstatt |
 | **Im Auto LMB / RMB** | Drive-by bzw. MG · Raketen | **Im Auto F** | Aussteigen |
