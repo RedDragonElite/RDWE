@@ -64,5 +64,14 @@ ev = step([], 3);
 assert.ok(ev.some(e => e.type === 'worldEvent'), 'world event fired');
 assert.ok(sim.deposits.length > 10, 'deposits exist');
 
+// regression: invalid build spots must emit 'fail', never throw (glacier, water, foreign land, deposits)
+for (const kind of Object.keys(C.BUILD)) {
+  for (const t of [0, nb, ft, sim.deposits[0].tile, [...me.border][0]]) {
+    sim.applyIntent({ type: 'build', pid: 1, kind, tile: t });
+  }
+  for (let t = 0; t < sim.N; t += 997) sim.applyIntent({ type: 'build', pid: 1, kind, tile: t });
+}
+step([], 5);
+
 // determinism under identical intents
 console.log('smoke OK · tiles', me.tiles, '· tick', sim.tick, '· hash', sim.hash());

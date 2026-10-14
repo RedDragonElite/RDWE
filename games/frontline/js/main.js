@@ -229,12 +229,12 @@
           case 'trade':
             if (e.pid === me.id) {
               audio.play('coin');
-              ui.feed(`📈 ${e.side === 'sell' ? 'Verkauft' : 'Gekauft'}: ${e.qty} ${C.RES[e.res].e} für 🪙 ${fmt(e.gold)}`, 'gold', 3000);
+              ui.feed(`📈 ${e.side === 'sell' ? 'Verkauft' : 'Gekauft'}: ${e.qty} ${C.RES[e.res].e} für 💰 ${fmt(e.gold)}`, 'gold', 3000);
             }
             break;
           case 'tradeDone':
             if ((e.pid === me.id || e.partner === me.id) && this.visible(e.x, e.y)) {
-              this.float(e.x + 0.5, e.y, '+🪙 ' + fmt(e.pid === me.id ? e.value : e.value * 0.5), '#ffd75a', 14);
+              this.float(e.x + 0.5, e.y, '+💰 ' + fmt(e.pid === me.id ? e.value : e.value * 0.5), '#ffd75a', 14);
             }
             break;
           case 'nukeLaunch': {
@@ -351,6 +351,14 @@
     // ---------------------------------------------------------------- loop
     frame(now) {
       if (!this.running) return;
+      // schedule first: one exception must never freeze the whole game
+      requestAnimationFrame((t) => this.frame(t));
+      try { this._frame(now); } catch (err) {
+        console.error(err);
+        if (!this._errShown) { this._errShown = true; this.ui.feed('⚠️ Interner Fehler: ' + esc(err.message) + ' (Details in der Konsole)', 'bad', 12000); }
+      }
+    }
+    _frame(now) {
       const dt = Math.min(0.1, (now - this.last) / 1000);
       this.last = now;
       if (!this.paused) {
@@ -373,7 +381,6 @@
       this._uiTimer -= dt; this._mmTimer -= dt;
       if (this._uiTimer <= 0) { this.ui.update(); this._achvCheck(); this._uiTimer = 0.15; }
       if (this._mmTimer <= 0) { this.renderer.drawMinimap(this.mmctx, this.mm.width, this.mm.height); this._mmTimer = 0.25; }
-      requestAnimationFrame((t) => this.frame(t));
     }
     _sample() {
       const sim = this.sim, land = sim.map.landCount, s = {};

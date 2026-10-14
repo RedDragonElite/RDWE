@@ -289,7 +289,7 @@
         html = `<div class="tt-name">${p.emblem} ${esc(p.name)}${tag}</div>
           <div class="tt-row">⚔️ Truppen <b>${fmt(p.troops)}</b></div>
           <div class="tt-row">🗺️ Land <b>${((p.tiles / sim.map.landCount) * 100).toFixed(2)}%</b></div>
-          <div class="tt-row">🪙 Gold <b>${fmt(p.gold)}</b></div>
+          <div class="tt-row">💰 Gold <b>${fmt(p.gold)}</b></div>
           <div class="tt-row">🧪 Techs <b>${p.tech.size}/${Object.keys(C.TECH).length}</b></div>
           <div class="tt-row">⛰️ Gelände <b>${ter.name}</b></div>`;
       } else {
@@ -306,7 +306,7 @@
       if (dep) {
         const D = C.DEPOSITS[dep.kind];
         const per = D.yield * dep.rich * 10 * (s && (s.kind === 'mine' || s.kind === 'derrick') ? 4 : 1);
-        html += `<div class="tt-sep"></div><div class="tt-row">${D.e} ${D.name} <b>${'⭐'.repeat(dep.rich)}</b></div><div class="tt-row">Ertrag <b>${fmt(per)} ${D.res === 'gold' ? '🪙' : C.RES[D.res].e}/s</b></div>`;
+        html += `<div class="tt-sep"></div><div class="tt-row">${D.e} ${D.name} <b>${'⭐'.repeat(dep.rich)}</b></div><div class="tt-row">Ertrag <b>${fmt(per)} ${D.res === 'gold' ? '💰' : C.RES[D.res].e}/s</b></div>`;
         if (dep.boost > sim.tick) html += `<div class="tt-row" style="color:#ffd75a">💰 Goldrausch ×3 <b>${Math.ceil((dep.boost - sim.tick) / 10)}s</b></div>`;
       }
       const crate = sim.crates.find(c => c.tile === tile);
@@ -390,7 +390,7 @@
         <div><b>⏱️ ${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}</b><span>SPIELZEIT</span></div>
         <div><b>🗺️ ${((me.stats.peak / sim.map.landCount) * 100).toFixed(1)}%</b><span>MAX. LAND</span></div>
         <div><b>⚔️ ${fmt(me.stats.conquered)}</b><span>FELDER EROBERT</span></div>
-        <div><b>🪙 ${fmt(me.stats.goldEarned)}</b><span>GOLD VERDIENT</span></div>
+        <div><b>💰 ${fmt(me.stats.goldEarned)}</b><span>GOLD VERDIENT</span></div>
         <div><b>🧪 ${me.tech.size}</b><span>TECHNOLOGIEN</span></div>
         <div><b>☢️ ${me.stats.nukes}</b><span>RAKETENSTARTS</span></div>`;
       $('end').classList.remove('hidden');

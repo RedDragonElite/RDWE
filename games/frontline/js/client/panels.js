@@ -133,7 +133,7 @@
     }
     _market() {
       const g = this.game, sim = g.sim, me = g.me, fee = sim.tradeFee(me);
-      let h = `<div class="pn-head">Kasse: <span class="cost">🪙 ${fmt(me.gold)}</span> · Gebühr <b>${Math.round(fee * 100)}%</b> <span class="muted">${me.counts.market ? '🏪 Markt-Rabatt aktiv' : '🏪 Baue einen Markt für weniger Gebühren'}</span></div>
+      let h = `<div class="pn-head">Kasse: <span class="cost">💰 ${fmt(me.gold)}</span> · Gebühr <b>${Math.round(fee * 100)}%</b> <span class="muted">${me.counts.market ? '🏪 Markt-Rabatt aktiv' : '🏪 Baue einen Markt für weniger Gebühren'}</span></div>
         <table class="mkt"><thead><tr><th>WARE</th><th>LAGER</th><th>KURS</th><th>TREND</th><th>KAUFEN</th><th>VERKAUFEN</th></tr></thead><tbody>`;
       for (const k of C.TRADE_RES) {
         const r = C.RES[k], p = sim.prices[k], hist = sim.priceHist[k];
@@ -183,7 +183,7 @@
       const g = this.game, sim = g.sim, me = g.me;
       const hist = g.history;
       const tiles = `<div class="stat-tiles">
-        <div><b>🪙 ${fmt(me.stats.goldEarned)}</b><span>Gold verdient</span></div>
+        <div><b>💰 ${fmt(me.stats.goldEarned)}</b><span>Gold verdient</span></div>
         <div><b>⚔️ ${fmt(me.stats.conquered)}</b><span>Felder erobert</span></div>
         <div><b>🏗️ ${sim.structures.filter(s => s.owner === me.id).length}</b><span>Gebäude</span></div>
         <div><b>📦 ${me.stats.crates}</b><span>Kisten</span></div>

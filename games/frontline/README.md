@@ -19,8 +19,8 @@ cd games/frontline && python3 -m http.server 8080
 - 🌙 **Tag-Nacht-Zyklus** (4 Min.): Nachts leuchten Städte, Häfen und Schiffe
 - 🌋 **Weltereignisse**: ☄️ Meteoritenschauer (hinterlässt 💎), 🌋 Vulkanausbruch (neue Erzadern), 💰 Goldrausch (×3 Ertrag), 🦠 Seuche, 📦 Versorgungsabwürfe, 🌪️ Supersturm mit Regen und Blitzen, in dem Schiffe kaum vorankommen
 
-### 🪙 Wirtschaft
-- 9 Ressourcen: 🪙 Gold, 🌾 Nahrung, 🪵 Holz, 🔩 Eisen, 🥈 Silber, 💎 Edelsteine, 🛢️ Öl, ☢️ Uran, 🧪 Forschung
+### 💰 Wirtschaft
+- 9 Ressourcen: 💰 Gold, 🌾 Nahrung, 🌲 Holz, 🔩 Eisen, 🥈 Silber, 💎 Edelsteine, 🛢️ Öl, ☢️ Uran, 🧪 Forschung
 - 🌾 **Armeen essen**: Gut versorgt wachsen Truppen +15 %, bei Hunger −30 %
 - 🏪 **Börse** mit schwankenden Kursen, Sparklines und Gebühren. Große Orders bewegen den Markt
 - ⛵ **Handelsschiffe** fahren automatisch zwischen Häfen verschiedener Nationen, beide Seiten verdienen

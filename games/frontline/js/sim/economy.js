@@ -160,9 +160,11 @@
       if (block) { this.emit('fail', { pid: p.id, msg: block }); return; }
       const t = this.canBuildAt(p, kind, tile);
       if (t < 0) {
-        const msg = { '-2': 'Häfen brauchen Küste in der Nähe.', '-3': 'Zu nah an einem anderen Gebäude.',
-          '-4': d.name + ' braucht passendes Gelände (' + d.terrain.map(x => C.TERRAIN[x].name).join('/') + ').',
-          '-5': d.name + ' muss auf eine eigene Lagerstätte (' + d.deposit.map(k => C.DEPOSITS[k].e).join(' ') + ').' }[t] || 'Nur auf eigenem Land baubar.';
+        let msg = 'Nur auf eigenem Land baubar.';
+        if (t === -2) msg = 'Häfen brauchen Küste in der Nähe.';
+        else if (t === -3) msg = 'Zu nah an einem anderen Gebäude oder einer Lagerstätte.';
+        else if (t === -4) msg = d.name + ' braucht passendes Gelände (' + d.terrain.map(x => C.TERRAIN[x].name).join('/') + ').';
+        else if (t === -5) msg = d.name + ' muss auf eine eigene Lagerstätte (' + d.deposit.map(k => C.DEPOSITS[k].e).join(' ') + ').';
         this.emit('fail', { pid: p.id, msg }); return;
       }
       const cost = this.costOf(p, kind);

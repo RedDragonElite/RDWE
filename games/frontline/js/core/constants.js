@@ -27,11 +27,11 @@
       { name: 'Gletscher', water: false, cost: 3.0 },
     ],
 
-    GOLD: { e: '🪙', name: 'Gold' },
+    GOLD: { e: '💰', name: 'Gold' },
     // tradable resources (+ sci which is not tradable)
     RES: {
       food:    { e: '🌾', name: 'Nahrung',    price: 2 },
-      wood:    { e: '🪵', name: 'Holz',       price: 3 },
+      wood:    { e: '🌲', name: 'Holz',       price: 3 },
       iron:    { e: '🔩', name: 'Eisen',      price: 7 },
       silver:  { e: '🥈', name: 'Silber',     price: 15 },
       gems:    { e: '💎', name: 'Edelsteine', price: 60 },
@@ -54,21 +54,21 @@
     // cat: eco | mil | special.  scale: 'double' → ×2^n (max 16), number → ×(1 + n*scale)
     BUILD: {
       city:     { e: '🏙️', name: 'Stadt',       cat: 'eco', cost: { gold: 5000, wood: 30 },  scale: 'double', key: 'C', time: 60,
-                  desc: '+25K max. Truppen · +10 🪙/s · +Forschung' },
+                  desc: '+25K max. Truppen · +10 💰/s · +Forschung' },
       farm:     { e: '🌾', name: 'Farm',        cat: 'eco', cost: { gold: 1200, wood: 10 },  scale: 0.4, key: 'V', time: 30, terrain: [T.PLAINS, T.BEACH],
                   desc: '+2.5 🌾/s · nur auf Ebene' },
       sawmill:  { e: '🪓', name: 'Sägewerk',    cat: 'eco', cost: { gold: 1500 },            scale: 0.4, key: 'B', time: 30, terrain: [T.FOREST],
-                  desc: '+3 🪵/s · nur im Wald' },
+                  desc: '+3 🌲/s · nur im Wald' },
       mine:     { e: '⛏️', name: 'Mine',        cat: 'eco', cost: { gold: 3000, wood: 25 },  scale: 0.35, key: 'J', time: 50, deposit: ['iron', 'silver', 'gold', 'gems', 'uranium'],
                   desc: '×4 Ertrag einer Lagerstätte (🔩🥈🥇💎☢️)' },
       derrick:  { e: '⛽', name: 'Bohrturm',    cat: 'eco', cost: { gold: 4000, iron: 15 },  scale: 0.35, key: 'O', time: 50, deposit: ['oil'],
                   desc: '×4 Ertrag eines Ölfelds' },
       port:     { e: '⚓', name: 'Hafen',       cat: 'eco', cost: { gold: 4000, wood: 40 },  scale: 'double', key: 'H', time: 50, coastal: true,
-                  desc: '+30 🪙/s · Handelsschiffe · schnellere Boote' },
+                  desc: '+30 💰/s · Handelsschiffe · schnellere Boote' },
       market:   { e: '🏪', name: 'Markt',       cat: 'eco', cost: { gold: 6000, wood: 40 },  scale: 0.6, key: 'K', time: 60,
-                  desc: '+20 🪙/s · Börsengebühr 25% → 12%' },
+                  desc: '+20 💰/s · Börsengebühr 25% → 12%' },
       bank:     { e: '🏦', name: 'Bank',        cat: 'eco', cost: { gold: 10000, silver: 30 }, scale: 0.6, key: 'Y', time: 80,
-                  desc: 'Zinsen auf dein Gold (max. 300 🪙/s je Bank)' },
+                  desc: 'Zinsen auf dein Gold (max. 300 💰/s je Bank)' },
       fort:     { e: '🏰', name: 'Festung',     cat: 'mil', cost: { gold: 2500, iron: 10 },  scale: 1, key: 'F', time: 40, radius: 11,
                   desc: 'Angreifer zahlen 2.5× im Umkreis' },
       barracks: { e: '⛺', name: 'Kaserne',     cat: 'mil', cost: { gold: 4000, iron: 20, food: 30 }, scale: 0.7, key: 'U', time: 50,
@@ -84,7 +84,7 @@
       lab:      { e: '🔬', name: 'Labor',       cat: 'special', cost: { gold: 8000, silver: 20, gems: 3 }, scale: 0.6, key: 'L', time: 80,
                   desc: '+2.5 🧪/s' },
       wonder:   { e: '🏛️', name: 'Weltwunder',  cat: 'special', cost: { gold: 150000, gems: 120, silver: 150, wood: 300, iron: 200 }, scale: 99, key: 'T', time: 1500, tech: 'arch', max: 1,
-                  desc: '+30% 🪙 · +20% Truppen · Halte es 5 Min. = SIEG' },
+                  desc: '+30% 💰 · +20% Truppen · Halte es 5 Min. = SIEG' },
     },
 
     NUKES: {
@@ -113,7 +113,7 @@
     EVENTS: {
       meteor:   { e: '☄️', name: 'Meteoritenschauer', w: 3, desc: 'Einschläge verwüsten Land – und hinterlassen Edelsteine!' },
       volcano:  { e: '🌋', name: 'Vulkanausbruch',    w: 2, desc: 'Lava verschlingt das Umland. Neue Erzadern entstehen.' },
-      goldrush: { e: '💰', name: 'Goldrausch',        w: 3, desc: 'Eine Lagerstätte liefert 90 s lang den dreifachen Ertrag!' },
+      goldrush: { e: '🤑', name: 'Goldrausch',        w: 3, desc: 'Eine Lagerstätte liefert 90 s lang den dreifachen Ertrag!' },
       plague:   { e: '🦠', name: 'Seuche',            w: 2, desc: 'Die größte Nation verliert ein Viertel ihrer Truppen.' },
       supply:   { e: '📦', name: 'Versorgungsabwurf', w: 4, desc: 'Eine Kiste voller Ressourcen. Wer das Feld erobert, bekommt sie!' },
       storm:    { e: '🌪️', name: 'Supersturm',        w: 2, desc: 'Ein Sturm zieht über die Welt. Schiffe darin kommen kaum voran.' },
@@ -135,7 +135,7 @@
       pangaea:     { label: 'Pangaea' },
       highlands:   { label: 'Hochland' },
     },
-    EMBLEMS: ['🐉', '🦅', '🐺', '🦁', '🐻', '🦂', '🐍', '🦈', '🐗', '🦉', '🦊', '🐯', '🦬', '🐙', '🦇', '🐆',
+    EMBLEMS: ['🐉', '🦅', '🐺', '🦁', '🐻', '🦂', '🐍', '🦈', '🐗', '🦉', '🦊', '🐯', '🐙', '🦇', '🐆',
       '🦌', '🐘', '🦏', '🐊', '🦍', '🕷️', '🐝', '🦄', '🐧', '🦀', '🐋', '🐎', '🦚', '🐓', '🐸', '🦖', '🐲', '🦩', '🐢', '🦜'],
     PALETTE: [
       [230, 57, 70], [58, 134, 255], [46, 196, 118], [255, 183, 3], [155, 93, 229],
