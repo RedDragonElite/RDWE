@@ -298,6 +298,8 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Instinkt-Entsättigung (Rot bleibt), Trunkenheits-Wabern, Film-Grain
 - **Dynamische Auflösung** hält die Framerate.
 - **Prozeduraler 3D-Sound:**
+  - **Echte Motor-Aufnahmen:** Boxer-Vierzylinder, Reihensechser, verschiedene V8, V12, Diesel und Elektro. Sie sind bei festen Drehzahlen aufgenommen und werden live nach Drehzahl überblendet und in der Tonhöhe angepasst. Dazu Turbo-Pfeifen, Schaltrucke und echte Metall-Crashes. Quellen siehe `sfx/CREDITS.md` (CC BY 4.0 / CC0).
+  - **Schüsse als physikalisches Modell** statt Synthesizer-Tönen: Friedlander-Druckwelle, Bodenreflexion, Fassaden-Echos, Stadt-Nachhall und übersteuertes Mikrofon. Je Waffe werden drei Varianten nah und eine aus der Ferne vorberechnet.
   - **Schüsse in Schichten** je Waffe:
     - Verschlussklick, Überschallknall, gesättigter Mündungsknall, tiefer Wumms und Körper
     - Bei Repetierern hörst du den Kammerstängel.

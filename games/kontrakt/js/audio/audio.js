@@ -58,6 +58,8 @@
       this.echoIn.connect(d1); this.echoIn.connect(d2); d1.connect(elp); d2.connect(elp); elp.connect(eout); elp.connect(fb); fb.connect(d1); eout.connect(this.sfx);
       // soft-clip curve for punchy transients
       this.sat = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; this.sat[i] = Math.tanh(x * 2.6) / Math.tanh(2.6); }
+      // recorded engines/crashes + modelled gunshot buffers
+      if (K.Samples) { this.smp = new K.Samples(this); try { this.smp.buildGuns(GUNSND); } catch (e) { /* synth fallback */ } this.smp.load(); }
       this.startAmbience();
       this.music = new Music(this);
     }
@@ -116,16 +118,33 @@
       const pv = 0.94 + Math.random() * 0.12;
       if (sup || d.sup) {
         const g = this.out(x, y, 0.45 * (P.boom > 1 ? 1.3 : 1), 800); if (!g) return;
-        this.noise(g, t, 0.05, 'bandpass', 1100 * pv, 500, 1.2, 0.9);
-        this.noise(g, t, 0.012, 'highpass', 5000, null, 0.7, 0.6);
-        this.tone(g, t, 0.05, 'sine', 220 * pv, 90, 0.35);
-        this.noise(g, t + 0.04, 0.09, 'bandpass', 2600, 1800, 3, 0.18);
-        if (P.snap) this.noise(g, t, 0.01, 'highpass', 3500, null, 0.6, 0.5);
+        const GB = this.smp && this.smp.guns[GUNSND[w] ? w : d.cls];
+        if (GB) {
+          // a suppressor takes the blast down to a dull thwack; the action and the bullet stay
+          const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 650; lp.Q.value = 0.7; lp.connect(g);
+          const s1 = c.createBufferSource(), g1 = c.createGain(); s1.buffer = GB.near[0]; s1.playbackRate.value = 0.9 * pv; g1.gain.value = 0.35;
+          s1.connect(g1); g1.connect(lp); s1.start(t); s1.stop(t + 0.35);
+        } else this.noise(g, t, 0.05, 'bandpass', 1100 * pv, 500, 1.2, 0.9);
+        this.noise(g, t, 0.006, 'highpass', 4000, null, 0.7, 0.35);
+        this.noise(g, t + 0.025, 0.04, 'bandpass', 3000, 2400, 3, 0.25);   // slide / bolt
+        if (P.snap) this.noise(g, t, 0.006, 'highpass', 3500, null, 0.6, 0.4);
         return;
       }
       const g = this.out(x, y, (P.vol || 0.8) * (player ? 1 : 0.95), P.range || 3400);
       if (!g) return;
       const far = U.clamp(g.dist / 2600, 0, 1);
+      const GB = this.smp && this.smp.guns[GUNSND[w] ? w : d.cls];
+      if (GB) {
+        // modelled report: near and far renders crossfaded by distance, highs absorbed with range
+        const lp0 = c.createBiquadFilter(); lp0.type = 'lowpass'; lp0.frequency.value = 16000 - far * 13000; lp0.connect(g);
+        const nb = GB.near[(Math.random() * GB.near.length) | 0];
+        const s1 = c.createBufferSource(), g1 = c.createGain(); s1.buffer = nb; s1.playbackRate.value = pv; g1.gain.value = (1 - far * 0.85) * 1.1; s1.connect(g1); g1.connect(lp0); s1.start(t);
+        if (far > 0.15) { const s2 = c.createBufferSource(), g2 = c.createGain(); s2.buffer = GB.far; s2.playbackRate.value = pv; g2.gain.value = far * 1.2; s2.connect(g2); g2.connect(lp0); s2.start(t); }
+        if (!this.inside || far > 0.3) { /* the buffers already carry the street */ } else this.send(g, 0.35);
+        if (player) this.noise(g, Math.max(c.currentTime, t + 0.03), 0.03, 'bandpass', 3200, 2200, 3, 0.12);   // action
+        if (d.bolt && player) { const b = this.out(null, null, 0.35); if (b) { this.noise(b, t + 0.42, 0.05, 'bandpass', 2600, 1800, 2, 0.6); this.noise(b, t + 0.62, 0.06, 'bandpass', 2100, 3000, 2, 0.5); } }
+        return;
+      }
       const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 12000 - far * 10200; lp.Q.value = 0.4; lp.connect(g);
       const sh = c.createWaveShaper(); sh.curve = this.sat; sh.oversample = '2x';
       const drive = c.createGain(); drive.gain.value = 1.6; drive.connect(sh); sh.connect(lp);
@@ -272,7 +291,9 @@
         case 'takedown': if (e.stage === 'start') { const g = this.out(e.x, e.y, 0.3, 400); if (g) this.noise(g, t, 0.25, 'bandpass', 800, 300, 1, 0.6); } break;
         case 'coinLand': case 'clink': { const g = this.out(e.x, e.y, 0.3, 900); if (g) { this.tone(g, t, 0.15, 'sine', 2600, null, 0.25); this.tone(g, t + 0.07, 0.2, 'sine', 3300, null, 0.18); } break; }
         case 'throw': { const g = this.out(e.x, e.y, 0.2, 300); if (g) this.noise(g, t, 0.15, 'bandpass', 800, 2000, 1, 0.5); break; }
-        case 'crash': { const g = this.out(e.x, e.y, U.clamp(e.v / 300, 0.3, 1), 1400); if (!g) break; this.noise(g, t, 0.35, 'lowpass', 1500, 200, 0.7, 1.2); for (let k = 0; k < 5; k++) this.tone(g, t + Math.random() * 0.15, 0.2, 'triangle', 600 + Math.random() * 1500, null, 0.12); if (Math.random() < 0.5) this.noise(g, t + 0.05, 0.3, 'highpass', 3000, null, 1, 0.3); break; }
+        case 'crash': { const g = this.out(e.x, e.y, U.clamp(e.v / 300, 0.3, 1), 1400); if (!g) break;
+          if (this.smp && this.smp.has('crash1')) { const k = e.v > 260 ? 1 + U.rint(4) : e.v > 170 ? 5 + U.rint(4) : 9 + U.rint(4); this.smp.play('crash' + Math.min(12, k), g, t, 1.1, 0.9 + Math.random() * 0.2); break; }
+          this.noise(g, t, 0.35, 'lowpass', 1500, 200, 0.7, 1.2); for (let k = 0; k < 5; k++) this.tone(g, t + Math.random() * 0.15, 0.2, 'triangle', 600 + Math.random() * 1500, null, 0.12); if (Math.random() < 0.5) this.noise(g, t + 0.05, 0.3, 'highpass', 3000, null, 1, 0.3); break; }
         case 'carHit': this.flesh(e.x, e.y, true); break;
         case 'honk': { const g = this.out(e.x, e.y, 0.35, 1400); if (!g) break;
           if (e.horn === 1) [523, 659, 784].forEach((f, k) => this.tone(g, t + k * 0.12, 0.14, 'square', f, null, 0.1, 0.01));
@@ -324,6 +345,28 @@
       return e;
     }
     engineVoice(e, car, vol, t, set) {
+      // recorded engines (when loaded): one sampled voice per slot, rebuilt when the engine type changes
+      const series = car && K.ENGINE_SERIES ? K.ENGINE_SERIES[car.kind] || 'b-i6r' : null;
+      if (this.smp && this.smp.ready && (!car || vol <= 0.001 || e.sm)) {
+        if (e.sm && (!car || e.sm.series !== series || vol <= 0.001)) { if (!car || e.sm.series !== series) { this.smp.killEngine(e.sm); e.sm = null; } else e.sm.out.gain.setTargetAtTime(0, t, 0.1); }
+      }
+      if (car && vol > 0.001 && this.smp && this.smp.ready) {
+        if (!e.sm) e.sm = this.smp.mkEngine(series);
+        if (e.sm) {
+          set(e.g.gain, 0, 0.1); set(e.ng.gain, 0, 0.1); set(e.tg.gain, 0, 0.1); set(e.amG.gain, 0, 0.1);
+          const r = K.carRPM ? K.carRPM(car) : { rpm: 1000, gear: '1' }, thr = Math.abs(car.thr || 0);
+          const ev = series === 'electric', rpm = ev ? 700 + (car.speed || 0) * 22 : r.rpm;
+          this.smp.engineSet(e.sm, rpm, car.sputter > 0 ? thr * 0.2 : thr, vol * (car.sputter > 0 ? 0.35 : 1), t, car.tune && car.tune.turbo);
+          e.sm.pan.pan.setTargetAtTime(e.pan.pan.value, t, 0.1);
+          if (vol >= 1 && r.gear !== e.gear && /\d/.test(r.gear) && /\d/.test(e.gear) && +r.gear > +e.gear && !ev) {
+            // upshift: the revs drop for a moment and the box clunks
+            e.sm.out.gain.cancelScheduledValues(t); e.sm.out.gain.setValueAtTime(e.sm.out.gain.value * 0.4, t); e.sm.out.gain.linearRampToValueAtTime(vol * 0.5, t + 0.16);
+            const g = this.out(null, null, 0.25); if (g) this.smp.play('gear_shift1', g, t, 0.8);
+          }
+          e.gear = r.gear; e.thr = thr;
+          return;
+        }
+      }
       if (!car || vol <= 0.001) { set(e.g.gain, 0, 0.15); set(e.ng.gain, 0, 0.15); set(e.tg.gain, 0, 0.15); set(e.amG.gain, 0, 0.15); return; }
       const M = K.CARMODELS ? K.CARMODELS[car.kind] : null, ev = M && M.ev;
       const r = K.carRPM ? K.carRPM(car) : { rpm: 1000 + (car.speed || 0) * 8, gear: '1' };
