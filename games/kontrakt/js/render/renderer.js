@@ -385,6 +385,8 @@
       }
       // knocked-over street furniture
       for (const d of w.debris || []) if (d.x > vx0 - 60 && d.x < vx1 + 60 && d.y > vy0 - 60 && d.y < vy1 + 60) K.drawDebris(ctx, d, this.time);
+      // prop placement ghost
+      if (w.placing) this.drawGhost(ctx, w.placing);
       // fuel hose from the pump to your hand
       if (w.P.nozzle) {
         const nz = w.P.nozzle, f = w.P.fueling && w.cars.find((q) => q.id === w.P.fueling.car);
@@ -512,6 +514,23 @@
           for (let j = 0; j < p.h; j++) for (let i = 0; i < p.w; i++) { const k = Math.sin(t * 4 + i * 1.3 + j * 2.1); if (k < 0.4) continue; ctx.fillStyle = `hsla(${(t * 80 + (i + j) * 60) % 360},90%,60%,${(k - 0.4) * 0.5})`; ctx.fillRect(X + i * TILE + 2, Y + j * TILE + 2, TILE - 4, TILE - 4); }
         }
       }
+    }
+    /** translucent preview of the prop under the mouse: green = fits, red = doesn't */
+    drawGhost(ctx, pl) {
+      const d = K.PLACE[pl.id], p = this.w.player, X = pl.x * TILE, Y = pl.y * TILE, Wd = pl.w * TILE, H = pl.h * TILE;
+      const pulse = 0.5 + Math.sin(this.time * 6) * 0.15, col = pl.ok ? '139,92,246' : '255,64,80';
+      ctx.save();
+      ctx.strokeStyle = 'rgba(139,92,246,0.25)'; ctx.setLineDash([6, 6]); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5 * TILE, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      ctx.globalAlpha = pl.ok ? 0.75 : 0.45;
+      K.drawProp(ctx, { k: d.k, x: pl.x, y: pl.y, w: pl.w, h: pl.h, face: pl.rot, c: 0, ghost: true });
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = `rgba(${col},${0.16 * pulse * 2})`; ctx.fillRect(X, Y, Wd, H);
+      ctx.strokeStyle = `rgba(${col},0.95)`; ctx.lineWidth = 2; ctx.strokeRect(X + 1, Y + 1, Wd - 2, H - 2);
+      // facing marker
+      const fa = [0, Math.PI / 2, Math.PI, -Math.PI / 2][pl.rot], cx = X + Wd / 2, cy = Y + H / 2, r = Math.min(Wd, H) * 0.5 + 6;
+      ctx.fillStyle = `rgba(${col},0.95)`; ctx.beginPath(); ctx.moveTo(cx + Math.cos(fa) * (r + 6), cy + Math.sin(fa) * (r + 6)); ctx.lineTo(cx + Math.cos(fa + 2.6) * r * 0.25 + Math.cos(fa) * r, cy + Math.sin(fa + 2.6) * r * 0.25 + Math.sin(fa) * r); ctx.lineTo(cx + Math.cos(fa - 2.6) * r * 0.25 + Math.cos(fa) * r, cy + Math.sin(fa - 2.6) * r * 0.25 + Math.sin(fa) * r); ctx.fill();
+      ctx.restore();
     }
     drawPlants(ctx, vx0, vy0, vx1, vy1) {
       const t = this.time;
@@ -861,6 +880,16 @@
         o.globalAlpha = a; o.font = `800 ${(f.big ? 16 : 12) * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.lineWidth = 3 * s; o.strokeStyle = 'rgba(0,0,0,0.75)'; o.strokeText(f.text, sx, sy); o.fillStyle = f.col; o.fillText(f.text, sx, sy);
         o.globalAlpha = 1;
       }
+      // your stations at work
+      for (const rec of w.P.placed || []) {
+        if (!rec.job) continue;
+        const [sx, sy] = toS((rec.x + rec.w / 2) * TILE, (rec.y + rec.h / 2) * TILE);
+        if (sx < 0 || sy < 0 || sx > this.ov.width || sy > this.ov.height) continue;
+        const k = U.clamp((w.time - rec.job.start) / Math.max(1, rec.job.end - rec.job.start), 0, 1), y0 = sy - 22 * zs;
+        o.fillStyle = 'rgba(15,23,42,0.85)'; o.beginPath(); o.arc(sx, y0, 11 * s, 0, 6.3); o.fill();
+        o.strokeStyle = k >= 1 ? '#10b981' : '#8b5cf6'; o.lineWidth = 3 * s; o.beginPath(); o.arc(sx, y0, 9 * s, -Math.PI / 2, -Math.PI / 2 + U.TAU * k); o.stroke();
+        o.font = `${10 * s}px sans-serif`; o.textAlign = 'center'; o.fillStyle = '#fff'; o.fillText(k >= 1 ? '✔' : K.PLACE[rec.id].e, sx, y0 + 3.5 * s);
+      }
       // thirsty plants
       for (const pl of w.P.plants || []) {
         if (pl.w > 25 || pl.g >= 1 || pl.hp <= 0) continue;
@@ -877,7 +906,7 @@
       if (w.td) { const k = w.td.t / w.td.dur; o.strokeStyle = '#ff3040'; o.lineWidth = 4 * s; o.beginPath(); o.arc(px, py, 28 * s, -Math.PI / 2, -Math.PI / 2 + U.TAU * k); o.stroke(); }
       if (w.arrestProgress > 0.02 && w.wanted > 0) { o.strokeStyle = '#4f9bff'; o.lineWidth = 4 * s; o.beginPath(); o.arc(px, py, 32 * s, -Math.PI / 2, -Math.PI / 2 + U.TAU * w.arrestProgress); o.stroke(); }
       // crosshair
-      if (g.input.hasMouse && p.alive && !g.paused) this.crosshair(o, s);
+      if (g.input.hasMouse && p.alive && !g.paused && !w.placing) this.crosshair(o, s);
     }
     /** gang tags: procedural lettering for NPC gangs, the player's freehand PNG for their crew */
     tagImage(w, o) {
@@ -1032,6 +1061,7 @@
         case 'exhaustFlame': fx.fire(e.x, e.y, 2); fx.light(e.x, e.y, 70, [180, 120, 255], 0.6, 0.1); break;
         case 'geyser': fx.add({ k: 'smoke', x: e.x + U.rnd(-4, 4), y: e.y + U.rnd(-4, 4), vx: U.rnd(-40, 40), vy: U.rnd(-90, -30), life: 0.7, max: 0.7, size: 3, grow: 10, col: [170, 210, 255], a: 0.7 }); if (Math.random() < 0.1) fx.decal('drop', e.x + U.rnd(-30, 30), e.y + U.rnd(-30, 30), { s: 2, col: 'water' }); break;
         case 'tireBurst': fx.sparks(e.x, e.y, Math.random() * 6.3, 8); fx.dust(e.x, e.y, 4, [60, 60, 60]); break;
+        case 'propChanged': for (let j = e.y - 1; j <= e.y + e.h + 3; j++) for (let i = e.x - 1; i <= e.x + e.w + 3; i++) this.invalidateTile(i, j); break;
         case 'propSmash': this.invalidateTile(e.tx, e.ty); fx.sparks(e.x, e.y, Math.random() * 6.3, e.k === 'lamp' ? 14 : 6); if (e.k === 'lamp') { fx.glass(e.x, e.y, 10); fx.decal('glass', e.x, e.y); } if (e.player) this.cam.shake = Math.min(1, this.cam.shake + 0.25); break;
         case 'keys': fx.float(e.x, e.y - 30, '🔑 Schlüssel', '#ffd34d'); for (let k = 0; k < 8; k++) fx.sparks(e.x, e.y - 10, Math.random() * 6.3, 1, [255, 230, 140]); break;
         case 'rocketTrail': fx.smoke(e.x, e.y, 1, 0); break;

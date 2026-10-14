@@ -199,6 +199,7 @@
         return true;
       }
       if (this.drag) return false;
+      if (this.propsContext && this.propsContext(add)) return false;
       if (this.fuelContext && this.fuelContext(add)) return false;
       if (this.crewContext && this.crewContext(add)) return false;
       if (this.mechanicContext && this.mechanicContext(add)) return false;
@@ -216,7 +217,8 @@
         if (civ.state === 'cower' && !civ.robbed && civ.kind !== 'keeper') add('E', 'Ausrauben', () => this.robPerson(civ), 0.7);
         else if (civ.kind === 'civ' && !civ.picked && !['flee', 'cower', 'hostile', 'fight', 'report'].includes(civ.state) && Math.abs(U.angDiff(civ.angle, Math.atan2(a.y - civ.y, a.x - civ.x))) > 1.7)
           add('E', 'Taschendiebstahl', () => this.pickpocket(civ), 1.1, { tick: () => { if (Math.hypot(civ.x - a.x, civ.y - a.y) > 46) { this.action = null; this.notify('Zu weit weg.', 'bad'); } } });
-        if (civ.kind === 'civ' && !civ.dealt && (P.inv.bud || 0) >= 2 && !['flee', 'cower', 'hostile', 'fight', 'report'].includes(civ.state)) add('T', 'Gras anbieten (2g)', () => this.offerDrugs(civ));
+        const dr = this.streetDrug();
+        if (civ.kind === 'civ' && !civ.dealt && dr && !['flee', 'cower', 'hostile', 'fight', 'report'].includes(civ.state)) add('T', dr === 'bud' ? 'Gras anbieten (2g)' : `${K.ITEMS[dr].name} anbieten`, () => this.offerDrugs(civ));
       }
       if (this.heistContext && this.heistContext(add)) return false;
       // shop till during a hold-up
@@ -338,6 +340,12 @@
     bankWithdraw(n) { const P = this.P; n = Math.min(n, P.bank || 0); if (n <= 0) return; P.bank -= n; P.money += n; this.emit('sfx', { s: 'cash' }); },
 
     // ============================================================ dealing
+    /** the most valuable thing you can sell on the street right now */
+    streetDrug() {
+      const P = this.P;
+      for (const k of ['coke', 'meth']) if ((P.inv[k] || 0) >= 1) return k;
+      return (P.inv.bud || 0) >= 2 ? 'bud' : null;
+    },
     offerDrugs(v) {
       const P = this.P, a = this.player, D = P.deal || (P.deal = { rep: 0, sold: 0 });
       v.dealt = true;
@@ -345,12 +353,14 @@
       let chance = 0.3 + (this.isNight() ? 0.2 : 0) + ({ old: 0.12, docks: 0.18, park: 0.15, ind: 0.1 }[dist] || 0) + Math.min(0.25, D.rep * 0.01);
       if (v.outfit === 'rich') chance -= 0.1;
       if (Math.random() < chance) {
-        const n = Math.random() < 0.25 + D.rep * 0.004 ? 4 : 2;
-        const grams = Math.min(n, P.inv.bud);
-        const price = Math.round(grams * (14 + Math.min(12, D.rep * 0.25) + Math.random() * 6) * (this.ownTurfAt && this.ownTurfAt(a.x, a.y) ? 1.25 : 1));
-        this.takeItem('bud', grams); P.money += price; D.rep++; D.sold += grams;
+        const dr = this.streetDrug() || 'bud', it = K.ITEMS[dr];
+        const n = dr === 'bud' ? (Math.random() < 0.25 + D.rep * 0.004 ? 4 : 2) : Math.random() < 0.3 + D.rep * 0.004 ? 2 : 1;
+        const grams = Math.min(n, P.inv[dr]);
+        const unit = dr === 'bud' ? 14 + Math.min(12, D.rep * 0.25) + Math.random() * 6 : it.street * (0.85 + Math.min(0.4, D.rep * 0.008) + Math.random() * 0.25);
+        const price = Math.round(grams * unit * (this.ownTurfAt && this.ownTurfAt(a.x, a.y) ? 1.25 : 1));
+        this.takeItem(dr, grams); P.money += price; D.rep++; D.sold += grams;
         this.bark(v, U.pick(['Nice. Genau das brauchte ich.', 'Bist ein Engel, Mann.', 'Wenn das gut ist, komm ich wieder.', 'Schnell, bevor jemand guckt.']), 2.4);
-        this.notify(`Verkauft: ${grams}g für ${U.money(price)} · Ruf ${D.rep}`, 'money'); this.emit('sfx', { s: 'coins' }); this.addXP(5, 'Deal');
+        this.notify(`Verkauft: ${grams}${dr === 'bud' ? 'g' : '× ' + it.name} für ${U.money(price)} · Ruf ${D.rep}`, 'money'); this.emit('sfx', { s: 'coins' }); this.addXP(5, 'Deal');
         this.crimeEvent(a, 'drugs', a.x, a.y, null);
       } else {
         this.bark(v, U.pick(['Verpiss dich.', 'Nein danke. Echt jetzt?', 'Ich ruf gleich die Bullen!', 'Nicht mein Ding.']), 2.2);

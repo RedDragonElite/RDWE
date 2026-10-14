@@ -91,6 +91,16 @@
       this.set('place', place + (z >= 0 ? '|z' + (w.zones[z].roles.includes(w.role(p)) ? 'ok' : 'no') : ''), () => { e.district.innerHTML = U.esc(place) + (z >= 0 ? (w.zones[z].roles.includes(w.role(p)) ? ' <span style="color:#5fd38d">· ZUGANG (Verkleidung)</span>' : ' <span style="color:#ff3b4e">· SPERRGEBIET</span>') : ''); });
       this.set('bank', P.bank || 0, (v) => (e.bank.textContent = `Konto ${U.money(v)}${P.deal && P.deal.rep ? ` · Dealer-Ruf ${P.deal.rep}` : ''}`));
       this.jailbox(P, w);
+      // prop placement bar (dark slate + violet)
+      const pl = w.placing;
+      this.set('placing', pl ? `${pl.id}|${pl.ok}|${pl.why}|${P.inv['pl_' + pl.id] || 0}` : '', () => {
+        const pb = this.pbEl || (this.pbEl = document.getElementById('placebar'));
+        pb.classList.toggle('hidden', !pl); document.body.classList.toggle('placing', !!pl);
+        if (!pl) return;
+        const d = K.PLACE[pl.id];
+        pb.querySelector('i').textContent = d.e; pb.querySelector('b').textContent = `${d.name}${P.inv['pl_' + pl.id] > 1 ? ' ×' + P.inv['pl_' + pl.id] : ''}`;
+        const st = pb.querySelector('span'); st.textContent = pl.ok ? '✔ Passt' : '✘ ' + pl.why; st.className = pl.ok ? 'ok' : 'no';
+      });
       if (this.set('money', P.money, (v) => (e.money.textContent = U.money(v)))) { e.money.classList.add('bump'); clearTimeout(this.mt); this.mt = setTimeout(() => e.money.classList.remove('bump'), 250); }
       // wanted
       const wl = Math.floor(w.wanted);

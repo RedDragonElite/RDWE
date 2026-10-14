@@ -266,6 +266,7 @@
       this.updateSurvival(dt, minutes);
       this.updateUnderworld(dt, minutes);
       if (this.updateAutos) this.updateAutos(dt);
+      if (this.updateProps) this.updateProps(dt);
       this.updatePopulation(dt);
       if (this.tick % 120 === 0) this.cleanup();
     }

@@ -198,6 +198,7 @@
       const c = this.ctx, t = c.currentTime, g = this.out(null, null, 0.5); if (!g) return;
       switch (s) {
         case 'click': this.tone(g, t, 0.04, 'sine', 900, 700, 0.25); break;
+        case 'propPlace': this.tone(g, t, 0.12, 'sine', 160, 70, 0.5); this.noise(g, t, 0.08, 'lowpass', 900, 200, 1, 0.5); this.tone(g, t + 0.05, 0.05, 'triangle', 900, null, 0.1); break;
         case 'breathIn': this.noise(g, t, 0.45, 'bandpass', 900, 1500, 1.2, 0.18, this.brown); break;
         case 'breathOut': this.noise(g, t, 0.7, 'bandpass', 1300, 600, 1, 0.22, this.brown); break;
         case 'gasp': for (let k = 0; k < 3; k++) { this.noise(g, t + k * 0.45, 0.3, 'bandpass', 1100, 1700, 1.4, 0.3, this.brown); this.noise(g, t + k * 0.45 + 0.25, 0.25, 'bandpass', 1400, 700, 1, 0.24, this.brown); } break;

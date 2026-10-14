@@ -190,6 +190,8 @@
       this.emit('propSmash', { k: p.k, x: cx, y: cy, v, tx: p.x, ty: p.y, player: !!(c && c.driver === 'player') });
       this.noise(cx, cy, p.k === 'lamp' || p.k === 'hydrant' ? 9 : 5, 'crash', null);
       this.brokenProps = (this.brokenProps || 0) + 1;
+      if (this.nav) for (let j = p.y; j < p.y + p.h; j++) for (let i = p.x; i < p.x + p.w; i++) this.nav.cost[j * W + i] = this.nav.baseCost(j * W + i);
+      if (p.rec && this.placedBroken) this.placedBroken(p);
     },
     updateDebris(dt) {
       if (!this.debris) return;

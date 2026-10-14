@@ -12,7 +12,7 @@
         ammo: { '9mm': 45 }, inv: { sandwich: 1, water: 2, bandage: 2, lockpick: 1, coffee: 1 },
         hunger: 82, thirst: 76, energy: 88, stamina: 100, drunk: 0, painkiller: 0, instinct: false, flashlight: false,
         xp: 0, level: 1, sp: 0, skills: { stealth: 0, marksman: 0, melee: 0, fitness: 0, disguise: 0, survival: 0 },
-        owned: ['bude'], home: 'bude', stash: { bude: { items: { medkit: 1, whiskey: 1 }, weapons: [{ id: 'knife' }], ammo: { '9mm': 30 }, money: 0 } },
+        owned: ['bude'], home: 'bude', placed: [], stash: { bude: { items: { medkit: 1, whiskey: 1 }, weapons: [{ id: 'knife' }], ammo: { '9mm': 30 }, money: 0 } },
         stats: { kills: 0, civKills: 0, contracts: 0, earned: 0, headshots: 0, takedowns: 0, silent: 0, days: 1 },
         compromised: {}, lastIncome: 0, recoil: 0,
         bank: 0, plants: [], jail: null, masked: false, surrender: false, high: 0, deal: { rep: 0, sold: 0 }, record: {},
@@ -66,6 +66,7 @@
         if (w.sup) return this.notify('Bereits gedämpft.', 'bad'), false;
         w.sup = true; this.takeItem(id); this.emit('sfx', { s: 'attach' }); this.notify(`Schalldämpfer auf ${d.name} montiert`); return true;
       }
+      if (it.place) return this.startPlace(it.place);
       if (id === 'flashlight') { P.flashlight = !P.flashlight; this.emit('sfx', { s: 'click' }); return true; }
       if (id === 'mask') return this.toggleMask();
       if (id === 'growkit' || id === 'seed') return this.plantSeed();
@@ -306,6 +307,7 @@
       a.hp = s.hp || 100; a.armor = s.armor || 0; a.x = s.x; a.y = s.y; a.outfit = this.P.outfit; a.maxHp = this.maxHp();
       a.wi = this.curWeapon();
       this.markOwned();
+      if (this.restorePlaced) { if (!Array.isArray(this.P.placed)) this.P.placed = []; this.restorePlaced(); }
       this.contractsDone = s.contractsDone || 0;
       this.offers = (s.offers || []).map((sd) => this.makeContract(sd)).filter(Boolean);
       if (s.contract) { const c = this.makeContract(s.contract); if (c) this.acceptContract(c, true); }

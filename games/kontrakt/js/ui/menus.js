@@ -78,6 +78,7 @@
             <button class="app" data-a="estate"><i style="background:linear-gradient(135deg,#3d8a4a,#123a1a)">🏠</i>Immobilien</button>
             <button class="app" data-a="msgs"><i style="background:linear-gradient(135deg,#8a4ac8,#2a1240)">💬</i>Nachrichten</button>
             <button class="app" data-a="bank"><i style="background:linear-gradient(135deg,#5fd38d,#14482a)">💰</i>Konto</button>
+            <button class="app" data-a="props"><i style="background:linear-gradient(135deg,#8b5cf6,#1e1b4b)">🛋️</i>Einrichtung</button>
             <button class="app" data-a="cars"><i style="background:linear-gradient(135deg,#3b82f6,#0f172a)">🚘</i>Car Service</button>
             <button class="app" data-a="inv"><i style="background:linear-gradient(135deg,#6b6f78,#22252b)">🎒</i>Inventar</button>
             <button class="app" data-a="settings"><i style="background:linear-gradient(135deg,#444,#111)">⚙️</i>Optionen</button>
@@ -138,7 +139,8 @@
         body.innerHTML = `<div class="ph-h">KONTO</div><div class="card"><div class="sub">Bargeld</div><h4 style="font-size:30px;color:#9ff0b8">${U.money(P.money)}</h4></div><div class="card"><div class="sub">Konto · Sparkasse</div><h4 style="font-size:26px;color:#7fb7a0">${U.money(P.bank || 0)}</h4><p>Ein- und Auszahlen am Geldautomaten.</p></div>
           <div class="card"><div class="sub">Passives Einkommen</div><h4>${U.money(inc)} / Tag</h4><p>Zahlt jeden Morgen um 08:00 aus.</p></div>
           <div class="card"><div class="sub">Verdient mit Aufträgen</div><h4>${U.money(P.stats.earned)}</h4></div>`;
-      } else if (app === 'cars' || app.startsWith('cars:')) { this.carApp(body, app.split(':')[1] || 'start'); return; }
+      } else if (app === 'props') { this.propsApp(body); return; }
+      else if (app === 'cars' || app.startsWith('cars:')) { this.carApp(body, app.split(':')[1] || 'start'); return; }
       else if (app === 'map') { this.closePhone(); this.openMap(); return; }
       else if (app === 'inv') { this.closePhone(); this.inventory(); return; }
       else if (app === 'settings') { this.closePhone(); this.settings(); return; }
@@ -180,6 +182,8 @@
       else if (e.open === 'tag') this.tagEditor();
       else if (e.open === 'dealer') this.dealer(e.kind);
       else if (e.open === 'tuning') this.tuning(e.car);
+      else if (e.open === 'container') this.container(e.uid);
+      else if (e.open === 'station') this.station(e.uid);
     }
 
     // ============================================================ cars
@@ -470,13 +474,13 @@
       }
       const it = K.ITEMS[s.id], usable = !it.sellOnly && !it.quest && s.id !== 'lockpick';
       const st = [it.food ? `Hunger +${it.food}` : '', it.water ? `Durst +${it.water}` : '', it.energy ? `Energie +${it.energy}` : '', it.hp ? `HP +${it.hp}` : '', it.desc || '', it.hot ? 'Heiße Ware' : ''].filter(Boolean).join(' · ');
-      const label = s.id === 'mask' ? (P.masked ? 'Abnehmen' : 'Aufsetzen') : s.id === 'growkit' || s.id === 'seed' ? 'Pflanzen' : s.id === 'bud' ? 'Rauchen' : 'Benutzen';
+      const label = s.id === 'mask' ? (P.masked ? 'Abnehmen' : 'Aufsetzen') : s.id === 'growkit' || s.id === 'seed' ? 'Pflanzen' : s.id === 'bud' ? 'Rauchen' : it.place ? 'Platzieren' : 'Benutzen';
       return `<div class="det-h">${K.slotIcon('i', s.id)}<h4>${esc(it.name)} <small>×${P.inv[s.id]}</small></h4></div><p>${esc(st || '—')}</p><div class="btns">${usable ? `<button class="btn" data-act="use">${label}</button>` : ''}<button class="btn ghost" data-act="drop">Wegwerfen</button></div>`;
     }
     /** act on a dragged/selected thing: use · drop · put into hotbar slot */
     invAct(t, id, act, slot) {
       const w = this.g.world, P = w.P;
-      if (act === 'use') { if (t === 'w') w.equipWeapon(id); else w.useItem(id); }
+      if (act === 'use') { if (t === 'w') w.equipWeapon(id); else { w.useItem(id); if (w.placing) { this.closePanel(); return; } } }
       else if (act === 'holster') w.holsterAll();
       else if (act === 'drop') {
         if (t === 'w') { const i = P.weapons.findIndex((q) => q.id === id); if (i > 0) { const wi = P.weapons[i]; w.dropItem({ kind: 'weapon', wid: wi.id, mag: wi.mag, sup: wi.sup }, w.player.x + U.rnd(-10, 10), w.player.y + U.rnd(-10, 10)); w.removeWeaponAt(i); } }
@@ -556,6 +560,76 @@
       b.querySelectorAll('[data-sellall]').forEach((x) => (x.onclick = () => { w.sellItem(x.dataset.sellall, 1e9); this.shop(id, bid, 'sell'); }));
       const hb = b.querySelector('[data-heal]'); if (hb) hb.onclick = () => { w.heal(); this.shop(id, bid, tab); };
     }
+    /** a placed container: your stuff ⇄ its slots, capacity bars, code lock */
+    container(uid) {
+      const w = this.g.world, P = w.P, rec = w.placedRec(uid); if (!rec) return this.closePanel();
+      const d = K.PLACE[rec.id], S = rec.store, cap = d.store, u = w.storeUsed(rec), only = cap.only;
+      const row = (ic, nm, q, attr, lbl) => `<div class="it"><div class="ic">${ic}</div><div class="nm">${nm}</div><div class="q">${q}</div><button class="btn ghost" ${attr}>${lbl}</button></div>`;
+      let h = `<div class="ctr-cap"><span>Fächer ${u.slots}/${cap.slots}</span><div class="bar"><i style="width:${(u.slots / cap.slots) * 100}%"></i></div><span>${u.kg.toFixed(1)}/${cap.kg} kg</span><div class="bar"><i style="width:${Math.min(100, (u.kg / cap.kg) * 100)}%"></i></div></div>`;
+      if (d.lock) h += `<div class="ctr-lock">🔒 <span>Zahlenschloss · Code <b>${esc(rec.code)}</b></span><input data-code maxlength="4" placeholder="neu" inputmode="numeric"><button class="btn ghost" data-setcode>Ändern</button><small style="margin-left:auto;color:#a5b4fc">${['', 'Einfaches Schloss', 'Tresorschloss', 'Hochsicherheit'][d.lock]}</small></div>`;
+      else h += '<div class="ctr-lock" style="border-color:rgba(244,63,94,.4);background:rgba(244,63,94,.08)">🔓 <span>Unverschlossen — Einbrecher bedienen sich.</span></div>';
+      h += '<div class="cols"><div><div class="sec">Bei dir</div><div class="list">';
+      P.weapons.forEach((x, i) => { if (i) h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-pw="${i}"`, 'Rein ▶'); });
+      if (only !== 'w') {
+        for (const k in P.ammo) if (P.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, P.ammo[k], `data-pa="${k}"`, 'Rein ▶');
+        for (const k in P.inv) h += row(icon(k), esc(K.ITEMS[k].name), '×' + P.inv[k], `data-pi="${k}"`, 'Rein ▶');
+      }
+      h += `</div></div><div><div class="sec">${esc(d.name)}</div><div class="list">`;
+      S.weapons.forEach((x, i) => (h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-sw="${i}"`, '◀ Raus')));
+      for (const k in S.ammo) if (S.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, S.ammo[k], `data-sa="${k}"`, '◀ Raus');
+      for (const k in S.items) if (S.items[k] > 0) h += row(icon(k), esc(K.ITEMS[k].name), '×' + S.items[k], `data-si="${k}"`, '◀ Raus');
+      if (!u.slots) h += '<div class="it"><div class="nm"><small>Leer.</small></div></div>';
+      h += '</div></div></div>';
+      const b = this.panel(d.name.toUpperCase(), h, 'container');
+      const re = () => this.container(uid);
+      b.querySelectorAll('[data-pw]').forEach((x) => (x.onclick = () => { w.storePut(rec, 'w', +x.dataset.pw); re(); }));
+      b.querySelectorAll('[data-pa]').forEach((x) => (x.onclick = () => { w.storePut(rec, 'a', x.dataset.pa); re(); }));
+      b.querySelectorAll('[data-pi]').forEach((x) => (x.onclick = () => { w.storePut(rec, 'i', x.dataset.pi); re(); }));
+      b.querySelectorAll('[data-sw]').forEach((x) => (x.onclick = () => { w.storeTake(rec, 'w', +x.dataset.sw); re(); }));
+      b.querySelectorAll('[data-sa]').forEach((x) => (x.onclick = () => { w.storeTake(rec, 'a', x.dataset.sa); re(); }));
+      b.querySelectorAll('[data-si]').forEach((x) => (x.onclick = () => { w.storeTake(rec, 'i', x.dataset.si); re(); }));
+      const sc = b.querySelector('[data-setcode]'); if (sc) sc.onclick = () => { if (w.setCode(rec, b.querySelector('[data-code]').value.trim())) re(); };
+    }
+    /** a crafting station: recipes with what you have, the running batch, collect */
+    station(uid) {
+      const w = this.g.world, P = w.P, rec = w.placedRec(uid); if (!rec) return this.closePanel();
+      const d = K.PLACE[rec.id], R = w.recipesOf(rec), j = rec.job;
+      const nm = (k) => (k.startsWith('a:') ? K.AMMO[k.slice(2)].name : K.ITEMS[k].name);
+      let h = '';
+      if (j) {
+        const r = R.find((q) => q.id === j.rid), k = U.clamp((w.time - j.start) / Math.max(1, j.end - j.start), 0, 1), done = w.time >= j.end;
+        h += `<div class="job"><b>${esc(r ? r.name : '?')}</b> — ${done ? 'fertig!' : `noch ${Math.ceil(j.end - w.time)} Spielminuten`}<div class="bar"><i style="width:${k * 100}%"></i></div>${done ? '<button class="btn red" data-collect>Abholen</button>' : '<small style="color:#a5b4fc">Die Station arbeitet auch, wenn du weg bist oder schläfst.</small>'}</div>`;
+      }
+      for (const r of R) {
+        const ins = Object.entries(r.in).map(([k, n]) => `<span class="${(P.inv[k] || 0) >= n ? 'have' : 'miss'}">${n}× ${esc(nm(k))} (${P.inv[k] || 0})</span>`).join(' + ');
+        const outs = Object.entries(r.out).map(([k, n]) => `${n}× ${esc(nm(k))}`).join(', ');
+        h += `<div class="rcp"><div><b>${esc(r.name)}</b><small>${ins} → ${outs} · ${r.min} min${r.risk ? ' · ⚠ Explosionsgefahr' : ''}${r.smell ? ' · 👃 riecht' : ''}</small></div><button class="btn" data-start="${r.id}" ${j || !w.canCraft(r) ? 'disabled' : ''}>Starten</button></div>`;
+      }
+      const b = this.panel(d.name.toUpperCase(), h, 'station');
+      b.querySelectorAll('[data-start]').forEach((x) => (x.onclick = () => { w.startCraft(rec, x.dataset.start); this.station(uid); }));
+      const c = b.querySelector('[data-collect]'); if (c) c.onclick = () => { w.collectCraft(rec); this.station(uid); };
+    }
+    /** phone: furniture & gear catalogue (legal stuff, delivered by courier) + what you have placed */
+    propsApp(body) {
+      const w = this.g.world, P = w.P;
+      this.phoneApp = 'props';
+      let h = '<div class="fx-app"><div class="ph-h">EINRICHTUNG</div><p style="font-size:12px;color:#a5b4fc;margin-top:-6px">Kurier liefert sofort ins Inventar. Platzieren: Item benutzen (Inventar oder Hotbar).</p>';
+      for (const cat of ['home', 'store', 'street']) {
+        h += `<div class="cat">${K.PLACE_CATS[cat]}</div>`;
+        for (const d of Object.values(K.PLACE)) if (d.cat === cat && !d.black) {
+          const n = P.inv['pl_' + d.id] || 0, placed = w.placedList().filter((r) => r.id === d.id).length;
+          h += `<div class="pi"><i>${d.e}</i><div><b>${esc(d.name)}</b><small>${d.store ? `${d.store.slots} Fächer · ${d.store.kg} kg${d.lock ? ' · 🔒' : ''}` : d.where === 'own' ? 'Nur in eigener Immobilie' : 'Straße oder Immobilie'}${n || placed ? ` · ${n} im Inventar, ${placed} platziert` : ''}</small></div><button class="btn" data-pbuy="${d.id}" ${P.money >= d.price ? '' : 'disabled'}>${U.money(d.price)}</button></div>`;
+        }
+      }
+      h += `<div class="cat">Stationen</div><p style="font-size:12px;color:#9ca3af">Labore und Werkbank gibt es nur auf dem Schwarzmarkt am Hafen.</p><div class="cat">Platziert: ${w.placedList().length}/${K.PLACE_MAX}</div></div>`;
+      body.innerHTML = h;
+      body.querySelectorAll('[data-pbuy]').forEach((b) => (b.onclick = () => {
+        const d = K.PLACE[b.dataset.pbuy];
+        if (!w.pay(d.price)) return w.notify('Zu wenig Bargeld.', 'bad');
+        w.addItem('pl_' + d.id); w.emit('sfx', { s: 'purchase' }); w.notify(`${d.name} geliefert.`, 'good');
+        this.propsApp(body);
+      }));
+    }
     stash(propId) {
       const w = this.g.world, P = w.P, S = P.stash[propId] || (P.stash[propId] = { items: {}, weapons: [], ammo: {}, money: 0 });
       const row = (ic, nm, q, attr, lbl) => `<div class="it"><div class="ic">${ic}</div><div class="nm">${nm}</div><div class="q">${q}</div><button class="btn ghost" ${attr}>${lbl}</button></div>`;
@@ -574,7 +648,7 @@
       b.querySelectorAll('[data-pw]').forEach((x) => (x.onclick = () => { const i = +x.dataset.pw; S.weapons.push(P.weapons[i]); w.removeWeaponAt(i); re(); }));
       b.querySelectorAll('[data-pa]').forEach((x) => (x.onclick = () => { const k = x.dataset.pa; S.ammo[k] = (S.ammo[k] || 0) + P.ammo[k]; P.ammo[k] = 0; re(); }));
       b.querySelectorAll('[data-pi]').forEach((x) => (x.onclick = () => { const k = x.dataset.pi; S.items[k] = (S.items[k] || 0) + P.inv[k]; delete P.inv[k]; re(); }));
-      b.querySelectorAll('[data-sw]').forEach((x) => (x.onclick = () => { const i = +x.dataset.sw, wp = S.weapons[i]; if (P.weapons.length >= 9) return w.notify('Kein Platz mehr.', 'bad'); const d = W8[wp.id]; if (!d.stack && !d.consumable && P.weapons.some((q) => q.id === wp.id)) return w.notify('Hast du schon dabei.', 'bad'); if (d.stack || d.consumable) w.addWeapon(wp.id, { n: wp.n }); else P.weapons.push(wp); S.weapons.splice(i, 1); re(); }));
+      b.querySelectorAll('[data-sw]').forEach((x) => (x.onclick = () => { const i = +x.dataset.sw, wp = S.weapons[i]; if (P.weapons.length >= 16) return w.notify('Kein Platz mehr für Waffen (max. 15).', 'bad'); const d = W8[wp.id]; if (!d.stack && !d.consumable && P.weapons.some((q) => q.id === wp.id)) return w.notify('Hast du schon dabei.', 'bad'); if (d.stack || d.consumable) w.addWeapon(wp.id, { n: wp.n }); else { P.weapons.push(wp); w.hotbarAdd('w', wp.id); } S.weapons.splice(i, 1); re(); }));
       b.querySelectorAll('[data-sa]').forEach((x) => (x.onclick = () => { const k = x.dataset.sa; P.ammo[k] = (P.ammo[k] || 0) + S.ammo[k]; S.ammo[k] = 0; re(); }));
       b.querySelectorAll('[data-si]').forEach((x) => (x.onclick = () => { const k = x.dataset.si; w.addItem(k, S.items[k]); delete S.items[k]; re(); }));
     }
@@ -646,7 +720,7 @@
 
     // ============================================================ title / pause / results
     controls() {
-      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Hotbar: Waffe ziehen/wegstecken, Item benutzen', 'H / 0', 'Alles wegstecken · Fäuste'], ['TAB', 'Inventar: Drag & Drop in die Hotbar', 'Maus über Kachel + 1–9', 'Slot direkt belegen'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['Im Auto: B / N', 'Gurt an/aus · Motor an/aus', 'Im Auto: X / L', 'Tempomat · Licht (Abblend/Fern)'], ['Im Auto: Q / E', 'Blinker links / rechts (beide = Warnblinker)', 'Im Auto: Shift / T', 'Nitro · Werkstatt-Aktion'], ['Im Auto: LMB / RMB', 'Drive-by oder Bord-MG · Raketen', 'Im Auto: F / H', 'Aussteigen · Hupe'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen']];
+      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Hotbar: Waffe ziehen/wegstecken, Item benutzen', 'H / 0', 'Alles wegstecken · Fäuste'], ['TAB', 'Inventar: Drag & Drop in die Hotbar', 'Maus über Kachel + 1–9', 'Slot direkt belegen'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['Im Auto: B / N', 'Gurt an/aus · Motor an/aus', 'Im Auto: X / L', 'Tempomat · Licht (Abblend/Fern)'], ['Im Auto: Q / E', 'Blinker links / rechts (beide = Warnblinker)', 'Im Auto: Shift / T', 'Nitro · Werkstatt-Aktion'], ['Im Auto: LMB / RMB', 'Drive-by oder Bord-MG · Raketen', 'Im Auto: F / H', 'Aussteigen · Hupe'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen'], ['RMB mit Zielfernrohr', 'Scope · Shift: Atem anhalten', 'Prop-Item benutzen', 'Platzieren: R/Mausrad drehen, LMB setzen, RMB abbrechen'], ['E am Prop', 'Container öffnen · Station · Schlafen', 'T halten am Prop', 'Abbauen (zurück ins Inventar)']];
       const h = `<div class="kbd-grid">${k.map((r) => `<kbd>${r[0]}</kbd><span>${r[1]}</span><kbd>${r[2]}</kbd><span>${r[3]}</span>`).join('')}</div>
         <div class="sec" style="margin-top:18px">So spielst du</div>
         <p style="font-size:13px;color:#cfc9be;line-height:1.6">Aufträge kommen aufs <b>Handy (P)</b>. Finde das Ziel — mit gekauftem Intel wird es markiert, sonst kennst du nur grob den Bereich. Nimm Verkleidungen von bewusstlosen oder toten Wachen (<b>T</b>), um in Sperrgebiete zu kommen. Wirf <b>Münzen</b>, um Wachen wegzulocken, und erledige Ziele lautlos von hinten (<b>F</b>) mit der Klaviersaite. Leichen versteckst du in Containern und Schränken (<b>E</b>). Zeugen rufen die Polizei — wechsle das Outfit ungesehen, um die Fahndung zu senken. Willst du nicht sterben, ergib dich mit <b>X</b>: weniger Haft, aber Knast ist Knast. Halt Passanten oder Ladenbesitzer mit gezogener Waffe (<b>RMB</b>) in Schach und raub sie aus, zieh Brieftaschen von hinten, durchwühl fremde Wohnungen, hack Geldautomaten. Mit einer Sturmhaube erkennt dich niemand. Im Growshop gibt es Samen und Töpfe — pflanz in deiner Bude, gieß, dünge, ernte und verkauf an Passanten (<b>T</b>) oder am Schwarzmarkt. Iss, trink, schlaf in deinem eigenen Bett, kauf Waffen, Häuser und Geschäfte. Krähenburg lebt — Tag und Nacht, Regen und Nebel.</p>`;
@@ -676,6 +750,7 @@
       if (a === 'title') this.g.toTitle();
     }
     escape() {
+      if (this.g.world && this.g.world.placing && $('#panel').classList.contains('hidden') && $('#phone').classList.contains('hidden')) { this.g.world.cancelPlace(); return; }
       if (this.backToTitle && !$('#panel').classList.contains('hidden')) { this.closePanel(); this.backToTitle = false; $('#title').classList.remove('hidden'); this.sync(); return; }
       if (!$('#result').classList.contains('hidden') || !$('#dead').classList.contains('hidden') || !$('#title').classList.contains('hidden')) return;
       if (!$('#phone').classList.contains('hidden')) return this.closePhone();

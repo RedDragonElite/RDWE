@@ -244,6 +244,34 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Neue Waffen landen automatisch im nächsten freien Slot. Insgesamt passen jetzt 15 Waffen ins Inventar.
 - **Flüssigere Steuerung:** Auf 120- und 144-Hz-Monitoren gingen Tastendrücke und Klicks verloren, wenn ein Bild keinen Logik-Schritt hatte. Behoben.
 
+### Prop-System (nach rde_props, rde_placeable_items, rde_props_interact)
+- **28 platzierbare Props** in vier Gruppen:
+  - **Straße & Baustelle** (Werkstatt): Leitkegel, Absperrgitter, Warnschild, Baustrahler mit echtem Licht, Klapptisch, Klappstuhl, Pavillon
+  - **Einrichtung** (Handy-App „Einrichtung“, Kurier liefert sofort): Ledersofa, Clubsessel, Couchtisch, Monstera, Stehlampe, OLED-TV, Perserteppich, Boxspringbett (Schlafen & Speichern), Jukebox, Billardtisch, Alarmanlage
+  - **Lager & Tresore:** Holzkiste, Alukoffer, Lagerregal, Tresor, Waffentresor XL, Waffenständer (zeigt die eingelagerten Waffen)
+  - **Stationen** (Schwarzmarkt): Verpackungstisch, Chemielabor, Koks-Station, Waffen-Werkbank
+- **Platzieren:** Item benutzen (Inventar, Hotbar oder Doppelklick).
+  - Ein Ghost folgt der Maus: violett heißt „passt“, rot heißt „passt nicht“, mit Grund (zu weit weg, Platz belegt, Wand, versperrt eine Tür, nur in deiner Immobilie …).
+  - **R** oder Mausrad dreht, **LMB** platziert, **RMB** oder **ESC** bricht ab. Die Leiste unten zeigt Tasten und Status.
+  - Möbel, Tresore und Stationen gehen nur in eigene Immobilien. Baustellenzeug, Kisten und Koffer gehen auch auf die Straße.
+  - Bis zu 60 Props, 30 pro Immobilie. Props blockieren Wege, Kugeln und die KI-Wegfindung.
+- **Wieder abbauen:** **T** gedrückt halten neben dem Prop packt es zurück ins Inventar. Container müssen leer sein, Stationen dürfen nicht laufen.
+- **Container:**
+  - Fächer und Gewichtslimit (Koffer 5 Fächer/20 kg … Waffentresor 20 Fächer/200 kg). Der Waffenständer nimmt nur Waffen.
+  - Zahlenschloss mit änderbarem 4-stelligem Code.
+- **Einbrecher** kommen nachts um 03:00:
+  - Unverschlossene Kisten werden geplündert, auf der Straße noch viel öfter.
+  - Ein einfaches Schloss hält manchmal, ein Tresor meistens. Den Waffentresor XL knackt niemand.
+  - Mit Alarmanlage kommt keiner rein.
+- **Stationen** laufen nach Spielzeit weiter, auch wenn du weg bist oder schläfst. Ein Fortschrittsring schwebt über der Station.
+  - Verpackungstisch: 25 g Gras → vakuumiertes Gras-Paket (Schwarzmarkt zahlt 480 $)
+  - Chemielabor: Chemikalien → 8 Kristall (Straße ca. 55 $/Stück). Es stinkt, Nachbarn rufen die Streife, und es kann explodieren.
+  - Koks-Station: Koka-Paste + Streckmittel → 14 Koks (Straße ca. 110 $)
+  - Waffen-Werkbank: Waffenteile → 9mm, 5.56, 7.62, .308, .50 BMG, Schalldämpfer, Dietriche
+- **Straßenverkauf** nimmt automatisch das Wertvollste: Koks, dann Kristall, dann Gras.
+- **Autos** fahren Kegel, Gitter und Schilder um. Was zerstört wird, ist weg.
+- Alles wird mit dem Spielstand gespeichert, inklusive Inhalt, Codes und laufender Produktion.
+
 ### Leben, Wirtschaft, RPG
 - **Hunger, Durst, Energie, Ausdauer, Blutungen, Trunkenheit und Schmerzmittel.**
 - **Essen und Trinken** im Diner, in der Bar, im Späti und an Getränkeautomaten.
@@ -313,6 +341,8 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 | **Im Auto Q / E** | Blinker | **Im Auto Shift / T** | Nitro · Werkstatt |
 | **Im Auto LMB / RMB** | Drive-by bzw. MG · Raketen | **Im Auto F** | Aussteigen |
 | **RMB mit Zielfernrohr** | Scope | **Shift im Scope** | Atem anhalten |
+| **Prop platzieren: R / Mausrad** | Drehen | **LMB / RMB / ESC** | Platzieren · Abbrechen |
+| **E am Prop** | Öffnen · Station · Schlafen | **T halten am Prop** | Abbauen |
 
 ---
 
@@ -328,6 +358,7 @@ games/kontrakt/
 │                         economy, combat, crime, ai, contracts, vehicles, player, underworld,
 │                         police (Einheiten, Einsatzregeln), criminals, heists, crew, gangs,
 │                         autos (Modelle, Schaden, Sprit, Cockpit), carservice (Autohaus, Tanken, Werkstatt, App)
+│                         nightlife, hotbar, props (Platzieren, Container, Schlösser, Stationen, Einbrecher)
 ├── js/render/            textures, sprites (Menschen, Autos, Möbel), fx (Partikel, Decals),
 │                         renderer (Chunks, Dächer, Schatten, Sichtfeld, Lightmap, Wetter, Overlay), post (WebGL2)
 ├── js/audio/audio.js     prozedurale SFX, Ambience und generative Musik
@@ -340,6 +371,7 @@ games/kontrakt/
   - `node tools/sim.mjs` spielt Laufen, Schießen, Auftrag, Takedown, Fahren, 5 Spielstunden und Speichern headless durch.
   - `node tools/scenarios.mjs` prüft die KI: Hausfriedensbruch, Verkleidung, Münzen-Ablenkung, Leichenfund, Zeugen mit Polizei, Klaviersaite.
   - `node tools/crime.mjs` prüft Unterwelt, Überfälle, Gangs und Reviere; `node tools/city.mjs` prüft Strand, Clubs, Tänzerinnen und Immobilien; `node tools/cars.mjs` prüft Sprit, Crashs, Verformung, Gurt, Laternen, Reifen, Tuning, Autohaus, Zapfsäule, Werkstatt und Car Service.
+  - `node tools/arms.mjs` prüft Scharfschützengewehre, Scope-Wackeln, Atem anhalten und .50-Durchschlag; `node tools/props.mjs` prüft Platzieren, Container, Schlösser, Stationen, Einbrecher und Speichern der Props.
 - **Speichern** in `localStorage`. Die Stadt wird aus dem Seed neu erzeugt, deshalb bleibt der Spielstand klein.
 
 *Red Dragon Elite · pure HTML · CSS · JavaScript*

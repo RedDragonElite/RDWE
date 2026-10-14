@@ -33,7 +33,7 @@
       const a = this.player, P = this.P, pr = inp.pressed || {};
       this.aimX = inp.ax != null ? inp.ax : a.x + Math.cos(a.angle) * 100;
       this.aimY = inp.ay != null ? inp.ay : a.y + Math.sin(a.angle) * 100;
-      this.aiming = !!inp.aim && !a.inCar && a.alive;
+      this.aiming = !!inp.aim && !a.inCar && a.alive && !this.placing;
       this.scopeSway(a, P, inp, dt);
       P.recoil = Math.max(0, P.recoil - dt * 0.55);
       P.instinct = !!inp.instinct && a.alive;
@@ -111,6 +111,7 @@
       }
       this.moveActor(a, mvx, mvy, dt, 14);
       a.angle = U.turnTo(a.angle, aimAng, dt * 25); a.aim = a.angle;
+      if (this.placing) { this.updatePlacing(inp, pr); this.ctx = []; return; }
       this.switchWeapons(inp, pr);
       if (pr.reload) this.reload(a);
       if (P.handsDown && P.slot === 0 && pr.fire) { P.handsDown = false; a.cool = Math.max(a.cool, 0.2); this.emit('equip', { w: 'fists' }); }   // first click raises the fists
