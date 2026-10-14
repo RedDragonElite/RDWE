@@ -3,6 +3,28 @@
   'use strict';
   const U = K.U, TILE = K.TILE;
 
+  // gunshot character per weapon: crack band, thump pitch, weight, tail, supersonic snap, echo
+  const GUNSND = {
+    pistol: { crack: 2000, thump: 150, boom: 0.85, tail: 0.25, vol: 0.75 },
+    p9: { crack: 2100, thump: 155, boom: 0.82, tail: 0.24, vol: 0.75 },
+    silber: { crack: 1700, thump: 125, boom: 0.95, tail: 0.3, vol: 0.8 },
+    magnum: { crack: 1450, thump: 82, boom: 1.3, tail: 0.55, vol: 0.95, echo: 1.2 },
+    smg: { crack: 2300, thump: 165, boom: 0.68, tail: 0.16, vol: 0.7 },
+    mpk: { crack: 2300, thump: 165, boom: 0.68, tail: 0.16, vol: 0.7 },
+    shotgun: { crack: 850, thump: 68, boom: 1.45, tail: 0.65, vol: 1.0, wide: true, echo: 1.2 },
+    pump: { crack: 850, thump: 68, boom: 1.45, tail: 0.65, vol: 1.0, wide: true, echo: 1.2 },
+    rifle: { crack: 2000, thump: 100, boom: 1.05, tail: 0.42, snap: 0.6, vol: 0.85, echo: 1.1 },
+    k47: { crack: 1950, thump: 98, boom: 1.05, tail: 0.42, snap: 0.6, vol: 0.85, echo: 1.1 },
+    lmg: { crack: 1850, thump: 92, boom: 1.1, tail: 0.45, snap: 0.55, vol: 0.88, echo: 1.1 },
+    dmr: { crack: 1750, thump: 88, boom: 1.2, tail: 0.65, snap: 0.85, vol: 0.95, echo: 1.3, range: 4200 },
+    sniper: { crack: 1550, thump: 70, boom: 1.45, tail: 0.95, snap: 1, vol: 1.05, echo: 1.5, range: 5200 },
+    jaeger: { crack: 1550, thump: 70, boom: 1.45, tail: 0.95, snap: 1, vol: 1.05, echo: 1.5, range: 5200 },
+    kodiak: { crack: 1150, thump: 46, boom: 1.95, tail: 1.35, snap: 1.25, vol: 1.2, echo: 1.8, range: 6500 },
+    vss: { crack: 1300, thump: 120, boom: 0.9, tail: 0.3, snap: 0.3, vol: 0.6 },
+  };
+  const ENGCYL = { compact: 4, sedan: 4, taxi: 4, van: 4, coupe: 6, suv: 6, pickup: 8, muscle: 8, sport: 8, police: 8, super: 12, ev: 0 };
+  const ENGBASE = { van: 0.8, pickup: 0.85, muscle: 0.9, super: 1.05, compact: 1.1 };
+
   class Audio {
     constructor() {
       this.ctx = null; this.vol = 0.8; this.musicVol = 0.5; this.muted = false;
@@ -15,7 +37,7 @@
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
       const c = this.ctx = new AC();
       this.master = c.createGain(); this.master.gain.value = this.muted ? 0 : this.vol;
-      const comp = c.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25;
+      const comp = c.createDynamicsCompressor(); comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 5; comp.attack.value = 0.002; comp.release.value = 0.2;   // a gentle limiter that keeps the punch
       this.master.connect(comp); comp.connect(c.destination);
       this.sfx = c.createGain(); this.sfx.connect(this.master);
       this.muffle = c.createBiquadFilter(); this.muffle.type = 'lowpass'; this.muffle.frequency.value = 20000; this.muffle.connect(this.sfx);
@@ -28,6 +50,13 @@
       const n = c.sampleRate * 2;
       this.white = c.createBuffer(1, n, c.sampleRate); const wd = this.white.getChannelData(0); for (let i = 0; i < n; i++) wd[i] = Math.random() * 2 - 1;
       this.brown = c.createBuffer(1, n, c.sampleRate); const bd = this.brown.getChannelData(0); let l = 0; for (let i = 0; i < n; i++) { l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; bd[i] = l * 3.5; }
+      // outdoor slap-back echo from the facades (two taps, darkening feedback)
+      this.echoIn = c.createGain(); this.echoIn.gain.value = 1;
+      const d1 = c.createDelay(1.5), d2 = c.createDelay(1.5), fb = c.createGain(), elp = c.createBiquadFilter(), eout = c.createGain();
+      d1.delayTime.value = 0.19; d2.delayTime.value = 0.43; fb.gain.value = 0.28; elp.type = 'lowpass'; elp.frequency.value = 1900; eout.gain.value = 0.55;
+      this.echoIn.connect(d1); this.echoIn.connect(d2); d1.connect(elp); d2.connect(elp); elp.connect(eout); elp.connect(fb); fb.connect(d1); eout.connect(this.sfx);
+      // soft-clip curve for punchy transients
+      this.sat = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; this.sat[i] = Math.tanh(x * 2.6) / Math.tanh(2.6); }
       this.startAmbience();
       this.music = new Music(this);
     }
@@ -77,26 +106,39 @@
     rate(key, gap) { const t = this.ctx.currentTime; if (this.last[key] && t - this.last[key] < gap) return false; this.last[key] = t; return true; }
 
     // ------------------------------------------------------------ recipes
-    gun(x, y, w, sup) {
-      const c = this.ctx, t = c.currentTime, d = K.WEAPONS[w] || K.WEAPONS.p9;
-      if (sup) {
-        const g = this.out(x, y, 0.35, 700); if (!g) return;
-        this.noise(g, t, 0.07, 'bandpass', 1400, 600, 1.5, 0.9);
-        this.tone(g, t, 0.03, 'square', 1800, 900, 0.12);
-        this.noise(g, t + 0.02, 0.05, 'highpass', 4000, null, 0.7, 0.3);
+    /** layered gunshot: action click · supersonic snap · saturated muzzle crack · low thump · body · facade echo */
+    gun(x, y, w, sup, player) {
+      const c = this.ctx, d = K.WEAPONS[w] || K.WEAPONS.p9;
+      const P = GUNSND[w] || GUNSND[d.cls] || GUNSND.pistol;
+      const dist = x != null ? Math.hypot(x - this.lx, y - this.ly) : 0;
+      const t = c.currentTime + Math.min(0.45, dist * 0.07 / 343);   // sound travels: far shots arrive late
+      const pv = 0.94 + Math.random() * 0.12;
+      if (sup || d.sup) {
+        const g = this.out(x, y, 0.45 * (P.boom > 1 ? 1.3 : 1), 800); if (!g) return;
+        this.noise(g, t, 0.05, 'bandpass', 1100 * pv, 500, 1.2, 0.9);
+        this.noise(g, t, 0.012, 'highpass', 5000, null, 0.7, 0.6);
+        this.tone(g, t, 0.05, 'sine', 220 * pv, 90, 0.35);
+        this.noise(g, t + 0.04, 0.09, 'bandpass', 2600, 1800, 3, 0.18);
+        if (P.snap) this.noise(g, t, 0.01, 'highpass', 3500, null, 0.6, 0.5);
         return;
       }
-      const cls = d.cls;
-      const g = this.out(x, y, cls === 'sniper' ? 1.1 : cls === 'shotgun' ? 1.0 : cls === 'rifle' ? 0.85 : 0.75, 3400);
+      const g = this.out(x, y, (P.vol || 0.8) * (player ? 1 : 0.95), P.range || 3400);
       if (!g) return;
-      const far = U.clamp(g.dist / 2500, 0, 1);
-      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 9000 - far * 7600; lp.connect(g);
-      const dec = { pistol: 0.16, smg: 0.1, shotgun: 0.38, rifle: 0.2, sniper: 0.55 }[cls] || 0.18;
-      this.noise(lp, t, dec, 'bandpass', cls === 'shotgun' ? 700 : 1300, 200, 0.6, 1.2);
-      this.noise(lp, t, 0.025, 'highpass', 3000, null, 0.5, 0.9);
-      this.tone(lp, t, dec * 0.9, 'sine', cls === 'shotgun' || cls === 'sniper' ? 95 : 150, 40, 0.9);
-      if (w === 'magnum') this.tone(lp, t, 0.3, 'sine', 80, 35, 0.8);
-      this.send(lp, 0.35 + far * 0.4 + (this.inside ? -0.15 : 0.1));
+      const far = U.clamp(g.dist / 2600, 0, 1);
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 12000 - far * 10200; lp.Q.value = 0.4; lp.connect(g);
+      const sh = c.createWaveShaper(); sh.curve = this.sat; sh.oversample = '2x';
+      const drive = c.createGain(); drive.gain.value = 1.6; drive.connect(sh); sh.connect(lp);
+      if (far < 0.4) this.noise(lp, Math.max(c.currentTime, t - 0.004), 0.012, 'highpass', 5200, null, 0.7, 0.35 * (1 - far));
+      if (P.snap) { this.noise(lp, t, 0.008, 'highpass', 2800, null, 0.6, 1.1 * P.snap); this.tone(lp, t, 0.012, 'square', 3300 * pv, 1800, 0.18 * P.snap); }
+      this.noise(drive, t, 0.05 + 0.05 * P.boom, 'bandpass', P.crack * pv, P.crack * 0.35, 0.8, 1.25 * P.boom);
+      this.noise(drive, t, 0.02, 'highpass', 3600, null, 0.6, 0.6);
+      this.tone(drive, t, 0.12 + 0.1 * P.boom, 'sine', P.thump * 2 * pv, P.thump * 0.45, 1.0 * P.boom, 0.001);
+      if (P.boom > 1.15) this.tone(drive, t, 0.25 + P.boom * 0.15, 'triangle', P.thump * pv, P.thump * 0.35, 0.6 * (P.boom - 0.8), 0.002);
+      this.noise(lp, t + 0.01, P.tail, 'lowpass', 1100, 140, 0.7, 0.55 * P.boom, this.brown);
+      if (P.wide) this.noise(lp, t, 0.18, 'bandpass', 420, 160, 0.6, 0.9);
+      // room / street reflections are fed from the distance-attenuated signal
+      if (this.inside) this.send(g, 0.55 + far * 0.3);
+      else { const e = c.createGain(); e.gain.value = (0.3 + far * 0.5) * (P.echo || 1); g.connect(e); e.connect(this.echoIn); this.send(g, 0.1); }
     }
     hit(x, y, kind) {
       const t = this.ctx.currentTime;
@@ -203,7 +245,7 @@
       if (!this.ctx) return;
       const t = this.ctx.currentTime;
       switch (e.type) {
-        case 'shot': this.gun(e.x, e.y, e.w, e.sup); break;
+        case 'shot': this.gun(e.x, e.y, e.w, e.sup, e.player); break;
         case 'dry': if (e.id === w.player.id) this.ui('dry'); break;
         case 'reload': { const g = this.out(e.x, e.y, 0.3, 500); if (!g) break; if (e.stage === 'out') { this.tone(g, t, 0.03, 'square', 1200, null, 0.15); this.noise(g, t + 0.05, 0.08, 'bandpass', 1800, null, 2, 0.4); } else if (e.stage === 'shell') { this.tone(g, t, 0.05, 'sine', 500, 300, 0.4); this.noise(g, t, 0.05, 'bandpass', 1500, null, 2, 0.4); } else { this.noise(g, t, 0.05, 'bandpass', 2400, null, 2, 0.6); this.tone(g, t + 0.1, 0.04, 'square', 900, null, 0.15); this.noise(g, t + 0.12, 0.06, 'highpass', 2000, null, 1, 0.4); } break; }
         case 'equip': { const g = this.out(null, null, 0.18); if (g) { this.noise(g, t, 0.12, 'bandpass', 1500, 900, 1, 0.5); this.tone(g, t + 0.08, 0.03, 'square', 1700, null, 0.1); } break; }
@@ -253,26 +295,77 @@
       s.connect(fl); fl.connect(g); g.connect(this.amb); s.start();
       return { s, f: fl, g };
     }
+    /** a synthesized combustion engine: firing-frequency saw stack, sub, saturation, intake hiss, turbo whine */
+    mkEngine() {
+      const c = this.ctx, e = {};
+      e.o1 = c.createOscillator(); e.o1.type = 'sawtooth';
+      e.o2 = c.createOscillator(); e.o2.type = 'sawtooth';
+      e.o3 = c.createOscillator(); e.o3.type = 'square';
+      e.sh = c.createWaveShaper(); e.sh.curve = this.sat;
+      e.lp = c.createBiquadFilter(); e.lp.type = 'lowpass'; e.lp.Q.value = 1.2;
+      e.g = c.createGain(); e.g.gain.value = 0; e.pan = c.createStereoPanner();
+      const sub = c.createGain(); sub.gain.value = 0.45;
+      e.o1.connect(e.sh); e.o2.connect(e.sh); e.o3.connect(sub); sub.connect(e.sh); e.sh.connect(e.lp); e.lp.connect(e.g); e.g.connect(e.pan); e.pan.connect(this.sfx);
+      e.am = c.createOscillator(); e.am.type = 'sine'; e.amG = c.createGain(); e.amG.gain.value = 0; e.am.connect(e.amG); e.amG.connect(e.g.gain);
+      e.n = c.createBufferSource(); e.n.buffer = this.brown; e.n.loop = true; e.nf = c.createBiquadFilter(); e.nf.type = 'bandpass'; e.nf.Q.value = 0.8; e.ng = c.createGain(); e.ng.gain.value = 0;
+      e.n.connect(e.nf); e.nf.connect(e.ng); e.ng.connect(e.pan);
+      e.tw = c.createOscillator(); e.tw.type = 'sine'; e.tg = c.createGain(); e.tg.gain.value = 0; e.tw.connect(e.tg); e.tg.connect(e.pan);
+      for (const o of [e.o1, e.o2, e.o3, e.am, e.tw]) { o.frequency.value = 40; o.start(); }
+      e.n.start();
+      e.gear = 'N'; e.thr = 0;
+      return e;
+    }
+    engineVoice(e, car, vol, t, set) {
+      if (!car || vol <= 0.001) { set(e.g.gain, 0, 0.15); set(e.ng.gain, 0, 0.15); set(e.tg.gain, 0, 0.15); set(e.amG.gain, 0, 0.15); return; }
+      const M = K.CARMODELS ? K.CARMODELS[car.kind] : null, ev = M && M.ev;
+      const r = K.carRPM ? K.carRPM(car) : { rpm: 1000 + (car.speed || 0) * 8, gear: '1' };
+      const thr = Math.abs(car.thr || 0), cyl = ENGCYL[car.kind] || 4, base = ENGBASE[car.kind] || 1;
+      const f = Math.max(12, r.rpm / 60 * cyl / 2 * base);
+      if (ev) {
+        set(e.g.gain, 0, 0.1); set(e.amG.gain, 0, 0.1); set(e.ng.gain, 0.012 * vol, 0.1);
+        e.tw.frequency.setTargetAtTime(300 + (car.speed || 0) * 4, t, 0.05); set(e.tg.gain, (0.012 + thr * 0.02) * vol, 0.08);
+        e.nf.frequency.setTargetAtTime(1800, t, 0.1);
+        return;
+      }
+      e.o1.frequency.setTargetAtTime(f, t, 0.035); e.o2.frequency.setTargetAtTime(f * 1.007, t, 0.035); e.o3.frequency.setTargetAtTime(f / 2, t, 0.035);
+      e.am.frequency.setTargetAtTime(f / 2, t, 0.035);
+      const loud = (car.kind === 'muscle' || car.kind === 'super' || car.kind === 'sport' ? 1.3 : car.kind === 'compact' || car.kind === 'van' ? 0.8 : 1) * vol;
+      set(e.g.gain, (0.035 + thr * 0.05) * loud * (car.sputter > 0 ? 0.25 : 1), 0.05);
+      set(e.amG.gain, (0.012 + thr * 0.02) * loud, 0.05);
+      set(e.lp.frequency, 260 + thr * 1500 + r.rpm * 0.18, 0.06);
+      e.nf.frequency.setTargetAtTime(350 + r.rpm * 0.25, t, 0.08); set(e.ng.gain, (0.006 + thr * 0.03) * loud, 0.06);
+      const turbo = car.tune && car.tune.turbo;
+      e.tw.frequency.setTargetAtTime(1600 + r.rpm * 0.55, t, 0.08); set(e.tg.gain, turbo ? thr * 0.012 * Math.min(1, r.rpm / 4000) * vol : 0, 0.15);
+      if (vol >= 1) {
+        if (r.gear !== e.gear && /\d/.test(r.gear) && /\d/.test(e.gear) && +r.gear > +e.gear) {
+          e.g.gain.cancelScheduledValues(t); e.g.gain.setValueAtTime(e.g.gain.value * 0.35, t); e.g.gain.linearRampToValueAtTime((0.035 + thr * 0.05) * loud, t + 0.14);
+          const g = this.out(null, null, 0.12); if (g) this.noise(g, t, 0.05, 'bandpass', 900, 400, 2, 0.6);
+        }
+        if (e.thr > 0.6 && thr < 0.1 && r.rpm > 3200) {
+          const g = this.out(null, null, 0.2);
+          if (g && turbo) this.noise(g, t, 0.35, 'highpass', 2500, 5000, 0.7, 0.5);
+          else if (g && (car.kind === 'muscle' || car.kind === 'super' || car.kind === 'sport')) for (let k = 0; k < 4; k++) this.noise(g, t + 0.05 + Math.random() * 0.4, 0.03, 'lowpass', 1400, 300, 1, 0.9);
+        }
+      }
+      e.gear = r.gear; e.thr = thr;
+    }
     startAmbience() {
       this.hum = this.loop(this.brown, 'lowpass', 380, 0.7, 0.05);
       this.rainL = this.loop(this.white, 'bandpass', 3200, 0.3, 0);
       this.rainLow = this.loop(this.brown, 'lowpass', 900, 0.5, 0);
       this.windL = this.loop(this.white, 'bandpass', 420, 2, 0);
-      // siren
       const c = this.ctx;
-      this.sirenO = c.createOscillator(); this.sirenO.type = 'sawtooth'; this.sirenO.frequency.value = 700;
-      this.sirenLfo = c.createOscillator(); this.sirenLfo.frequency.value = 0.45; const lg = c.createGain(); lg.gain.value = 260; this.sirenLfo.connect(lg); lg.connect(this.sirenO.frequency);
-      const sf = c.createBiquadFilter(); sf.type = 'lowpass'; sf.frequency.value = 1800;
+      // German two-tone siren (Martinshorn): brass-like tone, band-limited, switched between A4 and D5
+      this.sirenO = c.createOscillator(); this.sirenO.type = 'sawtooth'; this.sirenO.frequency.value = 440;
+      this.sirenO2 = c.createOscillator(); this.sirenO2.type = 'triangle'; this.sirenO2.frequency.value = 880;
+      const sb = c.createBiquadFilter(); sb.type = 'bandpass'; sb.frequency.value = 1050; sb.Q.value = 0.9;
+      this.sirenLP = c.createBiquadFilter(); this.sirenLP.type = 'lowpass'; this.sirenLP.frequency.value = 2600;
+      const s2g = c.createGain(); s2g.gain.value = 0.35;
       this.sirenG = c.createGain(); this.sirenG.gain.value = 0; this.sirenP = c.createStereoPanner();
-      this.sirenO.connect(sf); sf.connect(this.sirenG); this.sirenG.connect(this.sirenP); this.sirenP.connect(this.sfx);
-      this.sirenO.start(); this.sirenLfo.start();
-      // engine
-      this.engO = c.createOscillator(); this.engO.type = 'sawtooth'; this.engO.frequency.value = 40;
-      this.engO2 = c.createOscillator(); this.engO2.type = 'square'; this.engO2.frequency.value = 20;
-      const ef = c.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 500; this.engF = ef;
-      this.engG = c.createGain(); this.engG.gain.value = 0;
-      this.engO.connect(ef); this.engO2.connect(ef); ef.connect(this.engG); this.engG.connect(this.sfx);
-      this.engO.start(); this.engO2.start();
+      this.sirenO.connect(sb); this.sirenO2.connect(s2g); s2g.connect(sb); sb.connect(this.sirenLP); this.sirenLP.connect(this.sirenG); this.sirenG.connect(this.sirenP); this.sirenP.connect(this.sfx);
+      this.sirenO.start(); this.sirenO2.start();
+      // engines: your car and the nearest one in traffic
+      this.eng = this.mkEngine(); this.engT = this.mkEngine();
       // club bass when inside clubs/bars
       this.clubT = 0; this.critT = 0; this.gullT = 0; this.heartT = 0;
     }
@@ -292,23 +385,29 @@
       set(this.rainLow.g.gain, wx.rain * (this.inside ? 0.08 : 0.05));
       set(this.windL.g.gain, (wx.wind - 0.3) * 0.05 + (w.districtAt(p.x, p.y) === 'docks' ? 0.02 : 0));
       set(this.windL.f.frequency, 300 + Math.sin(t * 0.3) * 120);
-      // nearest siren
-      let sd = 1e9, sx = 0;
-      for (const car of w.cars) if (car.siren && !car.dead) { const d = Math.hypot(car.x - this.lx, car.y - this.ly); if (d < sd) { sd = d; sx = car.x; } }
-      set(this.sirenG.gain, sd < 2500 ? 0.07 * Math.pow(1 - sd / 2500, 2) : 0, 0.1);
-      set(this.sirenP.pan, U.clamp((sx - this.lx) / 700, -1, 1), 0.1);
-      // engine
+      // nearest siren — two-tone with doppler and distance filtering
+      let sd = 1e9, sc = null;
+      for (const car of w.cars) if (car.siren && !car.dead) { const d = Math.hypot(car.x - this.lx, car.y - this.ly); if (d < sd) { sd = d; sc = car; } }
+      if (sc && sd < 2600) {
+        const own = p.inCar === sc.id;
+        const dx = this.lx - sc.x, dy = this.ly - sc.y, dd = Math.max(1, sd);
+        const vr = ((sc.vx || 0) * dx + (sc.vy || 0) * dy) / dd * 0.07;
+        const dop = own ? 1 : U.clamp(343 / (343 - vr), 0.85, 1.18);
+        const hi = Math.floor((t + sc.id * 0.37) / 0.68) % 2;
+        const f = (hi ? 587.3 : 440) * dop;
+        this.sirenO.frequency.setTargetAtTime(f, t, 0.012); this.sirenO2.frequency.setTargetAtTime(f * 2, t, 0.012);
+        const k = 1 - sd / 2600;
+        set(this.sirenG.gain, own ? 0.012 : 0.03 * k * k, 0.08);
+        set(this.sirenLP.frequency, own ? 1400 : 900 + k * 2200, 0.1);
+        set(this.sirenP.pan, own ? 0 : U.clamp((sc.x - this.lx) / 700, -1, 1), 0.1);
+      } else set(this.sirenG.gain, 0, 0.2);
+      // engines
       const car = p.inCar ? w.carOf(p) : null;
-      if (car && car.engineOn !== false) {
-        const ratio = Math.abs(car.vf || 0) / ((K.CARK[car.kind] || { max: 450 }).max * 1.05), band = ratio * 6 - Math.floor(ratio * 6);
-        const rpm = 1 + band * 2.4 + Math.abs(car.thr) * 0.4 + (car.boost ? 0.8 : 0) + (car.kind === 'muscle' ? -0.3 : car.kind === 'super' ? 0.4 : 0);
-        if (K.CARMODELS && K.CARMODELS[car.kind] && K.CARMODELS[car.kind].ev) { set(this.engO.frequency, 180 + ratio * 900, 0.06); set(this.engO2.frequency, 90 + ratio * 450, 0.06); set(this.engF.frequency, 1200, 0.08); set(this.engG.gain, 0.02 + ratio * 0.03, 0.08); }
-        else {
-        set(this.engO.frequency, 32 * rpm, 0.06); set(this.engO2.frequency, 16 * rpm, 0.06);
-        set(this.engF.frequency, 300 + Math.abs(car.thr) * 900 + (car.speed || 0) * 0.8, 0.08);
-        set(this.engG.gain, (0.06 + Math.abs(car.thr) * 0.05) * (car.sputter > 0 ? 0.2 : 1), 0.08);
-        }
-      } else set(this.engG.gain, 0, 0.15);
+      this.engineVoice(this.eng, car && car.engineOn !== false ? car : null, 1, t, set);
+      let tc = null, td = 700;
+      for (const q of w.cars) { if (q === car || q.dead || !q.driver || (q.speed || 0) < 15) continue; const d = Math.hypot(q.x - this.lx, q.y - this.ly); if (d < td) { td = d; tc = q; } }
+      this.engineVoice(this.engT, tc, tc ? Math.pow(1 - td / 700, 2) * 0.45 : 0, t, set);
+      if (tc) set(this.engT.pan.pan, U.clamp((tc.x - this.lx) / 600, -1, 1), 0.1);
       // critters
       const dist = w.districtAt(p.x, p.y);
       this.critT -= dt; this.gullT -= dt; this.heartT -= dt; this.clubT -= dt;

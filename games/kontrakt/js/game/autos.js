@@ -37,6 +37,16 @@
   K.carModel = (c) => K.CARMODELS[c.kind] || K.CARMODELS.sedan;
   K.carCls = (c) => K.CARCLS[K.carModel(c).cls] || K.CARCLS.sedan;
   K.KMH = 0.32;   // px/s → km/h on the dashboard
+  /** engine speed + gear from road speed (6-speed box) — drives the rev counter and the engine sound */
+  K.carRPM = function (c) {
+    if (c.engineOn === false) return { rpm: 0, gear: 'N' };
+    const d = K.CARK[c.kind] || K.CARK.sedan, vf = c.vf || 0, thr = Math.abs(c.thr || 0), kmh = (c.speed || 0) * K.KMH;
+    if (vf < -8) return { rpm: U.clamp(1200 + -vf * 18, 900, 5200), gear: 'R' };
+    if (kmh < 2) return { rpm: 850 + thr * 3200, gear: 'N' };
+    const ratio = Math.abs(vf) / (d.max * 1.05), g = Math.min(6, 1 + Math.floor(ratio * 6)), band = Math.min(1, ratio * 6 - (g - 1));
+    const st = g === 1 ? 1200 : 3000;
+    return { rpm: U.clamp(st + band * (6800 - st) + thr * 400 + (c.boost ? 600 : 0), 900, 7900), gear: String(g) };
+  };
 
   // body outline (rounded rectangle) sampled into points with outward normals — dents push points inward
   const OUTN = 28;

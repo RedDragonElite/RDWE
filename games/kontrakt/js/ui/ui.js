@@ -239,10 +239,7 @@
       const x = cv.getContext('2d');
       x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, 760, 170);
       const t = this.t, kmh = (c.speed || 0) * K.KMH, d = K.CARK[c.kind];
-      const ratio = Math.abs(c.vf || 0) / (d.max * 1.05);
-      const gear = (c.vf || 0) < -8 ? 'R' : kmh < 2 ? 'N' : String(Math.min(6, 1 + Math.floor(ratio * 6)));
-      const band = ratio * 6 - Math.floor(ratio * 6);
-      const rpm = !c.engineOn ? 0 : gear === 'N' ? 0.9 + Math.abs(c.thr || 0) * 3 : U.clamp(1.2 + band * 5.6 + Math.abs(c.thr || 0) * 0.6 + (c.boost ? 0.8 : 0), 0.9, 7.9);
+      const R = K.carRPM(c), gear = R.gear, rpm = R.rpm / 1000;
       this.rpmS = U.lerp(this.rpmS || 0, rpm, 0.2);
       const panel = (X, Y, W, H) => { x.fillStyle = 'rgba(12,12,12,0.92)'; x.beginPath(); x.roundRect(X, Y, W, H, 14); x.fill(); x.strokeStyle = 'rgba(255,255,255,0.08)'; x.stroke(); };
       const gauge = (cx, cy, r, v, max, step, label, red, unit, digital) => {
