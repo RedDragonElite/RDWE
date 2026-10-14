@@ -1,7 +1,7 @@
 // underworld systems: node tools/crime.mjs
 import fs from 'fs'; import vm from 'vm';
 const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
-for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
+for (const f of ['js/core/util.js','js/core/data.js','js/world/citygen.js','js/world/nav.js','js/game/world.js','js/game/economy.js','js/game/combat.js','js/game/crime.js','js/game/ai.js','js/game/contracts.js','js/game/vehicles.js','js/game/player.js','js/game/underworld.js','js/game/police.js','js/game/criminals.js','js/game/heists.js','js/game/crew.js','js/game/gangs.js']) vm.runInContext(fs.readFileSync(f,'utf8'), ctx, {filename:f});
 const K = ctx.K, TILE = 32;
 let ok = 0, fail = 0;
 const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
@@ -141,6 +141,41 @@ console.log('9) heists: bank vault (keycard, C4) and the jeweler');
   check((w.P.inv.jewelry || 0) >= 2, `jewelry grabbed (${w.P.inv.jewelry})`);
   run(w, 60 * 8);
   check(w.wanted >= 2, `jeweler alarm → 2 stars (wanted=${w.wanted})`);
+}
+console.log('10) gangs & turf: found, spray, war, raid, income');
+{
+  const w = new K.World({ seed: 12 }); w.time = 12 * 60; w.godMode = true; w.thugT = 1e9;
+  run(w, 2);
+  const p = w.player; w.P.money = 20000;
+  const spots = Object.values(w.turfSpots);
+  check(spots.length >= 30, `tag spots across the city (${spots.length})`);
+  check(Object.keys(K.GANGS).every(g => w.gangBlocks(g) > 0), 'each street gang holds turf');
+  const free = spots.find(s => !w.turfOwner(s.key));
+  const goTo = (s) => { p.x = (s.x + 0.5) * TILE; p.y = (s.y + 0.5) * TILE; w.rebuildGrid(); };
+  goTo(free);
+  check(w.contextActions().some(o => o.label.includes('gründe erst')), 'no gang yet → no claiming');
+  check(w.foundGang('Rote Drachen', '#c8102e', null) && w.P.gang && w.P.inv.spray === 3, 'found a gang (fee paid, spray cans)');
+  const sp = w.contextActions().find(o => o.label === 'Revier markieren (sprühen)');
+  check(!!sp, 'spray prompt at a free tag spot'); sp.fn();
+  check(w.turfOwner(free.key) === 'player' && w.playerBlocks() === 1, 'block claimed');
+  const enemy = spots.find(s => w.turfOwner(s.key) === 'vipern');
+  goTo(enemy);
+  check(w.contextActions().some(o => o.label.includes('nur im Krieg')), 'enemy turf locked while at peace');
+  check(w.declareWar('vipern'), 'declare war on the Vipern');
+  const ov = w.contextActions().find(o => o.label.includes('übersprühen')); check(!!ov, 'overspray allowed at war'); ov.fn();
+  check(w.turfOwner(enemy.key) === 'player', 'enemy block taken');
+  // a Viper who sees you attacks
+  let vx = p.x, vy = p.y;
+  for (const [dx, dy] of [[4, 0], [-4, 0], [3, 0], [-3, 0], [0, 3], [0, -3], [3, 2], [-3, 2], [3, -2], [-3, -2]]) { const x = p.x + dx * TILE, y = p.y + dy * TILE; if (!w.blockedTile(w.tileIdx(x, y), null) && K.los(w, p.x, p.y, x, y)) { vx = x; vy = y; break; } }
+  const v = w.spawnGangster('vipern', vx, vy); v.angle = Math.atan2(p.y - v.y, p.x - v.x); w.rebuildGrid();
+  let hostile = false; for (let i = 0; i < 60 * 3 && !hostile; i++) { run(w, 1); hostile = v.state === 'hostile'; }
+  check(hostile, 'at war, gang members attack on sight');
+  // raid: force it
+  K.GANGS.vipern.raidT = 0; p.x += 30 * TILE; p.hidden = true;
+  let raided = false; for (let i = 0; i < 60 * 70 && !raided; i++) { run(w, 1); raided = w.playerBlocks() < 2; }
+  check(raided, 'raiders spray over your turf');
+  const b0 = w.P.bank || 0; w.time += 24 * 60; run(w, 2);
+  check((w.P.bank || 0) > b0, `turf pays daily (+$${(w.P.bank || 0) - b0})`);
 }
 console.log(`\n${ok} ok, ${fail} failed`);
 process.exit(fail ? 1 : 0);

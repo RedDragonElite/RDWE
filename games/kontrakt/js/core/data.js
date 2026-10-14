@@ -82,6 +82,7 @@
     jewelry:  { name: 'Schmuck', e: '💍', price: 0, sell: 320, w: 0.1, sellOnly: true, hot: true },
     laptop:   { name: 'Laptop', e: '💻', price: 0, sell: 380, w: 2, sellOnly: true, hot: true },
     phone:    { name: 'Fremdes Handy', e: '📱', price: 0, sell: 140, w: 0.2, sellOnly: true, hot: true },
+    spray:    { name: 'Sprühdose', e: '🎨', price: 15, w: 0.4, desc: 'Am Tag-Spot [E halten]: Revier für deine Gang markieren.' },
     drill:    { name: 'Thermobohrer', e: '🛠️', price: 2800, w: 4, desc: 'Bohrt Tresortüren auf [T halten, ~20 s]. Laut.' },
     gold:     { name: 'Goldbarren', e: '🥇', price: 0, sell: 2400, w: 1, sellOnly: true, hot: true },
     diamond:  { name: 'Diamant', e: '💎', price: 0, sell: 1700, w: 0.01, sellOnly: true, hot: true },
@@ -134,8 +135,8 @@
   // ------------------------------------------------------------------ shops
   K.SHOPS = {
     gun: { name: 'Waffen Krause & Söhne', open: [9, 21], keeper: 'guard', till: 1800, items: ['p9', 'magnum', 'mpk', 'pump', 'k47', 'knife', 'bat', 'crowbar', 'machete', 'a:9mm', 'a:45', 'a:357', 'a:12g', 'a:762', 'vest', 'silencer'] },
-    black: { name: 'Schwarzmarkt „Der Kran“', open: [20, 6], keeper: 'gang', buysAll: true, items: ['silber', 'jaeger', 'katana', 'wire', 'syringe', 'sedative', 'c4', 'grenade', 'lockpick', 'a:45', 'a:308', 'a:762', 'o:police', 'o:guard', 'silencer', 'hackkit', 'drill', 'mask', 'seed'] },
-    food: { name: 'Späti 24/7', open: [0, 24], keeper: 'civ', till: 450, items: ['apple', 'sandwich', 'pizza', 'fries', 'water', 'cola', 'coffee', 'energy', 'beer', 'cig', 'coin', 'flashlight', 'bandage', 'mask'] },
+    black: { name: 'Schwarzmarkt „Der Kran“', open: [20, 6], keeper: 'gang', buysAll: true, items: ['silber', 'jaeger', 'katana', 'wire', 'syringe', 'sedative', 'c4', 'grenade', 'lockpick', 'a:45', 'a:308', 'a:762', 'o:police', 'o:guard', 'silencer', 'hackkit', 'drill', 'mask', 'seed', 'spray'] },
+    food: { name: 'Späti 24/7', open: [0, 24], keeper: 'civ', till: 450, items: ['apple', 'sandwich', 'pizza', 'fries', 'water', 'cola', 'coffee', 'energy', 'beer', 'cig', 'coin', 'flashlight', 'bandage', 'mask', 'spray'] },
     grow: { name: 'Grünes Glück Gartenbedarf', open: [8, 20], keeper: 'civ', till: 700, items: ['seed', 'growkit', 'fert', 'can', 'water'] },
     pharmacy: { name: 'Stadt-Apotheke', open: [7, 22], keeper: 'medic', till: 650, items: ['bandage', 'medkit', 'pills', 'energy', 'water', 'sedative'] },
     cloth: { name: 'Boutique Noir', open: [10, 20], keeper: 'civ', till: 1200, items: ['mask', 'o:suitgrey', 'o:casual', 'o:hoodie', 'o:leather', 'o:tux', 'o:suit'] },
@@ -190,6 +191,7 @@
     burglary:  { name: 'Einbruch', sev: 1, jail: 120 },
     robbery:   { name: 'Raubüberfall', sev: 2, jail: 240 },
     heist:     { name: 'Bankraub', sev: 3, jail: 720 },
+    graffiti:  { name: 'Sachbeschädigung (Graffiti)', sev: 1, jail: 30 },
     drugs:     { name: 'Drogenhandel', sev: 1, jail: 150 },
     murder:    { name: 'Mord', sev: 2, jail: 600 },
     copkill:   { name: 'Polizistenmord', sev: 3, jail: 1200 },

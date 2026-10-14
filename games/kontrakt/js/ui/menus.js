@@ -160,6 +160,62 @@
       else if (e.open === 'bank') this.bank();
       else if (e.open === 'recruit') this.recruit();
       else if (e.open === 'crew') this.crew();
+      else if (e.open === 'tag') this.tagEditor();
+    }
+    gangSection() {
+      const w = this.g.world, P = w.P, G = K.GANGS;
+      if (!P.gang) return `<div class="sec">Gang & Revier</div><div class="card"><p>Du hast noch keine eigene Gang. Gründe eine (${U.money(K.GANG_FOUND_FEE)}), zeichne dein Tag und sprüh es auf Tag-Spots, um Blöcke zu übernehmen. Jeder Block bringt ${U.money(K.TURF_INCOME)}/Tag, Dealen im eigenen Revier +25%.</p><div class="btns"><button class="btn" data-gang="found">Gang gründen…</button></div></div>`;
+      let h = `<div class="sec">Gang & Revier <small>Tag-Spots sind auf der Karte als Blöcke eingefärbt</small></div><div class="card gangcard"><div class="gangtag" style="border-color:${P.gang.col}">${P.gang.tag ? `<img src="${P.gang.tag}">` : `<b style="color:${P.gang.col}">${esc(P.gang.name)}</b>`}</div><div><h4 style="color:${P.gang.col}">${esc(P.gang.name)}</h4><p>${w.playerBlocks()} Blöcke · +${U.money(w.playerBlocks() * K.TURF_INCOME)}/Tag · 🎨 ${P.inv.spray || 0} Sprühdosen</p><div class="btns"><button class="btn ghost" data-gang="tag">Tag neu zeichnen</button></div></div></div><div class="ganglist">`;
+      for (const [k, g] of Object.entries(G)) {
+        const war = P.wars[k], n = w.gangBlocks(k);
+        h += `<div class="card ganrow" style="border-left:4px solid ${g.col}"><b style="color:${g.col}">${g.name}</b><span>${n} Blöcke</span><span>${war ? '<b style="color:#ff3b4e">⚔ KRIEG</b>' : 'Frieden'}</span>${n === 0 ? '<span style="color:#888">zerschlagen</span>' : war ? `<button class="btn ghost" data-peace="${k}">Frieden kaufen · ${U.money(w.peacePrice(k))}</button>` : `<button class="btn red" data-war="${k}">Krieg erklären</button>`}</div>`;
+      }
+      return h + '</div>';
+    }
+    bindGang(body, again) {
+      const w = this.g.world;
+      body.querySelectorAll('[data-gang]').forEach((b) => (b.onclick = () => this.tagEditor(b.dataset.gang === 'found')));
+      body.querySelectorAll('[data-war]').forEach((b) => (b.onclick = () => { if (b.dataset.sure) { w.declareWar(b.dataset.war); again(); } else { b.dataset.sure = 1; b.textContent = 'Wirklich? Die schießen.'; } }));
+      body.querySelectorAll('[data-peace]').forEach((b) => (b.onclick = () => { w.makePeace(b.dataset.peace); again(); }));
+    }
+    /** freehand tag editor: caps, colours, undo — the result is stored as a PNG */
+    tagEditor(found) {
+      const w = this.g.world, P = w.P;
+      const cols = ['#c8102e', '#ff6a00', '#f2c14e', '#3ddc84', '#1fb5ff', '#a855f7', '#ff4fd8', '#f4f4f4', '#111111'];
+      const caps = [['Skinny', 2, 0], ['Soft', 5, 4], ['NY', 8, 0], ['Standard', 12, 1], ['Fat', 20, 8], ['Ultra Fat', 32, 12]];
+      const g = P.gang || { name: '', col: '#c8102e' };
+      const h = `<div class="tagwrap"><div class="tagside">
+        <label>Name<input id="tg-name" maxlength="24" value="${esc(g.name)}" placeholder="z. B. Rote Drachen"></label>
+        <div class="sub">Gangfarbe</div><div class="sw" id="tg-gcol">${cols.slice(0, 7).map((c) => `<i data-gc="${c}" style="background:${c}" class="${c === g.col ? 'on' : ''}"></i>`).join('')}</div>
+        <div class="sub">Sprühfarbe</div><div class="sw" id="tg-col">${cols.map((c, i) => `<i data-c="${c}" style="background:${c}" class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>
+        <div class="sub">Cap</div><div class="caps">${caps.map(([n, wd, bl], i) => `<button class="btn ghost ${i === 3 ? 'on' : ''}" data-cap="${i}">${n}</button>`).join('')}</div>
+        <div class="btns"><button class="btn ghost" id="tg-undo">↶ Rückgängig [Z]</button><button class="btn ghost" id="tg-clear">Leeren</button></div>
+        <button class="btn" id="tg-save">${P.gang ? 'Speichern' : 'Gang gründen · ' + U.money(K.GANG_FOUND_FEE)}</button>
+      </div><canvas id="tg-cv" width="384" height="128"></canvas></div><p style="color:#888;font-size:12px">Mal mit der Maus. Dein Tag erscheint auf jedem Tag-Spot, den du besprühst — und auf der Karte in deiner Gangfarbe.</p>`;
+      const body = this.panel(P.gang ? 'TAG ZEICHNEN' : 'GANG GRÜNDEN', h, 'tag');
+      const cv = body.querySelector('#tg-cv'), x = cv.getContext('2d');
+      const strokes = []; let cur = null, col = cols[0], cap = caps[3], gcol = g.col;
+      this.tagBase = null;
+      if (P.gang && P.gang.tag) { const im = new Image(); im.onload = () => { this.tagBase = im; full(); }; im.src = P.gang.tag; }
+      const base = () => { if (this.tagBase && P.gang && P.gang.tag) x.drawImage(this.tagBase, 0, 0, cv.width, cv.height); };
+      const full = () => { x.clearRect(0, 0, cv.width, cv.height); base(); const ss = strokes; x.lineCap = 'round'; x.lineJoin = 'round'; for (const s of ss.concat(cur ? [cur] : [])) { x.strokeStyle = s.col; x.lineWidth = s.w; x.shadowColor = s.col; x.shadowBlur = s.bl; x.beginPath(); s.pts.forEach(([px, py], i) => (i ? x.lineTo(px, py) : x.moveTo(px, py))); if (s.pts.length === 1) x.lineTo(s.pts[0][0] + 0.1, s.pts[0][1]); x.stroke(); } x.shadowBlur = 0; };
+      const pos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * cv.width, (e.clientY - r.top) / r.height * cv.height]; };
+      cv.onpointerdown = (e) => { cv.setPointerCapture(e.pointerId); cur = { col, w: cap[1], bl: cap[2], pts: [pos(e)] }; full(); };
+      cv.onpointermove = (e) => { if (!cur) return; cur.pts.push(pos(e)); full(); };
+      cv.onpointerup = () => { if (cur) strokes.push(cur); cur = null; full(); };
+      const undo = () => { strokes.pop(); full(); };
+      body.querySelector('#tg-undo').onclick = undo;
+      body.querySelector('#tg-clear').onclick = () => { strokes.length = 0; this.tagBase = null; full(); };
+      this.tagKeys = (e) => { if (e.key.toLowerCase() === 'z' && document.activeElement.id !== 'tg-name') { e.stopPropagation(); undo(); } };
+      body.querySelectorAll('[data-c]').forEach((b) => (b.onclick = () => { col = b.dataset.c; body.querySelectorAll('[data-c]').forEach((q) => q.classList.toggle('on', q === b)); }));
+      body.querySelectorAll('[data-gc]').forEach((b) => (b.onclick = () => { gcol = b.dataset.gc; body.querySelectorAll('[data-gc]').forEach((q) => q.classList.toggle('on', q === b)); }));
+      body.querySelectorAll('[data-cap]').forEach((b) => (b.onclick = () => { cap = caps[+b.dataset.cap]; body.querySelectorAll('[data-cap]').forEach((q) => q.classList.toggle('on', q === b)); }));
+      body.querySelector('#tg-save').onclick = () => {
+        const name = body.querySelector('#tg-name').value.trim() || 'Rote Drachen';
+        const empty = !strokes.length && !(this.tagBase && P.gang && P.gang.tag);
+        const png = empty ? null : cv.toDataURL('image/png');
+        if (w.foundGang(name, gcol, png)) { this.g.save(true); this.crew(); }
+      };
     }
     crewCard(m, buttons) {
       const C = K.CREW, rar = C.rarities.find((x) => x.key === m.rarity) || C.rarities[0];
@@ -185,11 +241,12 @@
       h += `</div><div class="sec">Deine Crew <small>${R.length}/${K.CREW.maxOwned} · max. ${K.CREW.maxActive} gleichzeitig · Lohn wird täglich fällig</small></div><div class="crewgrid">`;
       R.forEach((m) => { h += this.crewCard(m, this.rosterButtons(m)); });
       if (!R.length) h += '<p style="color:#888">Noch niemand. Allein ist man schnell tot.</p>';
-      h += '</div>';
+      h += '</div>' + this.gangSection();
       const body = this.panel('CREW ANHEUERN', h, 'recruit');
       this.drawCrewPics(body, [...offers, ...R]);
       body.querySelectorAll('[data-hire]').forEach((b) => (b.onclick = () => { w.hireCrew(+b.dataset.hire); this.recruit(); }));
       this.bindRoster(body, () => this.recruit());
+      this.bindGang(body, () => this.recruit());
     }
     rosterButtons(m) {
       if (m.state === 'down') return `<button class="btn" data-rev="${m.id}">Sofort entlassen · ${U.money(this.g.world.crewHospitalFee(m))}</button><button class="btn ghost" data-fire="${m.id}">Rauswerfen</button>`;
@@ -207,7 +264,7 @@
       const w = this.g.world, P = w.P, R = w.crewRoster(), C = K.CREW;
       const form = P.crewForm || 'follow', stance = P.crewStance || 'defensive', mode = P.crewMode || 'follow';
       const cmd = (c, label, on, arg) => `<button class="btn ${on ? '' : 'ghost'}" data-cmd="${c}"${arg ? ` data-arg="${arg}"` : ''}>${label}</button>`;
-      let h = `<div class="sec">Befehle <small>[V] im Spiel: Ziel unterm Fadenkreuz angreifen</small></div><div class="btns cmdrow">
+      let h = this.gangSection() + `<div class="sec">Befehle <small>[V] im Spiel: Ziel unterm Fadenkreuz angreifen</small></div><div class="btns cmdrow">
         ${cmd('follow', '🚶 Folgen', mode === 'follow')}${cmd('stay', '🛑 Position halten', mode === 'stay')}${cmd('formation', '◇ Formation: ' + C.formations[form].name, true)}
         ${cmd('attackAll', '⚔ Alles angreifen')}${cmd('heal', '🩹 Mich verarzten')}${cmd('holster', P.crewHolster ? '🔫 Waffen ziehen' : '✋ Waffen weg')}${cmd('dismissAll', '🏠 Alle heimschicken')}</div>
         <div class="sec">Haltung</div><div class="btns cmdrow">${Object.entries(C.stances).map(([k, n]) => cmd('stance', n, stance === k, k)).join('')}</div>
@@ -220,6 +277,7 @@
       this.drawCrewPics(body, R);
       body.querySelectorAll('[data-cmd]').forEach((b) => (b.onclick = () => { w.crewCommand(b.dataset.cmd, b.dataset.arg); this.crew(); }));
       this.bindRoster(body, () => this.crew());
+      this.bindGang(body, () => this.crew());
     }
     bank() {
       const w = this.g.world, P = w.P;
@@ -364,6 +422,7 @@
       this.mapMeta = { s, ox, oy };
       x.fillStyle = '#08090c'; x.fillRect(0, 0, cv.width, cv.height);
       x.imageSmoothingEnabled = false; x.drawImage(ui.mapTex, ox, oy, w.W * s, w.H * s); x.imageSmoothingEnabled = true;
+      ui.drawTurf(x, s, ox, oy, 0.22);
       const toM = (wx, wy) => [ox + wx / TILE * s, oy + wy / TILE * s];
       // district labels
       x.font = `600 ${Math.round(s * 3)}px Oswald, sans-serif`; x.textAlign = 'center'; x.fillStyle = 'rgba(255,255,255,0.35)';
@@ -379,7 +438,7 @@
       if (this.g.waypoint) { const [mx, my] = toM(this.g.waypoint.x, this.g.waypoint.y); x.strokeStyle = '#ffd34d'; x.lineWidth = 4; x.beginPath(); x.arc(mx, my, s * 2.5, 0, 6.3); x.stroke(); }
       const p = w.player; const [px, py] = toM(p.x, p.y);
       x.save(); x.translate(px, py); x.rotate(p.angle); x.fillStyle = '#fff'; x.strokeStyle = '#000'; x.lineWidth = 3; x.beginPath(); x.moveTo(s * 3, 0); x.lineTo(-s * 2, -s * 2); x.lineTo(-s, 0); x.lineTo(-s * 2, s * 2); x.closePath(); x.stroke(); x.fill(); x.restore();
-      $('#mv-legend').innerHTML = '🏠 Dein Besitz · 🏷️ Zu verkaufen<br>🔫 Waffen · 💀 Schwarzmarkt · 🛒 Späti<br>💊 Apotheke · 👔 Boutique · 🍔 Diner · 🍸 Bar<br>🏥 Klinik · 🚓 Polizei · 🎵 Club<br>🌱 Growshop · 🏧 Geldautomat · <span style="color:#ff2030">●</span> Ziel';
+      $('#mv-legend').innerHTML = '<div>🏠 Dein Besitz · 🏷️ Zu verkaufen<br>🔫 Waffen · 💀 Schwarzmarkt · 🛒 Späti<br>💊 Apotheke · 👔 Boutique · 🍔 Diner · 🍸 Bar<br>🏥 Klinik · 🚓 Polizei · 🎵 Club<br>🌱 Growshop · 🏧 Geldautomat · 🏦 Bank · 💎 Juwelier · <span style="color:#ff2030">●</span> Ziel</div><div>Reviere: ' + Object.entries(K.GANGS).map(([k, g]) => `<span style="color:${g.col}">■</span> ${g.name}`).join(' · ') + (w.P.gang ? ` · <span style="color:${w.P.gang.col}">■</span> ${U.esc(w.P.gang.name)}` : '') + ' · ⚔ Krieg</div>';
     }
 
     // ============================================================ title / pause / results

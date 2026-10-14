@@ -196,6 +196,17 @@
       for (const p of w.props) if (p && p.k === 'atm') out.push({ x: (p.x + 0.5) * TILE, y: (p.y + 0.5) * TILE, e: '🏧', small: true });
       return out;
     }
+    /** tint every claimed block in its owner's colour (map units: tiles) */
+    drawTurf(x, s, ox, oy, alpha) {
+      const w = this.g.world; if (!w.turfSpots) return;
+      for (const k in w.turfSpots) {
+        const sp = w.turfSpots[k], col = w.turfColor(w.turfOwner(k)); if (!col) continue;
+        x.globalAlpha = alpha; x.fillStyle = col; x.fillRect(ox + (sp.bi * 26 + 3) * s, oy + (sp.bj * 26 + 3) * s, 20 * s, 20 * s);
+        x.globalAlpha = Math.min(1, alpha * 3.5); x.strokeStyle = col; x.lineWidth = Math.max(1, s * 0.35); x.strokeRect(ox + (sp.bi * 26 + 3.5) * s, oy + (sp.bj * 26 + 3.5) * s, 19 * s, 19 * s);
+        if (w.P.wars && w.P.wars[w.turfOwner(k)]) { x.globalAlpha = 0.9; x.fillStyle = '#ff3b4e'; x.font = `${Math.max(9, s * 5)}px sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('⚔', ox + (sp.bi * 26 + 13) * s, oy + (sp.bj * 26 + 13) * s); }
+      }
+      x.globalAlpha = 1;
+    }
     minimap() {
       const w = this.g.world, x = this.mmx, S = 440, p = w.player;
       if (!this.mapTex) { this.buildMapTex(); this.pois = this.poiIcons(); }
@@ -206,6 +217,7 @@
       x.imageSmoothingEnabled = false;
       x.save(); x.translate(S / 2, S / 2); x.scale(scale, scale); x.translate(-px, -py);
       x.drawImage(this.mapTex, 0, 0);
+      this.drawTurf(x, 1, 0, 0, 0.16);
       x.restore();
       x.imageSmoothingEnabled = true;
       const toM = (wx, wy) => [S / 2 + (wx / TILE - px) * scale, S / 2 + (wy / TILE - py) * scale];
@@ -266,6 +278,8 @@
       const g = this.g, w = g.world;
       switch (e.type) {
         case 'notify': this.feed(e.text, e.kind); break;
+        case 'waypoint': this.g.waypoint = { x: e.x, y: e.y }; break;
+        case 'turf': this.turfTex = null; break;
         case 'banner': this.banner(e.title, e.sub, e.kind); break;
         case 'wanted':
           if (e.level > e.prev) { this.banner('★'.repeat(e.level), e.why || 'Fahndung', 'wanted', 2.2); this.feed(`Fahndungsstufe ${e.level}: ${e.why}`, 'bad'); }

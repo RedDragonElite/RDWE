@@ -177,6 +177,7 @@
         case 'pour': this.noise(g, t, 0.6, 'bandpass', 900, 500, 3, 0.35); for (let k = 0; k < 5; k++) this.tone(g, t + k * 0.1, 0.06, 'sine', 400 + Math.random() * 300, 250, 0.08); break;
         case 'harvest': for (let k = 0; k < 4; k++) this.noise(g, t + k * 0.12, 0.15, 'highpass', 2500, null, 1, 0.3); break;
         case 'cough': for (let k = 0; k < 3; k++) this.noise(g, t + 0.2 + k * 0.22, 0.12, 'bandpass', 500, 250, 1.5, 0.5); break;
+        case 'spray': this.noise(g, t, 0.45, 'highpass', 4500, 3500, 0.7, 0.22); this.tone(g, t, 0.05, 'square', 1200, null, 0.03); break;
         case 'drill': this.tone(g, t, 0.5, 'sawtooth', 820 + Math.random() * 60, 760, 0.07); this.noise(g, t, 0.5, 'bandpass', 3200, 2600, 4, 0.18); break;
         case 'vault': this.tone(g, t, 1.2, 'sine', 70, 40, 0.9); this.noise(g, t, 0.6, 'lowpass', 500, 120, 1, 0.8); this.tone(g, t + 0.5, 0.8, 'square', 180, 120, 0.06); this.send(g, 0.8); break;
         case 'heart': this.tone(g, t, 0.12, 'sine', 60, 40, 0.9); this.tone(g, t + 0.18, 0.12, 'sine', 55, 38, 0.7); break;

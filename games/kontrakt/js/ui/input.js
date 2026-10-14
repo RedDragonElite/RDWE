@@ -39,6 +39,7 @@
       if (!g.world) return;
       const m = g.menus;
       // global UI shortcuts
+      if (m.panelKind === 'tag' && k === 'z' && m.tagKeys) { m.tagKeys(e); return; }
       if (code === 'Escape') { m.escape(); return; }
       if (!document.querySelector('#title').classList.contains('hidden')) return;
       if (code === 'Tab' || k === 'i') { if (m.panelKind === 'inv') m.closePanel(); else if (!g.paused || m.panelKind) m.inventory(); return; }

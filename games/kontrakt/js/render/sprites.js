@@ -179,6 +179,10 @@
       x.fillStyle = '#1b1b1f'; circ(x, 4.4, -1.6, 0.8); x.fill(); circ(x, 4.4, 1.6, 0.8); x.fill();
     }
     const hat = a.hat ? 'fedora' : of.hat;
+    if (a.gang && K.GANGS && K.GANGS[a.gang]) {   // street gang bandana in the gang's colour
+      x.fillStyle = K.GANGS[a.gang].col; x.beginPath(); x.arc(0.4, 0, 5.9, 1.25, TAU - 1.25); x.closePath(); x.fill(); x.fillRect(-9, -1.6, 4, 1.4); x.fillRect(-9, 0.4, 3.4, 1.4);
+    }
+    if (a.kind === 'crew' && w.P && w.P.gang) { x.fillStyle = w.P.gang.col; x.fillRect(-2, -6.4, 4, 1.6); }
     if (hat === 'cap') { x.fillStyle = of.hatC; circ(x, 0.4, 0, 6.1); x.fill(); x.fillStyle = '#0a1226'; rr(x, 4.6, -4, 4, 8, 2); x.fill(); x.fillStyle = '#d4af37'; circ(x, 3.6, 0, 1); x.fill(); }
     else if (hat === 'hard') { x.fillStyle = of.hatC; circ(x, 0.6, 0, 6.6); x.fill(); x.strokeStyle = 'rgba(0,0,0,0.25)'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(-5, 0); x.lineTo(6, 0); x.stroke(); }
     else if (hat === 'chef') { x.fillStyle = '#fff'; circ(x, -0.5, 0, 7); x.fill(); x.fillStyle = '#e6e6e6'; circ(x, -1.5, -2.5, 3); x.fill(); circ(x, 1.5, 2.5, 3); x.fill(); }

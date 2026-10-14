@@ -470,6 +470,15 @@
         // broken glass shows as dark gaps
       }
       if (w.broken) for (const i of w.broken) { const X = (i % w.W) * TILE, Y = ((i / w.W) | 0) * TILE; if (X < vx0 - 32 || X > vx1 || Y < vy0 - 32 || Y > vy1) continue; ctx.fillStyle = 'rgba(10,15,20,0.75)'; ctx.fillRect(X + 6, Y + 6, TILE - 12, TILE - 12); }
+      // gang tags on the turf spots
+      if (w.turfSpots) for (const k in w.turfSpots) {
+        const sp = w.turfSpots[k], X = (sp.x - 1) * TILE, Y = sp.y * TILE;
+        if (X > vx1 || X + 3 * TILE < vx0 || Y > vy1 || Y + TILE < vy0) continue;
+        const o = w.turfOwner(k);
+        if (!o) { if (w.P.gang) { ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.setLineDash([4, 4]); ctx.strokeRect(X + 3, Y + 4, 3 * TILE - 6, TILE - 8); ctx.setLineDash([]); } continue; }
+        const img = this.tagImage(w, o);
+        if (img && (img.complete === undefined || img.complete)) { ctx.save(); ctx.globalAlpha = 0.92; ctx.translate(X + 1.5 * TILE, Y + TILE / 2); ctx.drawImage(img, -1.5 * TILE + 2, -TILE / 2 + 2, 3 * TILE - 4, TILE - 4); ctx.restore(); }
+      }
       // sale signs, boats, dance floor shimmer
       for (const p of this.tallProps) void p;
       for (const p of w.props) {
@@ -835,6 +844,28 @@
       // crosshair
       if (g.input.hasMouse && p.alive && !g.paused) this.crosshair(o, s);
     }
+    /** gang tags: procedural lettering for NPC gangs, the player's freehand PNG for their crew */
+    tagImage(w, o) {
+      this.tagCache = this.tagCache || {};
+      const key = o === 'player' ? 'player:' + ((w.P.gang && w.P.gang.tag) || '').length + ':' + (w.P.gang && w.P.gang.name) : o;
+      if (this.tagCache[key]) return this.tagCache[key];
+      if (o === 'player' && w.P.gang && w.P.gang.tag) { const im = new Image(); im.src = w.P.gang.tag; this.tagCache[key] = im; return im; }
+      const cv = document.createElement('canvas'); cv.width = 192; cv.height = 64;
+      const x = cv.getContext('2d'), col = w.turfColor(o) || '#fff';
+      const txt = o === 'player' ? (w.P.gang ? w.P.gang.name : 'CREW') : K.GANGS[o].short;
+      let seed = 0; for (const ch of txt) seed = (seed * 31 + ch.charCodeAt(0)) & 0xffff;
+      const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+      x.translate(96, 34); x.rotate(-0.08 + rnd() * 0.06); x.transform(1, 0, -0.25, 1, 0, 0);
+      const fs = Math.min(40, 300 / Math.max(4, txt.length));
+      x.font = `900 ${fs}px Impact, "Arial Black", sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.lineJoin = 'round'; x.strokeStyle = '#0b0b0d'; x.lineWidth = 9; x.strokeText(txt, 0, 0);
+      x.strokeStyle = '#f4f4f4'; x.lineWidth = 4; x.strokeText(txt, 0, 0);
+      x.fillStyle = col; x.fillText(txt, 0, 0);
+      x.fillStyle = col; for (let k = 0; k < 6; k++) { const dx = (rnd() - 0.5) * fs * txt.length * 0.5; x.fillRect(dx, fs * 0.3, 2, 6 + rnd() * 14); }
+      x.strokeStyle = col; x.lineWidth = 2; x.beginPath(); x.moveTo(-fs * txt.length * 0.3, fs * 0.55); x.quadraticCurveTo(0, fs * 0.8, fs * txt.length * 0.32, fs * 0.45); x.stroke();
+      this.tagCache[key] = cv;
+      return cv;
+    }
     bubble(o, x, y, text, a, kind, s) {
       o.globalAlpha = a;
       o.font = `500 ${11 * s}px "Inter", sans-serif`;
@@ -909,6 +940,8 @@
           break;
         case 'glass': fx.glass(e.x, e.y, 14); fx.decal('glass', e.x, e.y); break;
         case 'sparks': fx.sparks(e.x, e.y, Math.random() * 6.3, 4); break;
+        case 'spraymist': { const h = parseInt((e.col || '#ffffff').slice(1), 16); fx.dust(e.x + U.rnd(-14, 14), e.y + U.rnd(-6, 6), 1, [(h >> 16) & 255, (h >> 8) & 255, h & 255]); break; }
+        case 'turf': this.tagCache = null; break;
         case 'hurt': {
           const a = e.a != null ? e.a : Math.random() * 6.3;
           if (e.kind === 'bullet' || e.kind === 'melee' || e.kind === 'explosion' || e.kind === 'car') {

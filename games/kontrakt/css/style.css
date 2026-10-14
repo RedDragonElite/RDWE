@@ -285,3 +285,22 @@ body.wanted #hud::after { content: ''; position: fixed; inset: 0; pointer-events
 #crewhud .cm i { display: block; height: 3px; margin-top: 4px; background: rgba(255,255,255,.1); border-radius: 2px; overflow: hidden; }
 #crewhud .cm i b { display: block; height: 100%; background: #3ddc84; }
 @media (max-width: 700px) { .crewgrid { grid-template-columns: 1fr; } #crewhud { bottom: 120px; right: 12px; } }
+
+/* gang & tag editor */
+.gangcard { display: flex; gap: 14px; align-items: center; }
+.gangcard h4 { margin: 0 0 4px; font: 600 18px var(--f-head); letter-spacing: 1px; }
+.gangtag { width: 192px; height: 64px; border: 1px dashed; border-radius: 8px; display: grid; place-items: center; background: repeating-linear-gradient(90deg, #2a2a2e 0 14px, #26262a 14px 28px); flex: none; }
+.gangtag img { width: 100%; height: 100%; object-fit: contain; }
+.ganglist { display: grid; gap: 6px; }
+.ganrow { display: grid; grid-template-columns: 1.4fr .8fr .8fr auto; align-items: center; gap: 10px; margin: 0; }
+.tagwrap { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.tagside { display: grid; gap: 8px; width: 260px; }
+.tagside label { display: grid; gap: 4px; font-size: 12px; color: #aaa; }
+.tagside input { background: #111; border: 1px solid var(--line); color: #eee; padding: 8px; border-radius: 8px; font: inherit; }
+.tagside .sw { display: flex; gap: 6px; flex-wrap: wrap; }
+.tagside .sw i { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+.tagside .sw i.on { border-color: #fff; }
+.tagside .caps { display: flex; flex-wrap: wrap; gap: 4px; }
+.tagside .caps .btn.on { background: #eee; color: #111; }
+#tg-cv { position: static; inset: auto; height: auto; flex: 1 1 420px; min-width: 260px; max-width: 768px; aspect-ratio: 3 / 1; border-radius: 10px; cursor: crosshair; touch-action: none; background: linear-gradient(#3a3d44, #2d3036), repeating-linear-gradient(0deg, transparent 0 31px, rgba(0,0,0,.25) 31px 32px), repeating-linear-gradient(90deg, transparent 0 63px, rgba(0,0,0,.25) 63px 64px); background-blend-mode: multiply; }
+@media (max-width: 700px) { .ganrow { grid-template-columns: 1fr 1fr; } .tagside { width: 100%; } }

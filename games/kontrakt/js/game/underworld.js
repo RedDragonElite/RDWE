@@ -200,6 +200,7 @@
       }
       if (this.drag) return false;
       if (this.crewContext && this.crewContext(add)) return false;
+      if (this.gangContext && this.gangContext(add)) return false;
       // people: rob / pickpocket / deal
       let civ = null, bd = 36;
       for (const b of this.near(a.x, a.y, 40)) {
@@ -342,7 +343,7 @@
       if (Math.random() < chance) {
         const n = Math.random() < 0.25 + D.rep * 0.004 ? 4 : 2;
         const grams = Math.min(n, P.inv.bud);
-        const price = Math.round(grams * (14 + Math.min(12, D.rep * 0.25) + Math.random() * 6));
+        const price = Math.round(grams * (14 + Math.min(12, D.rep * 0.25) + Math.random() * 6) * (this.ownTurfAt && this.ownTurfAt(a.x, a.y) ? 1.25 : 1));
         this.takeItem('bud', grams); P.money += price; D.rep++; D.sold += grams;
         this.bark(v, U.pick(['Nice. Genau das brauchte ich.', 'Bist ein Engel, Mann.', 'Wenn das gut ist, komm ich wieder.', 'Schnell, bevor jemand guckt.']), 2.4);
         this.notify(`Verkauft: ${grams}g für ${U.money(price)} · Ruf ${D.rep}`, 'money'); this.emit('sfx', { s: 'coins' }); this.addXP(5, 'Deal');
@@ -417,6 +418,7 @@
       if (this.updateCriminals) this.updateCriminals(dt);
       if (this.updateHeists) this.updateHeists(dt);
       if (this.updateCrew) this.updateCrew(dt);
+      if (this.updateGangs) this.updateGangs(dt);
       if (P.surrender) {
         P.surrenderT += dt;
         if (this.wanted <= 0 && !this.actors.some((c) => c.kind === 'cop' && c.state === 'arrest')) P.surrender = false;

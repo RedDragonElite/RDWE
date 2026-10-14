@@ -2,8 +2,8 @@
 (function (K) {
   'use strict';
   const U = K.U, TILE = K.TILE;
-  const SEV = { weapon: 1, trespass: 1, assault: 1, shots: 1, theft: 1, burglary: 1, murder: 2, copkill: 3, explosion: 2, body: 0, robbery: 2, drugs: 1, jailbreak: 3, resist: 2, masked: 1 };
-  const WHAT = { weapon: 'Bewaffnete Person', trespass: 'Hausfriedensbruch', assault: 'Körperverletzung', shots: 'Schüsse gemeldet', theft: 'Autodiebstahl', burglary: 'Einbruch', murder: 'Mord', copkill: 'Polizistenmord', explosion: 'Explosion', robbery: 'Raubüberfall', drugs: 'Drogenhandel', jailbreak: 'Gefängnisausbruch', resist: 'Widerstand', masked: 'Vermummte Person' };
+  const SEV = { weapon: 1, trespass: 1, assault: 1, shots: 1, theft: 1, burglary: 1, murder: 2, copkill: 3, explosion: 2, body: 0, robbery: 2, drugs: 1, jailbreak: 3, resist: 2, masked: 1, heist: 3, graffiti: 1 };
+  const WHAT = { weapon: 'Bewaffnete Person', trespass: 'Hausfriedensbruch', assault: 'Körperverletzung', shots: 'Schüsse gemeldet', theft: 'Autodiebstahl', burglary: 'Einbruch', murder: 'Mord', copkill: 'Polizistenmord', explosion: 'Explosion', robbery: 'Raubüberfall', drugs: 'Drogenhandel', jailbreak: 'Gefängnisausbruch', resist: 'Widerstand', masked: 'Vermummte Person', heist: 'Bankraub', graffiti: 'Graffiti-Sprayer' };
   K.CRIME_SEV = SEV;
 
   K.mixin({

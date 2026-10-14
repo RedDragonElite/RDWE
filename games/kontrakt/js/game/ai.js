@@ -637,6 +637,7 @@
       }
     },
     dutyState(a) {
+      if (a.streetGang) return 'hang';
       if (a.brain.post) return a.kind === 'keeper' ? 'work' : 'post';
       return { cop: a.unit ? 'return' : 'patrol', crew: 'follow', gang: a.zone >= 0 ? 'patrol' : 'hang', thug: 'escape', bodyguard: 'escort', guard: 'patrol', staff: 'work', keeper: 'work' }[a.kind] || 'wander';
     },

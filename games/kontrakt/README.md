@@ -69,11 +69,17 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 - **Blut und Gore** (abschaltbar):
   - Sprühnebel, Spritzer an Boden und Wänden, wachsende Blutlachen, blutige Fußspuren, Schleifspuren beim Ziehen
   - Körperteile bei Explosionen und Schrotflinten-Kopfschüssen
-- **Polizei und Fahndung (1–5 Sterne):**
-  - Zeugen rufen an. Polizisten verhaften bei 1 Stern und schießen ab 2.
-  - Ab 4 Sternen rückt das SEK mit Gewehren an.
-  - Streifenwagen verfolgen dich mit Sirene.
-  - Ein unbeobachteter Outfitwechsel senkt die Fahndung um 2 Sterne.
+- **Polizei und Fahndung (1–5 Sterne), realistisch:**
+  - Keine Fußstreifen mehr: Tagsüber kreuzen zwei Streifenwagen durch die Stadt, nachts einer.
+  - Zeugen rufen an, die Leitstelle schickt eine Einheit **von weit weg**. Sie fährt über das Straßennetz an, parkt, steigt aus, ermittelt und fährt wieder ab.
+  - Einsatzregeln: Erst festnehmen. Geschossen wird nur bei bewaffneten oder schießenden Verdächtigen, ab 3 Sternen mit Waffe oder im Auto und ab 4 Sternen immer.
+  - Flüchtende werden getackelt. Mehr Sterne bringen mehr Einheiten, ab 4 Sternen auch das SEK.
+  - Streifenwagen verfolgen dich mit Sirene. Ein unbeobachteter Outfitwechsel senkt die Fahndung um 2 Sterne.
+- **NPC-Kriminelle:**
+  - Räuber ziehen Passanten ab und überfallen Läden.
+  - Opfer und Zeugen rufen die Polizei, und die rückt gegen den Räuber aus, nicht gegen dich.
+  - Unbewaffnete Räuber werden in Handschellen abgeführt.
+  - Stoppst du selbst einen, bist du der **Held der Straße**. Das gibt XP und keine Anzeige.
 
 ### Unterwelt: Verbrechen, Knast, Drogen
 - **Strafregister:** Jede gemeldete Tat landet auf der Anklage, mit eigener Haftzeit (Raub 4h, Mord 10h, Polizistenmord 20h …).
@@ -104,6 +110,57 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Dein Dealer-Ruf steigert Preise und Mengen.
   - Manche Leute verpfeifen dich, und Polizisten, die zusehen, schreiten ein.
   - Großhandel beim Schwarzmarkt: sicher, aber billig.
+
+### Bank- und Juwelierüberfälle
+- **Krähenburger Sparkasse:**
+  - Schalter mit Kassierer, Wachmann in der Halle, Wachen im Hinterbereich.
+  - Der **Direktor trägt die Tresor-Keycard**: Taschendiebstahl oder Bewusstlosen durchsuchen.
+- **Tresortür öffnen:**
+  - **Keycard:** leise. Das Zeitschloss meldet die Öffnung nach rund 35 s.
+  - **Thermobohrer** (Schwarzmarkt, T halten, ca. 20 s): laut, lockt Wachen an.
+  - **C4:** sprengt die Tür, die ganze Straße hört es.
+- **Beute:**
+  - Schließfächer aufbrechen bringt Bargeld, Goldbarren, Schmuck und Diamanten.
+  - Der Bankschalter lässt sich auch direkt ausräumen.
+  - Bankraub bedeutet 3 Sterne, Alarmglocke und mehrere Einheiten.
+- **Juwelier Goldmann:** Vitrinen einschlagen (T) bringt Schmuck, Uhren und Diamanten. Der Panikknopf löst nach 5 s aus.
+- **Am nächsten Tag** ist der Tresor wieder versiegelt und gefüllt. Heiße Ware verkaufst du beim Hehler.
+
+### Crew anheuern (nach RDE Bodyguards)
+- **Vermittler „Kralle“** in der Bar „Blauer Engel“ bietet täglich 3 Kandidaten an:
+  - Seltenheit: Gewöhnlich 60%, Ungewöhnlich 25%, Selten 10%, Episch 4%, Legendär 1%.
+  - Persönlichkeit: Stoisch, Loyal, Aggressiv, Fürsorglich, Profi, jeweils mit eigenen Sprüchen.
+  - Fünf Skills: Schießen, Nahkampf, Ausdauer, Taktik, Medizin.
+- **Größe:** Bis zu 8 Leute im Roster, 3 gleichzeitig im Einsatz.
+- **Einsatz:**
+  - Gerufene Leute kommen von außerhalb des Bildes angelaufen.
+  - Sie folgen in Formation (Folgen, Raute, Keil, Kolonne) und steigen mit in dein Auto.
+  - Sie verteidigen dich und verarzten sich selbst.
+- **Befehle (B):**
+  - Folgen, Position halten, Alles angreifen, Mich verarzten, Waffen weg/ziehen, Heimschicken.
+  - Haltung: Friedlich, Defensiv oder Aggressiv. **V** greift das Ziel unterm Fadenkreuz an.
+  - Du kannst ihnen deine aktuelle Waffe geben.
+- **Fortschritt:**
+  - Stufen mit Skill-Zuwachs, Moral (Motiviert bis Gebrochen) als Kampf-Multiplikator.
+  - Bindungsstufen von Angeheuert über Kamerad, Vertrauter und Blutsbruder bis zur Legendären Bindung. Reden (T) stärkt die Bindung.
+- **Kosten und Risiko:**
+  - Tageslohn. Wer nicht bezahlt wird, verliert die Moral und kündigt.
+  - Wer fällt, liegt 24 Std. in der Klinik oder wird gegen Gebühr sofort entlassen.
+  - Tötet deine Crew Unbeteiligte oder Polizisten, landet das auf deinem Strafregister.
+
+### Gangs, Reviere & Gangkrieg (nach RDE Crew)
+- **Drei Straßengangs:** Schwarze Krähen (Hafen/Industrie), Vipern (Altstadt) und Goldfalken (Kanalviertel). Ihre Mitglieder tragen Bandanas in Gangfarbe und hängen in ihren Blöcken ab.
+- **Eigene Gang gründen** beim Vermittler ($5.000):
+  - Name und Gangfarbe wählen.
+  - **Tag freihand mit der Maus zeichnen:** 6 Caps von Skinny bis Ultra Fat (Fat Caps mit Sprühnebel-Kante), 9 Farben, Rückgängig mit Z.
+- **Reviere:**
+  - Jeder Stadtblock hat einen Tag-Spot. Mit einer Sprühdose (E halten) claimst du ihn, es gilt **„last spray wins“**.
+  - Dein Tag erscheint auf dem Pflaster, die Karte färbt den Block in deiner Farbe.
+- **Krieg erklären:**
+  - Feindliche Reviere lassen sich nur im Krieg übersprühen.
+  - Die Gang greift dich und deine Crew auf Sicht an und **überfällt deine Blöcke**: Ein Trupp kommt und sprüht zurück, wenn du ihn nicht stoppst.
+  - Frieden kann man kaufen. Verliert eine Gang ihr letztes Revier, ist sie zerschlagen.
+- **Einnahmen:** Jeder eigene Block bringt $150 pro Tag. Dealen im eigenen Revier bringt +25%.
 
 ### Leben, Wirtschaft, RPG
 - **Hunger, Durst, Energie, Ausdauer, Blutungen, Trunkenheit und Schmerzmittel.**
@@ -156,6 +213,9 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 | **Leertaste** | Handbremse | **F11** | Vollbild |
 | **X** | Ergeben | **K** | Kaution zahlen |
 | **RMB auf Person** | Überfall | **T bei Passanten** | Gras anbieten |
+| **B** | Crew-Menü & Gang | **V** | Crew: Ziel angreifen |
+| **E/T an Tresortür** | Keycard / Bohrer | **T an Vitrine** | Einschlagen |
+| **E am Tag-Spot** | Revier sprühen | **Z (Tag-Editor)** | Rückgängig |
 
 ---
 
@@ -168,7 +228,8 @@ games/kontrakt/
 ├── js/core/              util (RNG, Noise, Namen), data (Waffen, Items, Outfits, Shops, Gebäude, Skills)
 ├── js/world/             citygen (Viertel, Gebäude, Räume, Möbel, Licht, Zonen), nav (A*, Sichtlinie, Raycasts)
 ├── js/game/              world (Physik, Türen, Zeit, Wetter, Licht, Lärm) + Mixins:
-│                         economy, combat, crime, ai, contracts, vehicles, player, underworld
+│                         economy, combat, crime, ai, contracts, vehicles, player, underworld,
+│                         police (Einheiten, Einsatzregeln), criminals, heists, crew, gangs
 ├── js/render/            textures, sprites (Menschen, Autos, Möbel), fx (Partikel, Decals),
 │                         renderer (Chunks, Dächer, Schatten, Sichtfeld, Lightmap, Wetter, Overlay), post (WebGL2)
 ├── js/audio/audio.js     prozedurale SFX, Ambience und generative Musik
