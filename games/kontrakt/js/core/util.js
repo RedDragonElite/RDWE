@@ -55,6 +55,7 @@
   // ---------------------------------------------------------------- value noise
   function hash2(x, y, s) { let h = (x * 374761393 + y * 668265263 + s * 2147483647) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
   U.hash2 = hash2;
+  U.mod = (a, n) => ((a % n) + n) % n;
   U.noise = function (x, y, s = 0) {
     const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
     const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);

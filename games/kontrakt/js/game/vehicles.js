@@ -255,51 +255,181 @@
       }
       return null;
     },
+    /** civilian traffic: keeps its lane (pure pursuit on the lane line, Bézier arcs through the
+     *  junction), brakes smoothly for the car ahead, waits its turn at junctions, indicates, slows for
+     *  bends, overtakes a car that won't move and gives up on hopeless jams when nobody is looking */
     trafficDrive(c, dt) {
       const ai = c.ai; if (!ai) return [0, 0, false];
-      if (!ai.wp) this.planLeg(c);
-      const [wx, wy] = ai.wp;
-      const dx = wx - c.x, dy = wy - c.y, dist = Math.hypot(dx, dy);
-      if (dist < 30) { this.advanceLeg(c); }
-      const want = Math.atan2(dy, dx);
-      const steer = U.clamp(U.angDiff(c.a, want) * 2.2, -1, 1);
-      let tgt = ai.stage === 'turn' ? 105 : 175;
-      if (Math.abs(U.angDiff(c.a, want)) > 0.6) tgt = Math.min(tgt, 90);
-      if (c.flee > 0) { c.flee -= dt; tgt = 300; }
-      const ob = this.obstacleAhead(c);
-      if (ob) {
-        c.blockT += dt;
-        tgt = c.blockT > 7 ? 30 : 0;
-        if (ob === 'player' && c.blockT > 1.4 && c.honk <= 0) { c.honk = 1.6; this.emit('honk', { x: c.x, y: c.y }); }
-      } else c.blockT = Math.max(0, c.blockT - dt * 2);
-      const vf = c.vf || 0;
-      const thr = vf < tgt - 10 ? 1 : vf > tgt + 15 ? -0.8 : 0;
+      if (ai.temper == null) { ai.temper = 0.86 + Math.random() * 0.3; ai.ov = 0; }
+      if (!ai.leg || ai.dirty) this.planLeg(c);
+      const L = ai.leg, fx = Math.cos(c.a), fy = Math.sin(c.a), vf = c.vf || 0;
+      // drifted far off the lane (after a crash, a scene, a carjacking…): pick the nearest leg again
+      if (ai.stage === 'road' && this.laneDist(c, L) > 3.2 * TILE) { this.reanchor(c); return [0, 0, false]; }
+      const look = 46 + Math.max(0, vf) * 0.32;
+      let tx, ty, endD;
+      const ovOff = ai.ov * LANE * 2;   // overtaking: shift into the oncoming lane
+      if (ai.stage === 'road') {
+        const lx = L.bx - L.ax, ly = L.by - L.ay, len = Math.hypot(lx, ly) || 1, ux = lx / len, uy = ly / len;
+        const sx = -L.dy * ovOff, sy = L.dx * ovOff;   // the lane offset is along (-dy, dx)
+        const s0 = (c.x - L.ax) * ux + (c.y - L.ay) * uy, s1 = Math.min(len, s0 + look);
+        tx = L.ax + ux * s1 - sx; ty = L.ay + uy * s1 - sy;
+        endD = len - s0;
+        if (endD < 18) { this.advanceLeg(c); return this.trafficDrive(c, dt); }
+      } else {
+        // follow the junction arc: advance the curve parameter while the point is within the look-ahead
+        const B = (u) => { const v = 1 - u; return [v * v * L.p0[0] + 2 * v * u * L.p1[0] + u * u * L.p2[0], v * v * L.p0[1] + 2 * v * u * L.p1[1] + u * u * L.p2[1]]; };
+        while (ai.u < 1 && Math.hypot(B(ai.u)[0] - c.x, B(ai.u)[1] - c.y) < look * 0.8) ai.u = Math.min(1, ai.u + 0.04);
+        [tx, ty] = B(ai.u);
+        endD = 1e9;
+        if (ai.u >= 1 && Math.hypot(L.p2[0] - c.x, L.p2[1] - c.y) < 34) { this.advanceLeg(c); return this.trafficDrive(c, dt); }
+        if (ai.u > 0.7) this.ixRelease(c);
+      }
+      const want = Math.atan2(ty - c.y, tx - c.x), err = U.angDiff(c.a, want);
+      const steer = U.clamp(err * 2.6, -1, 1);
+      // ---------------------------------------------------------- speed
+      const cruise = 172 * ai.temper * (this.weather.rain > 0.5 ? 0.85 : 1);
+      const turnV = L.turn === 'right' ? 66 : L.turn === 'left' ? 82 : 140;
+      let tgt = ai.stage === 'turn' ? turnV : cruise;
+      if (ai.stage === 'road') tgt = Math.min(tgt, Math.sqrt(turnV * turnV + 2 * 240 * Math.max(0, endD - 20)));
+      if (Math.abs(err) > 0.7) tgt = Math.min(tgt, 70);
+      // the car (or person) ahead
+      const lead = this.leaderAhead(c, 300);
+      ai.lead = lead && lead.car ? lead.car.id : 0;
+      if (lead) {
+        const gap = lead.gap, lv = Math.max(0, lead.v);
+        tgt = Math.min(tgt, Math.max(0, Math.min(lv + (gap - 26) * 1.1, (gap - 14) * 1.7)));
+      }
+      // junction: wait for a free box before entering
+      let wait = false;
+      if (ai.stage === 'road' && endD < 120 && !c.siren && !(c.flee > 0)) {
+        if (!this.ixFree(c, L.ti, L.tj)) { wait = true; tgt = Math.min(tgt, Math.max(0, (endD - 26) * 1.6)); }
+      }
+      ai.waiting = wait;
+      // stuck inside the junction behind something that doesn't move: creep on, the bumpers sort it out
+      if (ai.stage === 'turn' && lead && c.blockT > 5) tgt = Math.max(tgt, 34);
+      if (ai.stage === 'turn') this.ixTake(c, L.ti, L.tj);
+      if (c.flee > 0) { c.flee -= dt; tgt = Math.max(tgt, lead && lead.gap < 60 ? 0 : 300); }
+      // ---------------------------------------------------------- stuck behind something that won't move
+      const stopped = vf < 8 && tgt < 12;
+      if (stopped && !wait) c.blockT += dt; else c.blockT = Math.max(0, c.blockT - dt * 3);
+      if (lead && lead.obj && lead.obj.kind === 'player' && c.blockT > 1.2 && c.honk <= 0) { c.honk = 1.8; this.emit('honk', { x: c.x, y: c.y }); }
+      const abandoned = lead && lead.car && (!lead.car.driver || lead.car.parked || lead.car.dead);
+      if (ai.stage === 'road' && ai.ov === 0 && c.blockT > 3.5 && lead && lead.car && (lead.car.speed || 0) < 8 && (endD > 220 || (abandoned && endD > 90)) && this.oncomingClear(c, 340)) { ai.ov = 1; ai.ovT = 0; c.blockT = 0; if (c.honk <= 0) { c.honk = 1; this.emit('honk', { x: c.x, y: c.y }); } }
+      if (ai.ov) {
+        ai.ovT += dt; tgt = Math.min(Math.max(tgt, 110), 130);
+        const back = !lead && ai.ovT > 2.2;   // passed it: back into our lane
+        if (back || endD < (abandoned ? 40 : 160) || ai.ovT > 9 || !this.oncomingClear(c, 140)) ai.ov = 0;
+      }
+      if (c.blockT > 22 && Math.hypot(c.x - this.player.x, c.y - this.player.y) > 18 * TILE && !K.los(this, c.x, c.y, this.player.x, this.player.y)) { this.despawnCar(c); return [0, 0, false]; }
+      // indicators before a turn
+      c.blink = L.turn !== 'straight' && (ai.stage === 'turn' || endD < 200) ? (L.turn === 'left' ? -1 : 1) : 0;
+      let thr = U.clamp((tgt - vf) / 45, -1, 1);
+      if (tgt < 4 && vf < 6) thr = 0;
+      if (thr < 0 && vf < 12) thr = 0;   // braking, never reversing
       return [thr, steer, false];
     },
+    /** lane geometry of the current leg and the junction arc that follows it */
     planLeg(c) {
-      const ai = c.ai;
-      const [x1, y1] = nodeXY(ai.ti, ai.tj), [x0, y0] = nodeXY(ai.fi, ai.fj);
-      const dx = Math.sign(x1 - x0), dy = Math.sign(y1 - y0);
+      const ai = c.ai; ai.dirty = false;
+      if (ai.next == null || ai.stage !== 'turn') {
+        const opts = this.roadNeighbors(ai.ti, ai.tj).filter(([i, j]) => !(i === ai.fi && j === ai.fj));
+        ai.next = opts.length ? U.pick(opts) : [ai.fi, ai.fj];
+      }
+      const [x0, y0] = nodeXY(ai.fi, ai.fj), [x1, y1] = nodeXY(ai.ti, ai.tj), [x2, y2] = nodeXY(ai.next[0], ai.next[1]);
+      const dx = Math.sign(x1 - x0), dy = Math.sign(y1 - y0), ndx = Math.sign(x2 - x1), ndy = Math.sign(y2 - y1);
+      const ox = -dy * LANE, oy = dx * LANE, nox = -ndy * LANE, noy = ndx * LANE, E = 70;
+      const cross = dx * ndy - dy * ndx;   // >0: right turn (screen y points down)
+      const turn = dx === ndx && dy === ndy ? 'straight' : cross > 0 ? 'right' : cross < 0 ? 'left' : 'uturn';
+      const p0 = [x1 - dx * E + ox, y1 - dy * E + oy], p2 = [x1 + ndx * E + nox, y1 + ndy * E + noy];
+      const p1 = turn === 'straight' ? [(p0[0] + p2[0]) / 2, (p0[1] + p2[1]) / 2] : turn === 'uturn' ? [x1 + dx * 30, y1 + dy * 30] : [x1 + dx * (nox * dx + noy * dy) + ndx * (ox * ndx + oy * ndy), y1 + dy * (nox * dx + noy * dy) + ndy * (ox * ndx + oy * ndy)];
+      ai.leg = { ax: x0 + dx * E + ox, ay: y0 + dy * E + oy, bx: p0[0], by: p0[1], dx, dy, p0, p1, p2, turn, ti: ai.ti, tj: ai.tj };
       ai.dir = [dx, dy];
-      ai.wp = [x1 - dx * 70 - dy * LANE, y1 - dy * 70 + dx * LANE];
-      ai.stage = 'road';
+      ai.wp = p0;   // legacy readers
+      if (ai.stage !== 'turn') ai.stage = 'road';
     },
     advanceLeg(c) {
       const ai = c.ai;
-      if (ai.stage === 'road') {
-        // choose the next road at the intersection
-        const opts = this.roadNeighbors(ai.ti, ai.tj).filter(([i, j]) => !(i === ai.fi && j === ai.fj));
-        const [ni, nj] = opts.length ? U.pick(opts) : [ai.fi, ai.fj];
-        const [x1, y1] = nodeXY(ai.ti, ai.tj), [x2, y2] = nodeXY(ni, nj);
-        const ndx = Math.sign(x2 - x1), ndy = Math.sign(y2 - y1);
-        ai.next = [ni, nj];
-        ai.wp = [x1 + ndx * 70 - ndy * LANE, y1 + ndy * 70 + ndx * LANE];
-        ai.stage = 'turn';
-      } else {
-        ai.fi = ai.ti; ai.fj = ai.tj; [ai.ti, ai.tj] = ai.next;
+      if (ai.stage === 'road') { ai.stage = 'turn'; ai.u = 0; ai.ov = 0; }
+      else {
+        this.ixRelease(c);
+        ai.fi = ai.ti; ai.fj = ai.tj; [ai.ti, ai.tj] = ai.next; ai.next = null; ai.stage = 'road';
         this.planLeg(c);
       }
     },
+    laneDist(c, L) {
+      const lx = L.bx - L.ax, ly = L.by - L.ay, len2 = lx * lx + ly * ly || 1;
+      const t = U.clamp(((c.x - L.ax) * lx + (c.y - L.ay) * ly) / len2, -0.2, 1.05);
+      return Math.hypot(c.x - (L.ax + lx * t), c.y - (L.ay + ly * t));
+    },
+    /** put a lost car back onto the nearest leg that points roughly where it is heading */
+    reanchor(c) {
+      const ai = c.ai, i0 = U.clamp(Math.round((c.x / TILE - 2) / P), 0, NB), j0 = U.clamp(Math.round((c.y / TILE - 2) / P), 0, NB);
+      let best = null, bs = 1e9;
+      for (let i = Math.max(0, i0 - 1); i <= Math.min(NB, i0 + 1); i++) for (let j = Math.max(0, j0 - 1); j <= Math.min(NB, j0 + 1); j++) {
+        for (const [ni, nj] of this.roadNeighbors(i, j)) {
+          const [x0, y0] = nodeXY(i, j), [x1, y1] = nodeXY(ni, nj), dx = Math.sign(x1 - x0), dy = Math.sign(y1 - y0);
+          const ax = x0 - dy * LANE, ay = y0 + dx * LANE, bx = x1 - dy * LANE, by = y1 + dx * LANE;
+          const lx = bx - ax, ly = by - ay, len2 = lx * lx + ly * ly, t = U.clamp(((c.x - ax) * lx + (c.y - ay) * ly) / len2, 0, 0.85);
+          const d = Math.hypot(c.x - (ax + lx * t), c.y - (ay + ly * t)) + 90 * (1 - (Math.cos(c.a) * dx + Math.sin(c.a) * dy));
+          if (d < bs) { bs = d; best = [i, j, ni, nj]; }
+        }
+      }
+      if (!best) return;
+      [ai.fi, ai.fj, ai.ti, ai.tj] = best; ai.stage = 'road'; ai.next = null; ai.ov = 0; ai.dirty = true;
+      this.ixRelease(c);
+    },
+    /** nearest thing in our path: cars (with their speed) and people, as a gap in px */
+    leaderAhead(c, range) {
+      const fx = Math.cos(c.a), fy = Math.sin(c.a);
+      let best = null;
+      for (const o of this.cars) {
+        if (o === c || o.dead) continue;
+        const dx = o.x - c.x, dy = o.y - c.y; if (Math.abs(dx) > range + 60 || Math.abs(dy) > range + 60) continue;
+        const lx = dx * fx + dy * fy, ly = -dx * fy + dy * fx;
+        if (lx < 8 || lx > range) continue;
+        // its footprint across our path (rotated box approximated by its half-diagonal on the cross axis)
+        const half = Math.abs(Math.sin(o.a - c.a)) * o.l / 2 + Math.abs(Math.cos(o.a - c.a)) * o.w / 2;
+        const oncoming = Math.cos(o.a - c.a) < -0.3;   // the other lane: only a true head-on counts
+        if (Math.abs(ly) > c.w / 2 + half - (oncoming ? 12 : 3)) continue;
+        if (o.ai && o.ai.lead === c.id && c.id < o.id && (c.blockT > 2 || o.blockT > 2)) continue;   // we block each other: the older car goes first
+        if (c.ai && c.ai.stage === 'turn' && o.ai && o.ai.waiting && oncoming !== undefined && Math.abs(ly) > c.w / 2) continue;   // inside the junction: cars queuing at their stop line wait for us
+        const gap = lx - c.l / 2 - (Math.abs(Math.cos(o.a - c.a)) * o.l / 2 + Math.abs(Math.sin(o.a - c.a)) * o.w / 2);
+        const v = (o.vx || 0) * fx + (o.vy || 0) * fy;
+        if (!best || gap < best.gap) best = { gap, v, car: o };
+      }
+      const look = Math.min(range, 70 + Math.max(0, c.vf || 0) * 0.6);
+      for (const a of this.near(c.x + fx * look / 2, c.y + fy * look / 2, look)) {
+        if (a.inCar || a.hidden || a.removed || (!a.alive && a.kind !== 'player')) continue;
+        // where they are and where they'll be in a moment (somebody stepping off the kerb)
+        for (const k of [0, 0.7]) {
+          const dx = a.x + (a.vx || 0) * k - c.x, dy = a.y + (a.vy || 0) * k - c.y, lx = dx * fx + dy * fy, ly = -dx * fy + dy * fx;
+          if (lx > c.l / 2 - 4 && lx < look && Math.abs(ly) < c.w / 2 + 16) { const gap = lx - c.l / 2 - 10; if (!best || gap < best.gap) best = { gap, v: 0, obj: a }; break; }
+        }
+      }
+      return best;
+    },
+    oncomingClear(c, range) {
+      const fx = Math.cos(c.a), fy = Math.sin(c.a);
+      for (const o of this.cars) {
+        if (o === c || o.dead) continue;
+        const dx = o.x - c.x, dy = o.y - c.y, lx = dx * fx + dy * fy, ly = -dx * fy + dy * fx;
+        if (lx > -80 && lx < range && ly < -LANE * 0.4 && ly > -LANE * 3.2) return false;
+      }
+      return true;
+    },
+    /** junctions: one car turns through the box at a time; whoever is already in it goes first */
+    ixFree(c, i, j) {
+      const k = i * 100 + j, L = (this.ixLocks || (this.ixLocks = {}))[k];
+      if (L && L.id !== c.id && this.t - L.t < 7) { const o = this.cars.find((q) => q.id === L.id); if (o && !o.dead && o.ai && o.ai.stage === 'turn') return false; }
+      const [nx, ny] = nodeXY(i, j);
+      for (const o of this.cars) {
+        if (o === c || o.dead || Math.abs(o.x - nx) > 66 || Math.abs(o.y - ny) > 66) continue;
+        if (o.driver === 'player' || !o.ai || o.ai.stage === 'turn' || (o.speed || 0) > 20) return false;
+      }
+      return true;
+    },
+    ixTake(c, i, j) { const k = i * 100 + j, Ls = this.ixLocks || (this.ixLocks = {}); if (!Ls[k] || Ls[k].id === c.id || this.t - Ls[k].t > 7) { Ls[k] = { id: c.id, t: this.t }; c.ai.ix = k; } },
+    ixRelease(c) { const Ls = this.ixLocks; if (Ls && c.ai && c.ai.ix != null && Ls[c.ai.ix] && Ls[c.ai.ix].id === c.id) delete Ls[c.ai.ix]; if (c.ai) c.ai.ix = null; },
     policeDrive(c, dt) {
       const p = this.player;
       const tgt = p.inCar ? this.carOf(p) : p;
@@ -376,7 +506,7 @@
       else if (!c.owned && !c.playerOwned && !c.service) { c.hotwire = true; this.crimeEvent(a, 'theft', c.x, c.y, null); }
       // a car someone was just driving keeps running; a parked one has to be started (or hot-wired)
       if (!hadDriver) { c.engineOn = false; c.crankT = null; }
-      c.belt = false;
+      c.belt = false; c.blink = 0;
       for (const id of c.passengers || []) { const p = this.byId.get(id); if (p) this.ejectFrom(c, p, p.kind !== 'cop'); }
       c.passengers = [];
       c.driver = 'player'; c.ai = null; c.pursuit = false; c.parked = false; c.siren = false; c.unit = null; c.route = null;

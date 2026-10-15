@@ -149,7 +149,11 @@
       const pk = ctx.map((c) => c.key + c.label + !!c.fn).join('|') + (w.action ? 'A' + w.action.label : '');
       this.set('prompt', pk, () => {
         if (w.action) { e.prompt.innerHTML = `<div><kbd>${w.action.key}</kbd>${U.esc(w.action.label)} …</div>`; return; }
-        e.prompt.innerHTML = ctx.slice(0, 3).map((c) => `<div class="${c.fn ? '' : 'off'}"><kbd>${c.key}</kbd>${U.esc(c.label)}${c.hold ? ' <small style="opacity:.6">(halten)</small>' : ''}</div>`).join('');
+        // one line per input: the focused E tap, the E long press, then the other keys
+        const pick = [], used = new Set();
+        for (const c of ctx) { const id = c.key + (c.long ? 'L' : ''); if (used.has(id)) continue; used.add(id); pick.push(c); }
+        const more = ctx.filter((c) => c.key === 'E' && !c.long && c.fn).length - 1;
+        e.prompt.innerHTML = pick.slice(0, 4).map((c) => `<div class="${c.fn ? '' : 'off'}"><kbd>${c.key}</kbd>${U.esc(c.label)}${c.long || (c.hold && !c.auto) ? ' <small style="opacity:.6">(halten)</small>' : ''}${c.key === 'E' && !c.long && more > 0 && c === pick.find((q) => q.key === 'E' && !q.long) ? ` <small style="opacity:.5">+${more} · anschauen</small>` : ''}</div>`).join('');
       });
       this.tracker();
       this.carHud(w, p, P);

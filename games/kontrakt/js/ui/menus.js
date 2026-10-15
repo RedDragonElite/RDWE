@@ -45,14 +45,38 @@
       $('#t-controls').onclick = () => this.controls();
       $('#t-settings').onclick = () => this.settings();
       document.querySelectorAll('#pause [data-p]').forEach((b) => (b.onclick = () => this.pauseAction(b.dataset.p)));
+      // map: wheel zooms around the cursor, dragging pans, a click without dragging sets the waypoint
       const bm = $('#bigmap');
+      const toTile = (e) => { const r = bm.getBoundingClientRect(), m = this.mapMeta; return [((e.clientX - r.left) * (bm.width / r.width) - m.ox) / m.s, ((e.clientY - r.top) * (bm.height / r.height) - m.oy) / m.s]; };
       bm.addEventListener('mousedown', (e) => {
-        const r = bm.getBoundingClientRect(), m = this.mapMeta; if (!m) return;
-        const x = ((e.clientX - r.left) * (bm.width / r.width) - m.ox) / m.s * TILE, y = ((e.clientY - r.top) * (bm.height / r.height) - m.oy) / m.s * TILE;
-        if (e.button === 2) this.g.waypoint = null; else this.g.waypoint = { x, y };
+        if (!this.mapMeta) return;
+        if (e.button === 2) { this.g.waypoint = null; this.g.audio.ui('click'); this.drawMap(); return; }
+        this.mapDrag = { x: e.clientX, y: e.clientY, cx: this.mapView.cx, cy: this.mapView.cy, moved: false };
+      });
+      addEventListener('mousemove', (e) => {
+        const d = this.mapDrag; if (!d || !this.mapMeta) return;
+        const dx = e.clientX - d.x, dy = e.clientY - d.y;
+        if (!d.moved && Math.hypot(dx, dy) < 5) return;
+        d.moved = true; bm.classList.add('drag');
+        const r = bm.getBoundingClientRect(), k = (bm.width / r.width) / this.mapMeta.s;
+        this.mapView.cx = d.cx - dx * k; this.mapView.cy = d.cy - dy * k;
+        this.drawMap();
+      });
+      addEventListener('mouseup', (e) => {
+        const d = this.mapDrag; if (!d) return;
+        this.mapDrag = null; bm.classList.remove('drag');
+        if (d.moved || e.button !== 0 || !this.mapMeta) return;
+        const [tx, ty] = toTile(e);
+        this.g.waypoint = { x: tx * TILE, y: ty * TILE };
         this.g.audio.ui('click'); this.drawMap();
       });
+      bm.addEventListener('wheel', (e) => {
+        e.preventDefault(); if (!this.mapMeta) return;
+        const [tx, ty] = toTile(e);
+        this.mapZoom(e.deltaY < 0 ? 1.25 : 0.8, tx, ty);
+      }, { passive: false });
       bm.addEventListener('contextmenu', (e) => e.preventDefault());
+      document.querySelectorAll('.mv-ctl button').forEach((b) => (b.onclick = () => this.mapKey(b.dataset.mv)));
       document.addEventListener('mouseover', (e) => { if (e.target.closest && e.target.closest('button')) this.g.audio.ui('hover'); });
     }
     anyOpen() { return !$('#phone').classList.contains('hidden') || !$('#panel').classList.contains('hidden') || !$('#mapview').classList.contains('hidden') || !$('#pause').classList.contains('hidden') || !$('#result').classList.contains('hidden') || !$('#dead').classList.contains('hidden') || !$('#title').classList.contains('hidden'); }
@@ -735,50 +759,109 @@
     }
 
     // ============================================================ map
-    openMap() { this.closePhone(); this.closePanel(); $('#mapview').classList.remove('hidden'); this.sync(); requestAnimationFrame(() => this.drawMap()); if (document.fonts && !this.fontReady) document.fonts.load('600 40px "Oswald"').then(() => { this.fontReady = true; if (!$('#mapview').classList.contains('hidden')) this.drawMap(); }).catch(() => {}); }
+    openMap() { this.closePhone(); this.closePanel(); $('#mapview').classList.remove('hidden'); this.sync(); if (this.mapView && this.mapView.z > 1) { const p = this.g.world.player; this.mapView.cx = p.x / TILE; this.mapView.cy = p.y / TILE; } requestAnimationFrame(() => this.drawMap()); if (document.fonts && !this.fontReady) document.fonts.load('600 40px "Oswald"').then(() => { this.fontReady = true; if (!$('#mapview').classList.contains('hidden')) this.drawMap(); }).catch(() => {}); }
     closeMap() { $('#mapview').classList.add('hidden'); this.sync(); }
     toggleMap() { if ($('#mapview').classList.contains('hidden')) this.openMap(); else this.closeMap(); }
+    /** zoom by f, keeping the tile (ax, ay) under the cursor in place */
+    mapZoom(f, ax, ay) {
+      const v = this.mapView, z = U.clamp(v.z * f, 1, 12); if (z === v.z) return;
+      if (ax != null) { const k = v.z / z; v.cx = ax + (v.cx - ax) * k; v.cy = ay + (v.cy - ay) * k; }
+      v.z = z; this.drawMap();
+    }
+    mapKey(k) {
+      const w = this.g.world, v = this.mapView;
+      if (k === 'in') this.mapZoom(1.4);
+      else if (k === 'out') this.mapZoom(1 / 1.4);
+      else if (k === 'me') { v.cx = w.player.x / TILE; v.cy = w.player.y / TILE; if (v.z < 3) v.z = 3; this.drawMap(); }
+      else if (k === 'fit') { v.z = 1; v.cx = w.W / 2; v.cy = w.H / 2; this.drawMap(); }
+      else if (k === 'leg') { this.mapLegendOff = !this.mapLegendOff; $('#mv-legend').classList.toggle('off', this.mapLegendOff); this.drawMap(); }
+      else return false;
+      this.g.audio.ui('click');
+      return true;
+    }
     drawMap() {
       const w = this.g.world, cv = $('#bigmap'), ui = this.g.ui;
       const r = cv.getBoundingClientRect();
-      cv.width = r.width * 1.5; cv.height = r.height * 1.5;
+      const cw = Math.round(r.width * 1.5), ch = Math.round(r.height * 1.5);
+      if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
       const x = cv.getContext('2d');
       if (!ui.mapTex) ui.buildMapTex();
-      const s = Math.min(cv.width / w.W, cv.height / w.H), ox = (cv.width - w.W * s) / 2, oy = (cv.height - w.H * s) / 2;
+      if (!this.mapView) this.mapView = { z: 1, cx: w.W / 2, cy: w.H / 2 };
+      const v = this.mapView, fit = Math.min(cv.width / w.W, cv.height / w.H) * 0.96, s = fit * v.z;
+      // keep at least part of the city on screen
+      const hw = cv.width / 2 / s, hh = cv.height / 2 / s;
+      v.cx = w.W < hw * 2 ? w.W / 2 : U.clamp(v.cx, hw, w.W - hw); v.cy = w.H < hh * 2 ? w.H / 2 : U.clamp(v.cy, hh, w.H - hh);
+      const ox = cv.width / 2 - v.cx * s, oy = cv.height / 2 - v.cy * s;
       this.mapMeta = { s, ox, oy };
+      const R = 1.5;   // canvas px per css px
       // dossier table: graphite with a fine survey grid
       x.fillStyle = '#0c0e11'; x.fillRect(0, 0, cv.width, cv.height);
       x.strokeStyle = 'rgba(255,255,255,0.035)'; x.lineWidth = 1;
-      for (let gx = ox % (s * 8); gx < cv.width; gx += s * 8) { x.beginPath(); x.moveTo(gx, 0); x.lineTo(gx, cv.height); x.stroke(); }
-      for (let gy = oy % (s * 8); gy < cv.height; gy += s * 8) { x.beginPath(); x.moveTo(0, gy); x.lineTo(cv.width, gy); x.stroke(); }
+      for (let gx = U.mod(ox, s * 8); gx < cv.width; gx += s * 8) { x.beginPath(); x.moveTo(gx, 0); x.lineTo(gx, cv.height); x.stroke(); }
+      for (let gy = U.mod(oy, s * 8); gy < cv.height; gy += s * 8) { x.beginPath(); x.moveTo(0, gy); x.lineTo(cv.width, gy); x.stroke(); }
       x.save(); x.shadowColor = 'rgba(0,0,0,0.8)'; x.shadowBlur = 30; x.fillStyle = '#000'; x.fillRect(ox, oy, w.W * s, w.H * s); x.restore();
-      x.imageSmoothingEnabled = false; x.drawImage(ui.mapTex, ox, oy, w.W * s, w.H * s); x.imageSmoothingEnabled = true;
+      x.imageSmoothingEnabled = v.z < 2.5; x.drawImage(ui.mapTex, ox, oy, w.W * s, w.H * s); x.imageSmoothingEnabled = true;
       if (ui.mapNeon) x.drawImage(ui.mapNeon, ox, oy, w.W * s, w.H * s);
       ui.drawTurf(x, s, ox, oy, 0.22);
       const toM = (wx, wy) => [ox + wx / TILE * s, oy + wy / TILE * s];
-      // district labels
-      x.font = `600 ${Math.round(s * 2.6)}px "Oswald", sans-serif`; x.textAlign = 'center';
-      if ('letterSpacing' in x) x.letterSpacing = `${Math.round(s * 0.9)}px`;
+      const onScreen = (mx, my, pad = 40) => mx > -pad && my > -pad && mx < cv.width + pad && my < cv.height + pad;
+      // district labels: big when zoomed out, they fade once street-level detail takes over
+      const lblA = U.clamp(1.6 - v.z * 0.25, 0.25, 1);
+      x.font = `600 ${Math.round(U.clamp(s * 2.6, 13, 34) * R / 1.5)}px "Oswald", sans-serif`; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+      if ('letterSpacing' in x) x.letterSpacing = '4px';
       const seen = new Set();
-      for (const bl of w.city.blocks) { if (seen.has(bl.d)) continue; seen.add(bl.d); const [mx, my] = toM((bl.ox + 11) * TILE, (bl.oy + 11) * TILE); x.save(); x.shadowColor = 'rgba(0,0,0,0.9)'; x.shadowBlur = 6; x.fillStyle = 'rgba(240,238,232,0.82)'; x.fillText(K.DISTRICTS[bl.d].toUpperCase(), mx, my); x.restore(); }
-      { const [mx, my] = toM((w.city.BEACHW || 80) / 2 * TILE, (w.city.W + 3) * TILE); x.save(); x.font = `500 ${Math.round(s * 2)}px "Oswald", sans-serif`; x.fillStyle = 'rgba(240,238,232,0.55)'; x.fillText('OCEAN DRIVE', mx, my - s * 5.5); x.restore(); }
+      for (const bl of w.city.blocks) { if (seen.has(bl.d)) continue; seen.add(bl.d); const [mx, my] = toM((bl.ox + 11) * TILE, (bl.oy + 11) * TILE); x.save(); x.shadowColor = 'rgba(0,0,0,0.9)'; x.shadowBlur = 6; x.fillStyle = `rgba(240,238,232,${0.82 * lblA})`; x.fillText(K.DISTRICTS[bl.d].toUpperCase(), mx, my); x.restore(); }
+      { const [mx, my] = toM((w.city.BEACHW || 80) / 2 * TILE, (w.city.W + 3) * TILE); x.save(); x.font = `500 ${Math.round(U.clamp(s * 2, 11, 26))}px "Oswald", sans-serif`; x.fillStyle = `rgba(240,238,232,${0.55 * lblA})`; x.fillText('OCEAN DRIVE', mx, my - s * 5.5); x.restore(); }
       if ('letterSpacing' in x) x.letterSpacing = '0px';
-      x.font = `${Math.round(s * 4.2)}px sans-serif`; x.textBaseline = 'middle';
-      for (const q of ui.poiIcons()) { const [mx, my] = toM(q.x, q.y); if (!q.small) { x.fillStyle = 'rgba(10,11,14,0.88)'; x.beginPath(); x.arc(mx, my, s * 3, 0, 6.3); x.fill(); x.strokeStyle = q.c || 'rgba(240,238,232,0.7)'; x.lineWidth = 1.5; x.stroke(); } x.fillStyle = '#fff'; x.fillText(q.e, mx, my + 1); }
+      // building names once you are close enough to read them
+      if (s > 10) {
+        x.font = `500 ${Math.round(U.clamp(s * 0.9, 12, 18))}px "Inter", sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+        for (const b of w.buildings) {
+          if (!b.name || b.w < 5) continue;
+          const [mx, my] = toM((b.x + b.w / 2) * TILE, (b.y + 1.2) * TILE); if (!onScreen(mx, my)) continue;
+          x.fillStyle = 'rgba(10,11,14,0.75)'; const tw = x.measureText(b.name).width; x.fillRect(mx - tw / 2 - 5, my - 10, tw + 10, 20);
+          x.fillStyle = 'rgba(236,233,226,0.9)'; x.fillText(b.name, mx, my);
+        }
+      }
+      // icons keep a readable size at any zoom
+      const ir = U.clamp(s * 3, 11, 22);
+      x.font = `${Math.round(ir * 1.4)}px sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+      for (const q of ui.poiIcons()) {
+        const [mx, my] = toM(q.x, q.y); if (!onScreen(mx, my)) continue;
+        if (q.small) { if (v.z < 1.6) continue; x.save(); x.font = `${Math.round(ir * 0.9)}px sans-serif`; x.fillStyle = '#fff'; x.fillText(q.e, mx, my + 1); x.restore(); continue; }
+        x.fillStyle = 'rgba(10,11,14,0.88)'; x.beginPath(); x.arc(mx, my, ir, 0, 6.3); x.fill(); x.strokeStyle = q.c || 'rgba(240,238,232,0.7)'; x.lineWidth = 1.5; x.stroke();
+        x.fillStyle = '#fff'; x.fillText(q.e, mx, my + 1);
+      }
       const c = w.contract, tgt = w.targetActor();
       if (c && tgt) {
-        if (c.intel) { const [mx, my] = toM(tgt.x, tgt.y); x.fillStyle = '#ff2030'; x.beginPath(); x.arc(mx, my, s * 2, 0, 6.3); x.fill(); }
+        if (c.intel) { const [mx, my] = toM(tgt.x, tgt.y); x.fillStyle = '#ff2030'; x.beginPath(); x.arc(mx, my, U.clamp(s * 2, 6, 12), 0, 6.3); x.fill(); }
         else if (c.ping) { const [mx, my] = toM(c.ping.x, c.ping.y); x.strokeStyle = '#ff2030'; x.fillStyle = 'rgba(255,32,48,.2)'; x.lineWidth = 3; x.beginPath(); x.arc(mx, my, s * 8, 0, 6.3); x.fill(); x.stroke(); }
       }
-      if (this.g.waypoint) { const [mx, my] = toM(this.g.waypoint.x, this.g.waypoint.y); x.strokeStyle = '#ffd34d'; x.lineWidth = 4; x.beginPath(); x.arc(mx, my, s * 2.5, 0, 6.3); x.stroke(); }
-      const p = w.player; const [px, py] = toM(p.x, p.y);
-      x.save(); x.translate(px, py); x.rotate(p.angle); x.fillStyle = '#fff'; x.strokeStyle = '#000'; x.lineWidth = 3; x.beginPath(); x.moveTo(s * 3, 0); x.lineTo(-s * 2, -s * 2); x.lineTo(-s, 0); x.lineTo(-s * 2, s * 2); x.closePath(); x.stroke(); x.fill(); x.restore();
-      $('#mv-legend').innerHTML = '<div>🏠 Dein Besitz · 🏷️ Zu verkaufen<br>🔫 Waffen · 💀 Schwarzmarkt · 🛒 Späti<br>💊 Apotheke · 👔 Boutique · 🍔 Diner · 🍸 Bar<br>🏥 Klinik · 🚓 Polizei · 🎵 Club<br>🌱 Growshop · 🏧 Geldautomat · 🏦 Bank · 💎 Juwelier<br>⛽ Tankstelle · 🚗 Autohaus · 🔧 Werkstatt<br>🍹 Beachclub · 💃 Stripclub · <span style="color:#ff2030">●</span> Ziel</div><div>Reviere: ' + Object.entries(K.GANGS).map(([k, g]) => `<span style="color:${g.col}">■</span> ${g.name}`).join(' · ') + (w.P.gang ? ` · <span style="color:${w.P.gang.col}">■</span> ${U.esc(w.P.gang.name)}` : '') + ' · ⚔ Krieg</div>';
+      if (this.g.waypoint) { const [mx, my] = toM(this.g.waypoint.x, this.g.waypoint.y); x.strokeStyle = '#ffd34d'; x.lineWidth = 4; x.beginPath(); x.arc(mx, my, U.clamp(s * 2.5, 8, 16), 0, 6.3); x.stroke(); x.beginPath(); x.moveTo(mx, my - 26); x.lineTo(mx, my - 8); x.stroke(); }
+      const p = w.player; const [px, py] = toM(p.x, p.y), ps = U.clamp(s, 5, 9);
+      x.save(); x.translate(px, py); x.rotate(p.angle); x.fillStyle = '#fff'; x.strokeStyle = '#000'; x.lineWidth = 3; x.beginPath(); x.moveTo(ps * 3, 0); x.lineTo(-ps * 2, -ps * 2); x.lineTo(-ps, 0); x.lineTo(-ps * 2, ps * 2); x.closePath(); x.stroke(); x.fill(); x.restore();
+      // scale bar: one tile is about a metre
+      const sb = $('#mv-scale'); if (sb) { const m = [10, 25, 50, 100, 250][[10, 25, 50, 100, 250].findIndex((q) => q * s / R > 70)] || 250; sb.innerHTML = `<span style="display:inline-block;width:${m * s / R}px;border-bottom:2px solid rgba(236,233,226,.6);margin-right:8px"></span>${m} M · ZOOM ${v.z.toFixed(1)}×`; }
+      this.mapLegend();
+    }
+    mapLegend() {
+      const w = this.g.world, el = $('#mv-legend'); if (this.mapLegendOff) return;
+      const row = (i, t) => `<i>${i}</i><span>${t}</span>`;
+      const sec = (t, rows) => `<h4>${t}</h4><div class="lg">${rows.map((r) => row(r[0], r[1])).join('')}</div>`;
+      el.innerHTML = sec('Markierungen', [['<span style="color:#fff">➤</span>', 'Du'], ['<span style="color:#ff2030">●</span>', 'Zielperson'], ['<span style="color:#ffd34d">○</span>', 'Wegpunkt']])
+        + sec('Besitz', [['🏠', 'Dein Besitz'], ['🏷️', 'Zu verkaufen']])
+        + sec('Unterwelt', [['🔫', 'Waffen'], ['💀', 'Schwarzmarkt'], ['🌱', 'Growshop'], ['💃', 'Stripclub'], ['🎵', 'Club']])
+        + sec('Einkaufen & Essen', [['🛒', 'Späti'], ['💊', 'Apotheke'], ['👔', 'Boutique'], ['🍔', 'Diner'], ['🍸', 'Bar'], ['🍹', 'Beachclub']])
+        + sec('Geld', [['🏧', 'Geldautomat'], ['🏦', 'Bank'], ['💎', 'Juwelier']])
+        + sec('Auto', [['⛽', 'Tankstelle'], ['🚗', 'Autohaus'], ['🔧', 'Werkstatt']])
+        + sec('Staat', [['🏥', 'Klinik'], ['🚓', 'Polizei']])
+        + sec('Reviere', Object.entries(K.GANGS).map(([k, g]) => [`<span style="color:${g.col}">■</span>`, g.name]).concat(w.P.gang ? [[`<span style="color:${w.P.gang.col}">■</span>`, U.esc(w.P.gang.name)]] : []).concat([['⚔', 'Krieg']]))
+        + '<h4>Steuerung</h4><div style="line-height:1.7;color:#8d8a84">Mausrad / + − Zoom<br>Ziehen / Pfeile Verschieben<br>Leertaste auf dich · 0 ganze Stadt<br>L Legende</div>';
     }
 
     // ============================================================ title / pause / results
     controls() {
-      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E', 'Interagieren / Leiche ziehen', 'R', 'Nachladen'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Hotbar: Waffe ziehen/wegstecken, Item benutzen', 'H / 0', 'Alles wegstecken · Fäuste'], ['TAB', 'Inventar: Drag & Drop in die Hotbar', 'Maus über Kachel + 1–9', 'Slot direkt belegen'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['Im Auto: B / N', 'Gurt an/aus · Motor an/aus', 'Im Auto: X / L', 'Tempomat · Licht (Abblend/Fern)'], ['Im Auto: Q / E', 'Blinker links / rechts (beide = Warnblinker)', 'Im Auto: Shift / T', 'Nitro · Werkstatt-Aktion'], ['Im Auto: LMB / RMB', 'Drive-by oder Bord-MG · Raketen', 'Im Auto: F / H', 'Aussteigen · Hupe'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen'], ['RMB mit Zielfernrohr', 'Scope · Shift: Atem anhalten', 'Prop-Item benutzen', 'Platzieren: R/Mausrad drehen, LMB setzen, RMB abbrechen'], ['E am Prop', 'Container öffnen · Station · Schlafen', 'T halten am Prop', 'Abbauen (zurück ins Inventar)']];
+      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E tippen', 'Aufheben · Durchsuchen · Benutzen (was du anschaust)', 'E halten', 'Leiche / Bewusstlosen ziehen'], ['R', 'Nachladen', 'T halten an Haustür', 'Lauschen: ist jemand zu Hause?'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Hotbar: Waffe ziehen/wegstecken, Item benutzen', 'H / 0', 'Alles wegstecken · Fäuste'], ['TAB', 'Inventar: Drag & Drop in die Hotbar', 'Maus über Kachel + 1–9', 'Slot direkt belegen'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte (Mausrad Zoom, Ziehen, L Legende)', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['Im Auto: B / N', 'Gurt an/aus · Motor an/aus', 'Im Auto: X / L', 'Tempomat · Licht (Abblend/Fern)'], ['Im Auto: Q / E', 'Blinker links / rechts (beide = Warnblinker)', 'Im Auto: Shift / T', 'Nitro · Werkstatt-Aktion'], ['Im Auto: LMB / RMB', 'Drive-by oder Bord-MG · Raketen', 'Im Auto: F / H', 'Aussteigen · Hupe'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen'], ['RMB mit Zielfernrohr', 'Scope · Shift: Atem anhalten', 'Prop-Item benutzen', 'Platzieren: R/Mausrad drehen, LMB setzen, RMB abbrechen'], ['E am Prop', 'Container öffnen · Station · Schlafen', 'T halten am Prop', 'Abbauen (zurück ins Inventar)']];
       const h = `<div class="kbd-grid">${k.map((r) => `<kbd>${r[0]}</kbd><span>${r[1]}</span><kbd>${r[2]}</kbd><span>${r[3]}</span>`).join('')}</div>
         <div class="sec" style="margin-top:18px">So spielst du</div>
         <p style="font-size:13px;color:#cfc9be;line-height:1.6">Aufträge kommen aufs <b>Handy (P)</b>. Finde das Ziel — mit gekauftem Intel wird es markiert, sonst kennst du nur grob den Bereich. Nimm Verkleidungen von bewusstlosen oder toten Wachen (<b>T</b>), um in Sperrgebiete zu kommen. Wirf <b>Münzen</b>, um Wachen wegzulocken, und erledige Ziele lautlos von hinten (<b>F</b>) mit der Klaviersaite. Leichen versteckst du in Containern und Schränken (<b>E</b>). Zeugen rufen die Polizei — wechsle das Outfit ungesehen, um die Fahndung zu senken. Willst du nicht sterben, ergib dich mit <b>X</b>: weniger Haft, aber Knast ist Knast. Halt Passanten oder Ladenbesitzer mit gezogener Waffe (<b>RMB</b>) in Schach und raub sie aus, zieh Brieftaschen von hinten, durchwühl fremde Wohnungen, hack Geldautomaten. Mit einer Sturmhaube erkennt dich niemand. Im Growshop gibt es Samen und Töpfe — pflanz in deiner Bude, gieß, dünge, ernte und verkauf an Passanten (<b>T</b>) oder am Schwarzmarkt. Iss, trink, schlaf in deinem eigenen Bett, kauf Waffen, Häuser und Geschäfte. Krähenburg lebt — Tag und Nacht, Regen und Nebel.</p>`;

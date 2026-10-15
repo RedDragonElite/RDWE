@@ -46,6 +46,12 @@
       if (m.panelKind === 'inv' && /^[1-9]$/.test(e.key) && m.assignHover(+e.key - 1)) return;
       if (k === 'p') { m.togglePhone(); return; }
       if (k === 'm') { m.toggleMap(); return; }
+      if (!document.querySelector('#mapview').classList.contains('hidden')) {
+        const mk = { '+': 'in', '=': 'in', '-': 'out', '_': 'out', '0': 'fit', l: 'leg' }[k] || (code === 'Space' ? 'me' : code === 'NumpadAdd' ? 'in' : code === 'NumpadSubtract' ? 'out' : null);
+        if (mk) { m.mapKey(mk); return; }
+        const pan = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1], KeyA: [-1, 0], KeyD: [1, 0], KeyW: [0, -1], KeyS: [0, 1] }[code];
+        if (pan && m.mapView) { m.mapView.cx += pan[0] * 30 / m.mapView.z; m.mapView.cy += pan[1] * 30 / m.mapView.z; m.drawMap(); return; }
+      }
       if (k === 'b' && g.world.player.inCar && !g.paused) { this.pressed.add('b'); return; }   // seatbelt while driving
       if (k === 'b') { if (m.panelKind === 'crew') m.closePanel(); else if (!g.paused || m.panelKind) m.crew(); return; }
       if (g.paused) return;

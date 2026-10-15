@@ -131,13 +131,27 @@
       this.updateDrag(dt);
 
       // -------------------------------------------------------- context
-      this.ctx = this.contextActions();
-      for (const k of ['e', 't', 'f', 'k']) {
+      this.ctx = this.focusContext(this.contextActions());
+      const run = (act, auto) => {
+        if (act.hold) this.action = { key: act.key, label: act.label, t: 0, dur: act.hold, hold: !auto && !act.auto, done: act.fn, tick: act.tick };
+        else act.fn();
+      };
+      const tapE = () => this.ctx.find((c) => c.key === 'E' && !c.long && c.fn), longE = () => this.ctx.find((c) => c.key === 'E' && c.long && c.fn);
+      // E: a tap and a long press are different actions (tap = pick up / search / use, hold = drag)
+      if (this.ePend) {
+        if (inp.eHeld) {
+          this.ePend.t += dt;
+          if (this.ePend.t >= K.HOLD_E) { this.ePend = null; const l = longE() || tapE(); if (l) run(l, !l.long); }
+        } else { this.ePend = null; const t = tapE(); if (t) run(t, true); }
+      } else if (pr.e) {
+        if (longE() && inp.eHeld) this.ePend = { t: 0 };
+        else { const t = tapE() || longE(); if (t) run(t, false); }
+      }
+      for (const k of ['t', 'f', 'k']) {
         if (!pr[k]) continue;
         const act = this.ctx.find((c) => c.key.toLowerCase() === k && c.fn);
         if (!act) continue;
-        if (act.hold) this.action = { key: act.key, label: act.label, t: 0, dur: act.hold, hold: true, done: act.fn, tick: act.tick };
-        else act.fn();
+        run(act, false);
         break;
       }
       // walk over cash
@@ -168,16 +182,19 @@
     },
     startDrag(b) {
       this.drag = b.id; b.dragBy = this.player.id;
-      if (!b.looted) this.lootBody(b);
       this.emit('sfx', { s: 'grab' });
     },
     lootBody(b) {
+      if (b.looted) return;
       b.looted = true;
       const P = this.P;
       const cash = b.wallet || 0;
-      if (cash) { P.money += cash; this.notify(`Taschen geleert: +${U.money(cash)}`, 'money'); }
-      if (b.loot) { this.addItem(b.loot); this.notify(`Gefunden: ${K.ITEMS[b.loot].name}`, 'loot'); }
-      if (b.kind === 'guard' && Math.random() < 0.3) { this.addItem('keycard'); }
+      let found = false;
+      if (cash) { P.money += cash; this.notify(`Taschen geleert: +${U.money(cash)}`, 'money'); found = true; }
+      if (b.loot) { this.addItem(b.loot); this.notify(`Gefunden: ${K.ITEMS[b.loot].name}`, 'loot'); found = true; }
+      if (b.kind === 'guard' && Math.random() < 0.3) { this.addItem('keycard'); this.notify('Gefunden: Keycard', 'loot'); found = true; }
+      if (!found) this.notify('Nichts Brauchbares.', 'info');
+      this.emit('sfx', { s: 'pickup' });
       b.wallet = 0; b.loot = null;
     },
     dropDrag() {
@@ -236,6 +253,19 @@
     },
 
     // ------------------------------------------------------------ context actions
+    /** among E actions on things around you, the one you are looking at comes first; flags timed
+     *  E actions as auto-running when a long press means something else */
+    focusContext(out) {
+      const a = this.player, ids = [], acts = [];
+      out.forEach((c, i) => { if (c.key === 'E' && c.at && !c.long) { ids.push(i); acts.push(c); } });
+      if (acts.length > 1) {
+        const score = (c) => { const d = Math.hypot(c.at.x - a.x, c.at.y - a.y); return Math.abs(U.angDiff(a.aim, Math.atan2(c.at.y - a.y, c.at.x - a.x))) * (d > 8 ? 1 : 0) * 1.4 + d / 30; };
+        acts.sort((p, q) => score(p) - score(q));
+        ids.forEach((i, k) => (out[i] = acts[k]));
+      }
+      if (out.some((c) => c.key === 'E' && c.long)) for (const c of out) if (c.key === 'E' && c.hold && !c.long) c.auto = true;
+      return out;
+    },
     contextActions() {
       const out = [], a = this.player, P = this.P;
       const add = (key, label, fn, hold, extra) => out.push({ key, label, fn, hold, ...extra });
@@ -246,22 +276,20 @@
         if (spot) add('E', `Leiche verstecken (${{ dumpster: 'Container', wardrobe: 'Schrank', locker: 'Spind' }[spot.k] || 'Versteck'})`, () => this.hideBody(spot), 1.1);
         else add('E', 'Loslassen', () => this.dropDrag());
       } else {
+        // first aid on somebody critical (needs a bandage, tourniquet or medkit) — the long press on them
+        const fa = this.firstAidTarget && this.firstAidTarget();
+        if (fa && (P.inv.medkit || P.inv.bandage || P.inv.tourniquet)) add('E', `Erste Hilfe: ${fa.name || 'Verletzter'} (${Math.round(fa.downed.loss)}% Blutverlust)`, () => this.firstAid(fa), 3.5, { long: true, at: fa });
+        // ground items next to you: tap E, the one you look at first
+        const its = this.items.filter((x) => !x.taken && Math.hypot(x.x - a.x, x.y - a.y) < 30).sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y)).slice(0, 3);
+        for (const it of its) add('E', `Aufheben: ${this.itemLabel(it)}`, () => this.pickup(it), 0, { at: it });
         const b = this.nearestBody();
         if (b) {
-          add('E', b.alive ? 'Bewusstlosen ziehen' : 'Leiche ziehen', () => this.startDrag(b));
+          const who = b.alive ? 'Bewusstlosen' : 'Leiche';
+          if (!b.looted) add('E', `${who} durchsuchen`, () => this.lootBody(b), 0.9, { at: b, tick: () => { if (b.dragBy || b.hidden) this.action = null; } });
+          if (!fa || fa !== b) add('E', `${who} ziehen`, () => this.startDrag(b), 0, { long: true, at: b });
           if (!b.stripped && b.outfit !== P.outfit && K.OUTFITS[b.outfit]) add('T', `Verkleiden: ${K.OUTFITS[b.outfit].name || 'Kleidung'}`, () => this.takeDisguise(b), 1.4);
         }
-      }
-      // first aid on somebody critical (needs a bandage, tourniquet or medkit)
-      if (!this.drag && this.firstAidTarget) {
-        const fa = this.firstAidTarget();
-        if (fa && (P.inv.medkit || P.inv.bandage || P.inv.tourniquet)) { add('E', `Erste Hilfe: ${fa.name || 'Verletzter'} (${Math.round(fa.downed.loss)}% Blutverlust)`, () => this.firstAid(fa), 3.5); return out; }
-      }
-      // ground items
-      if (!this.drag) {
-        let it = null, bd = 26;
-        for (const x of this.items) { if (x.taken) continue; const d = Math.hypot(x.x - a.x, x.y - a.y); if (d < bd) { bd = d; it = x; } }
-        if (it) add('E', `Aufheben: ${this.itemLabel(it)}`, () => this.pickup(it));
+        if (fa && (P.inv.medkit || P.inv.bandage || P.inv.tourniquet)) return out;
       }
       // doors
       const door = !this.drag && this.lockedDoorNear();
@@ -271,6 +299,7 @@
         if (door.access && door.access.includes('owner') && b && !b.owned) add('E', 'Verschlossen — Immobilie zu verkaufen', null);
         else if (hasPick || hasBar) add('E', hasBar && !hasPick ? 'Tür aufbrechen (Brecheisen)' : 'Schloss knacken', () => this.pickDoor(door, !hasPick), hasPick ? 2.6 : 1.3, { tick: hasBar && !hasPick ? (dt) => { if (Math.random() < dt * 3) this.noise(a.x, a.y, 5, 'scuffle', a); } : null });
         else add('E', 'Verschlossen — Dietrich nötig', null);
+        if (b && this.privateBuilding(b) && this.householdSounds) add('T', 'An der Tür lauschen', () => this.notify(this.householdSounds(b), 'info'), 1.6);
       }
       // hide yourself
       if (!this.drag && this.hideSpotNearPlayer) {
@@ -335,7 +364,7 @@
     hideBody(spot) {
       const b = this.byId.get(this.drag);
       if (!b) return;
-      b.hidden = true; b.dragBy = 0; this.drag = null;
+      b.hidden = true; b.dragBy = 0; this.drag = null; b.hiddenSpot = spot.id;
       spot.bodies = (spot.bodies || 0) + 1;
       this.emit('hideBody', { x: (spot.x + spot.w / 2) * TILE, y: (spot.y + spot.h / 2) * TILE, k: spot.k });
       this.addXP(15, 'Leiche versteckt');

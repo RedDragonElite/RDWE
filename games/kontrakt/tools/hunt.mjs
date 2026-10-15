@@ -24,6 +24,7 @@ console.log('witness calls (rde_aipd)');
   const w2 = mk(); w2.updatePolice = () => {};
   const c2 = w2.actors.find((a) => a.kind === 'civ' && a.alive && !a.inCar && w2.bldAt(a.x, a.y) < 0);
   const p2 = w2.player; p2.x = c2.x - 20 * TILE; p2.y = c2.y; w2.rebuildGrid();
+  c2.state = 'idle'; c2.brain.t = 30;   // a wandering caller could stroll right up to you
   const sx = c2.x, sy = c2.y; w2.startCall(c2, 'shots', sx, sy);
   let n = 0; while (w2.wanted < 1 && n++ < 60 * 10) run(w2, 1);
   check(w2.wanted >= 1, `left alone the call goes through → stars (${w2.wanted})`);

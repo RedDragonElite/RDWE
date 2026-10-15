@@ -269,6 +269,8 @@
       if (this.updateProps) this.updateProps(dt);
       if (this.updateMedical) this.updateMedical(dt);
       if (this.updateOrg) this.updateOrg(dt);
+      if (this.updateResidents) this.updateResidents(dt);
+      if (this.updateServices) this.updateServices(dt);
       this.updatePopulation(dt);
       if (this.tick % 120 === 0) this.cleanup();
     }

@@ -16,6 +16,7 @@
 
   // ------------------------------------------------------------------ weapons
   // dmg per hit/pellet · rate = seconds between shots · spread rad · noise = hearing radius in tiles
+  K.HOLD_E = 0.3;   // seconds E must be held for the long-press action (drag) instead of the tap action
   K.WEAPONS = {
     fists:    { name: 'Fäuste', type: 'fist', dmg: 13, range: 30, arc: 1.1, rate: 0.3, noise: 5, w: 0 },
     wire:     { name: 'Klaviersaite', type: 'wire', dmg: 0, range: 26, rate: 0.5, noise: 0, w: 0.1, price: 400, desc: 'Lautlose Takedowns von hinten [F]. Keine Blutspur.' },

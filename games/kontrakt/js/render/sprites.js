@@ -197,6 +197,17 @@
     x.restore();
   };
 
+  /** somebody asleep in bed: head on the pillow, the rest under the duvet */
+  K.drawSleeper = function (x, a) {
+    const skin = a.skin || '#e0b08a', duvet = ['#c9c2b4', '#8c9bb0', '#a88f7a', '#7f8f7a', '#b5a3b8'][a.id % 5];
+    x.save(); x.translate(a.x, a.y); x.rotate(a.angle || 0);
+    x.fillStyle = skin; circ(x, -17, 0, 5.2); x.fill();
+    if (a.hair) { x.fillStyle = a.hair; x.beginPath(); x.arc(-17.5, 0, 5.4, Math.PI * 0.55, Math.PI * 1.45); x.closePath(); x.fill(); }
+    x.fillStyle = duvet; x.beginPath(); x.moveTo(-11, -9); x.lineTo(22, -9.5); x.lineTo(22, 9.5); x.lineTo(-11, 9); x.quadraticCurveTo(-13, 0, -11, -9); x.fill();
+    x.strokeStyle = 'rgba(0,0,0,0.18)'; x.lineWidth = 1; x.beginPath(); x.moveTo(-6, -7); x.quadraticCurveTo(4, -2 + Math.sin(Date.now() / 900 + a.id) * 0.6, 18, -6); x.moveTo(-4, 6); x.quadraticCurveTo(6, 2, 18, 6); x.stroke();
+    x.restore();
+  };
+
   /** lying body (dead or unconscious) */
   K.drawBody = function (x, a, w) {
     const of = K.OUTFITS[a.outfit] || K.OUTFITS.civ1;
@@ -274,6 +285,15 @@
       x.fillStyle = '#d4202a'; x.fillRect(-hl + 4, -hw + 1, L - 8, 4); x.fillRect(-hl + 4, hw - 5, L - 8, 4);
       x.fillStyle = '#f2c200'; for (let k = 0; k < 8; k++) { x.fillRect(-hl + 6 + k * 8, -hw + 1, 4, 2); x.fillRect(-hl + 6 + k * 8, hw - 3, 4, 2); }
       x.fillStyle = '#d4202a'; x.fillRect(-hl + 18, -3.5, 12, 7); x.fillRect(-hl + 20.5, -6, 7, 12);
+    }
+    if (c.livery) {   // city service vans: reflective stripes, roof beacon, a word on the roof
+      const L2 = { coroner: ['#7d828c', 'BESTATTER'], clean: ['#f4f4f0', 'STADTREINIGUNG'], power: ['#1f2f55', 'STADTWERKE'], tow: ['#121212', 'ABSCHLEPP'] }[c.livery];
+      if (L2) {
+        x.fillStyle = L2[0]; x.fillRect(-hl + 5, -hw + 1, L - 10, 3); x.fillRect(-hl + 5, hw - 4, L - 10, 3);
+        if (c.livery !== 'coroner') { const on = Math.floor(t * 4) % 2; x.fillStyle = on && c.blink ? '#ffb020' : '#7a5a14'; x.fillRect(hl - 30, -6, 4, 12); }
+        x.save(); x.fillStyle = c.livery === 'coroner' ? 'rgba(220,222,228,0.75)' : 'rgba(20,20,24,0.8)'; x.font = '600 6px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(L2[1], -6, 0); x.restore();
+        if (c.livery === 'tow') { x.strokeStyle = '#2a2a2a'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-hl + 4, 0); x.lineTo(-hl - 6, 0); x.stroke(); x.fillStyle = '#c9a020'; x.fillRect(-hl - 9, -3, 4, 6); }
+      }
     }
     if (c.kind === 'taxi') { x.fillStyle = '#111'; for (let k = 0; k < 6; k++) x.fillRect(-hl + 16 + k * 5, (k & 1) ? -hw + 2 : hw - 4, 5, 2); }
     const stripe = tu.color2 || (c.kind === 'sport' || c.kind === 'muscle' ? 'rgba(255,255,255,0.75)' : null);

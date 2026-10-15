@@ -71,9 +71,15 @@
 
 <div id="mapview" class="hidden">
   <div class="mv-box">
-    <header><h2>Krähenburg</h2><span>Klick = Wegpunkt · Rechtsklick = löschen · M/ESC = schließen</span></header>
-    <canvas id="bigmap"></canvas>
-    <div id="mv-legend"></div>
+    <header><h2>Krähenburg</h2><span>Mausrad = Zoom · Ziehen = Verschieben · Klick = Wegpunkt · Rechtsklick = löschen · M/ESC = schließen</span></header>
+    <div class="mv-main">
+      <div class="mv-stage">
+        <canvas id="bigmap"></canvas>
+        <div class="mv-ctl"><button data-mv="in" title="Hineinzoomen (+)">+</button><button data-mv="out" title="Herauszoomen (−)">−</button><button data-mv="me" title="Auf mich zentrieren (Leertaste)">◎</button><button data-mv="fit" title="Ganze Stadt (0)">⤢</button><button data-mv="leg" title="Legende ein/aus (L)">☰</button></div>
+        <div class="mv-scale" id="mv-scale"></div>
+      </div>
+      <aside id="mv-legend"></aside>
+    </div>
   </div>
 </div>
 
@@ -134,6 +140,8 @@
 <script src="js/game/manhunt.js"></script>
 <script src="js/game/medical.js"></script>
 <script src="js/game/org.js"></script>
+<script src="js/game/residents.js"></script>
+<script src="js/game/services.js"></script>
 <script src="js/render/textures.js"></script>
 <script src="js/render/sprites.js"></script>
 <script src="js/render/fx.js"></script>

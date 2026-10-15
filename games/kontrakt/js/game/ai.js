@@ -218,6 +218,7 @@
         this.tickWeapon(a, dt);
         if (a.ko > 0 || a.dragBy) { a.vx *= 0.85; a.vy *= 0.85; a.seesPlayer = false; continue; }
         if (a.state === 'cuffed') { this.ai_cuffed(a, dt); a.vx *= 0.8; a.vy *= 0.8; a.seesPlayer = false; continue; }
+        if (a.state === 'sleep') { this.ai_sleep(a, dt); continue; }   // eyes shut: only noise wakes them (hear)
         const far = Math.abs(a.x - p.x) > 55 * TILE || Math.abs(a.y - p.y) > 55 * TILE;
         a.thinkT = (a.thinkT || Math.random() * 0.2) - dt;
         if (a.thinkT <= 0) { const iv = far ? 1.2 : 0.16 + Math.random() * 0.06; this.perceive(a, iv); a.thinkT = iv; }
@@ -328,8 +329,9 @@
     alarm(a, perp) {
       if (a.state === 'cuffed') return;
       if (!a.alive || a.ko > 0) return;
-      const civ = a.kind === 'civ' || ((a.kind === 'keeper' || a.kind === 'staff') && !a.armedKeeper);
+      const civ = (a.kind === 'civ' && !(a.defender && a.gun)) || ((a.kind === 'keeper' || a.kind === 'staff') && !a.armedKeeper);
       if (civ) { this.flee(a, perp.x, perp.y, true); return; }
+      if (a.defender) this.residentArm(a);
       a.foe = perp && perp.kind !== 'player' ? perp.id : 0;
       if (a.state !== 'hostile') {
         a.state = 'hostile'; a.brain.react = a.kind === 'cop' ? 0.9 + Math.random() * 0.7 : 0.35 + Math.random() * 0.45; a.brain.lost = 0; a.brain.sdir = Math.random() < 0.5 ? 1 : -1; a.brain.st = 0;
@@ -374,6 +376,13 @@
           return;
         }
         if (why === 'trespass') {
+          if (a.defender) {   // keeps a pistol in the nightstand
+            this.residentArm(a);
+            this.bark(a, U.pick(['Ich bin bewaffnet! Raus aus meinem Haus!', 'Keinen Schritt weiter, ich schieße!', 'Verschwinde, oder ich drück ab!']), 2.4);
+            a.state = 'warn'; a.brain.why = 'trespass'; a.brain.warnT = 2.2 + Math.random(); a.goal = null; a.path = null;
+            a.reportT = 6 + Math.random() * 3; a.reportType = 'trespass'; a.reportX = p.x; a.reportY = p.y;
+            return;
+          }
           this.bark(a, U.pick(['Was machen Sie hier?!', 'Raus aus meinem Haus!', 'Hilfe, ein Einbrecher!']));
           this.flee(a, p.x, p.y, false); a.reportT = 4 + Math.random() * 3; a.reportType = 'trespass'; a.reportX = p.x; a.reportY = p.y;
           this.note('spotted', { n: a });
@@ -421,6 +430,11 @@
     },
     hear(a, kind, x, y, src) {
       if (a.state === 'cuffed') return;
+      if (a.state === 'sleep') {
+        if ((kind === 'coin' || kind === 'scuffle' || kind === 'step') && Math.random() > K.HOME.sleepWake) return;
+        this.wakeResident(a, true);
+        if (kind === 'coin' || kind === 'scuffle' || kind === 'step') { a.state = 'investigate'; a.brain.prev = 'home'; a.brain.ix = x; a.brain.iy = y; a.brain.lookT = 0; return; }
+      }
       if (a.state === 'hostile' || a.state === 'dead') { if (kind === 'shot' && a.state === 'hostile' && src && src.kind === 'player') { a.brain.lx = x; a.brain.ly = y; } return; }
       const k = a.kind;
       if (kind === 'shot' || kind === 'explosion' || kind === 'glass') {

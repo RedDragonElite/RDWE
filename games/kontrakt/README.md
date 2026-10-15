@@ -24,13 +24,33 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Wohnhäuser, Büros, Grand Hotel, Villen mit Pool und Garten, Lagerhallen, Polizeirevier, Klinik, Club, Bar, Diner, Späti, Apotheke, Boutique, Waffenladen und Schwarzmarkt.
 - **Leben in den Straßen:**
   - Passanten mit Tagesrhythmus
-  - Verkehr auf zwei Spuren mit Zebrastreifen
   - Ladenbesitzer, Köche, Kellner, Ärzte, Türsteher, Wachen, Polizei-Streifen und eine Hafen-Crew
+- **Verkehr, der fahren kann:**
+  - Hält die Spur, fährt Kurven als Bögen und bremst weich hinter dem Vordermann.
+  - Wartet an Kreuzungen, bis die Kreuzung frei ist, und blinkt vor dem Abbiegen.
+  - Überholt Autos, die stehen geblieben oder verlassen sind, wenn der Gegenverkehr frei ist, und hupt dich an, wenn du im Weg stehst.
+- **Bewohner in jeder Wohnung:**
+  - Jedes Haus und jede Wohnung hat einen Haushalt mit 1 bis 4 Leuten mit Beruf und Tagesablauf: Büro, Schichtdienst, Nachtschicht, Rentner, Studenten.
+  - Unter der Woche sind Büroleute tagsüber weg, Studenten feiern freitags und samstags, nachts schlafen alle in ihren Betten.
+  - Sie gehen durch die Haustür zur Arbeit und kommen wieder heim.
+  - **T halten an der Haustür:** lauschen, ob jemand da ist und ob er wach ist.
+  - Schläfer sehen dich nicht, aber Lärm weckt sie. Wer dich erwischt, flieht und ruft die Polizei. Manche haben eine Pistole im Nachttisch.
+  - Tote Mieter bleiben tot; nach drei Tagen zieht jemand Neues ein.
+- **Stadtdienste räumen auf** (1 Sekunde = 1 Spielminute):
+  - Gefundene Leichen holt der Bestatter nach 25–50 Minuten. Ungefundene werden nach 2,5–5 Stunden gefunden.
+  - Danach wischt die Stadtreinigung das Blut weg.
+  - Kaputte Laternen ersetzen die Stadtwerke nach 6–14 Stunden; umgefahrene Hydranten, Bänke und Schilder stehen nach 2,5–7 Stunden wieder.
+  - Ausgebrannte Wracks schleppt der Abschleppdienst nach 1–2,5 Stunden ab.
+  - Alle anderen Blutflecken, Bremsspuren und Hülsen verblassen in etwa einem Spieltag, Regen wäscht sie in ein paar Stunden weg.
+  - Die Müllabfuhr leert jeden zweiten Morgen um 06:00 die Container, samt der Leichen darin. Manchmal meldet der Polizeifunk den Fund.
+  - In deiner Nähe kommen die Teams mit eigenem Wagen und erledigen den Job zu Fuß. Woanders in der Stadt passiert es einfach.
 - **Tag-Nacht-Zyklus:** 1 Sekunde Echtzeit entspricht 1 Spielminute.
   - Straßenlaternen, beleuchtete Fenster, Neonschilder und Scheinwerfer
   - Sonnenschatten, die mit der Tageszeit wandern
 - **Wetter:** klar, bewölkt, Regen, Gewitter mit Blitz und Donner, Nebel.
   - Regen dämpft Schüsse und Schritte, Nebel senkt Sichtweiten, nasse Straßen spiegeln das Licht.
+  - Echte Wolkenschatten aus nahtlosem Rauschen: bei aufgelockerter Bewölkung hart und ziehend, bei geschlossener Decke ein gleichmäßiges Grau, Tempo je nach Wind.
+  - Nebel aus zwei Schwaden-Schichten mit Parallaxe, nachts dunkel statt leuchtend; Regen bringt Dunst mit.
 
 ### Assassinen-Gameplay
 - **Aufträge per Handy.** Jeder Auftrag hat:
@@ -257,9 +277,11 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 - **Stripclub „Velvet“:** Neonbühne mit zwei Stangen, Tänzerinnen, Türsteher, Champagner-Bar und VIP-Bereich.
   - Trinkgeld geben (E) oder einen Privattanz buchen (T).
   - Stammgäste hören Dinge: Nach ein paar Trinkgeldern verrät dir eine Tänzerin, wo dein Auftragsziel ist (Intel gratis).
-- **Karte im Vice-City-Stil:**
-  - Pastellviertel, Neonstraßen in Pink und Cyan, Sunset-Himmel mit Retro-Sonne.
-  - Viertelnamen in Neon-Schrift, Icons in Neonringen, Minimap mit Pink-Cyan-Rahmen.
+- **Taktische Stadtkarte (M):**
+  - Graphit-Dossier-Look mit Vermessungsraster, Viertelnamen in Oswald, Reviere in Gangfarben.
+  - Mausrad zoomt bis 12× auf den Mauszeiger, mit gedrückter Maus verschiebst du die Karte, Klick setzt einen Wegpunkt.
+  - Nah herangezoomt stehen die Namen aller Gebäude und Läden auf der Karte, dazu eine Maßstabsleiste.
+  - Die Legende ist eine eigene Spalte neben der Karte, nach Gruppen sortiert, und lässt sich mit L ausblenden.
 - **14 Immobilien**, davon 7 Geschäfte mit Tageseinnahmen:
   - Bar ($1.500 pro Tag), Tankstelle ($900), Diner ($700), Werkstatt ($1.200)
   - Beachclub „Sunset“ ($2.000), Beachclub „Flamingo“ ($2.600), Stripclub „Velvet“ ($3.400)
@@ -368,7 +390,7 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 - **Gebackene Boden-Chunks** mit prozeduralen Texturen: Asphalt, Pflaster, Parkett, Marmor, Teppich, Gras.
 - **Ambient Occlusion** an Wänden.
 - **Lightmap** mit Multiply-Compositing. Licht von Raumlampen fällt nicht durch Wände.
-- **Wolkenschatten** und sichtbare Lichtkegel.
+- **Wolkenschatten** (nahtlos, sie dunkeln die Lightmap ab) und sichtbare Lichtkegel.
 - **WebGL2-Post-FX:**
   - Bloom, Chromatic Aberration bei Treffern, Color Grading
   - Instinkt-Entsättigung (Rot bleibt), Trunkenheits-Wabern, Film-Grain
@@ -401,12 +423,13 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 | **W A S D** | Bewegen | **Maus** | Zielen |
 | **Shift** | Sprinten | **LMB** | Angriff / Schießen / Werfen |
 | **C** | Ducken | **RMB** | Präzise zielen / Zielfernrohr |
-| **E** | Interagieren / Leiche ziehen | **R** | Nachladen |
+| **E tippen** | Aufheben · Durchsuchen · Benutzen (das, was du anschaust) | **E halten** | Leiche / Bewusstlosen ziehen |
+| **R** | Nachladen | **T halten an Haustür** | Lauschen |
 | **F** | Takedown / Auto | **T** | Verkleidung nehmen |
 | **Q** (halten) | Instinkt | **G** | C4 zünden |
 | **1–9 / Mausrad** | Waffe wählen | **H** | Holstern |
 | **TAB** | Inventar | **P** | Handy |
-| **M** | Karte | **L** | Taschenlampe |
+| **M** | Karte: Mausrad/+− Zoom, Ziehen/Pfeile verschieben, Leertaste auf dich, 0 ganze Stadt, L Legende | **L** | Taschenlampe |
 | **Z** | Zoomstufe | **ESC** | Pause |
 | **Leertaste** | Handbremse | **F11** | Vollbild |
 | **X** | Ergeben | **K** | Kaution zahlen |
@@ -436,7 +459,9 @@ games/kontrakt/
 │                         economy, combat, crime, ai, contracts, vehicles, player, underworld,
 │                         police (Einheiten, Einsatzregeln), criminals, heists, crew, gangs,
 │                         autos (Modelle, Schaden, Sprit, Cockpit), carservice (Autohaus, Tanken, Werkstatt, App)
-│                         nightlife, hotbar, props (Platzieren, Container, Schlösser, Stationen, Einbrecher)
+│                         nightlife, hotbar, props (Platzieren, Container, Schlösser, Stationen, Einbrecher),
+│                         manhunt, medical, org, residents (Haushalte, Tagesablauf, Schlaf),
+│                         services (Bestatter, Stadtreinigung, Stadtwerke, Abschleppdienst, Müllabfuhr)
 ├── js/render/            textures, sprites (Menschen, Autos, Möbel), fx (Partikel, Decals),
 │                         renderer (Chunks, Dächer, Schatten, Sichtfeld, Lightmap, Wetter, Overlay), post (WebGL2)
 ├── js/audio/audio.js     prozedurale SFX, Ambience und generative Musik
@@ -450,6 +475,7 @@ games/kontrakt/
   - `node tools/scenarios.mjs` prüft die KI: Hausfriedensbruch, Verkleidung, Münzen-Ablenkung, Leichenfund, Zeugen mit Polizei, Klaviersaite.
   - `node tools/crime.mjs` prüft Unterwelt, Überfälle, Gangs und Reviere; `node tools/city.mjs` prüft Strand, Clubs, Tänzerinnen und Immobilien; `node tools/cars.mjs` prüft Sprit, Crashs, Verformung, Gurt, Laternen, Reifen, Tuning, Autohaus, Zapfsäule, Werkstatt und Car Service.
   - `node tools/arms.mjs` prüft Scharfschützengewehre, Scope-Wackeln, Atem anhalten und .50-Durchschlag; `node tools/props.mjs` prüft Platzieren, Container, Schlösser, Stationen, Einbrecher und Speichern der Props; `node tools/hunt.mjs` prüft Notrufe, Funk, Suche, Sternabbau, Verstecke, Hubschrauber, Straßensperren und PIT; `node tools/medical.mjs` prüft Trefferzonen, Blutungen, Brüche, kritischen Zustand, Erste Hilfe und Rettungswagen; `node tools/org.mjs` prüft Rang, Schutzgeld, Dealer, Geschäfte und Gang-Revierkämpfe.
+  - `node tools/life.mjs` prüft Haushalte, Tagesabläufe, Schläfer, Einbruch-Reaktionen, neue Mieter, die E-Tasten-Aufteilung, alle Stadtdienste und den Verkehr (Unfälle, Staus, Spur, Blinker).
 - **Speichern** in `localStorage`. Die Stadt wird aus dem Seed neu erzeugt, deshalb bleibt der Spielstand klein.
 
 *Red Dragon Elite · pure HTML · CSS · JavaScript*

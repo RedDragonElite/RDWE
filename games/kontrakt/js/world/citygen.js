@@ -406,7 +406,16 @@
         // private homes: locked, a little loot in the safe for burglars
         for (const d of b.doors) if (d.outer) { d.locked = true; d.access = ['resident']; }
         b.loot = rng.chance(0.55) ? 200 + rng.int(1400) : 0;
-        if (b.loot) { const br = b.rooms.find((r) => r.role === 'bedroom') || b.rooms[b.rooms.length - 1]; put(b, br, 'safe', 1, 1, 'wall'); }
+        const br = b.rooms.find((r) => r.role === 'bedroom') || b.rooms[b.rooms.length - 1];
+        if (b.loot) put(b, br, 'safe', 1, 1, 'wall');
+        // somebody lives here: there is always a bed (a sofa bed in a one-room flat)
+        const hasBed = () => props.some((p) => p && p.bld === b.id && p.k === 'bed');
+        for (let tries = 0; !hasBed() && tries < 8; tries++) {
+          if ([br, ...b.rooms].some((r) => r && putFlex(b, r, 'bed', 2, 'wall'))) break;
+          // too crowded: clear out a bit of furniture and try again
+          const junk = props.find((p) => p && p.bld === b.id && ['table', 'plant', 'shelf', 'bookshelf', 'armchair', 'floorlamp', 'dresser', 'rug', 'desk', 'tv', 'sofa', 'kcounter'].includes(p.k));
+          if (!junk) break; removeProp(junk);
+        }
       }
     }
 

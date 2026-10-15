@@ -50,10 +50,57 @@
       for (let i = 0; i < 128 * 128; i++) { const v = U.fbm((i % 128) / 16, ((i / 128) | 0) / 16, 5, 4); id.data[i * 4] = id.data[i * 4 + 1] = id.data[i * 4 + 2] = 255; id.data[i * 4 + 3] = Math.max(0, (v - 0.45) * 2.2) * 255; }
       nx.putImageData(id, 0, 0);
       this.cloudTex = n;
+      this.skyCov = -1;
+      this.fogTex = this.mkSkyTex(256, 3, 5, 91, (v) => { const e = U.clamp((v - 0.36) * 2.8, 0, 1); return e * e * (3 - 2 * e) * 0.95; });
       const wv = K.mkCanvas(128, 128), wx = wv.getContext('2d');
       wx.strokeStyle = 'rgba(255,255,255,0.10)'; wx.lineWidth = 2;
       for (let k = 0; k < 18; k++) { const y = (k * 37) % 128, x = (k * 53) % 128; wx.beginPath(); wx.moveTo(x, y); wx.quadraticCurveTo(x + 10, y - 4, x + 22, y); wx.stroke(); }
       this.waveTex = wv;
+    }
+    /** seamless fbm sky texture: every octave wraps on the texture edge, so tiling shows no seams */
+    mkSkyTex(sz, base, oct, seed, f) {
+      const c = K.mkCanvas(sz, sz), x = c.getContext('2d'), id = x.createImageData(sz, sz);
+      const h = U.hash2;
+      const pn = (px, py, per, s) => {
+        const xi = Math.floor(px), yi = Math.floor(py), xf = px - xi, yf = py - yi;
+        const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+        const x0 = ((xi % per) + per) % per, y0 = ((yi % per) + per) % per, x1 = (x0 + 1) % per, y1 = (y0 + 1) % per;
+        const A = h(x0, y0, s), B = h(x1, y0, s), C = h(x0, y1, s), D = h(x1, y1, s);
+        return A + (B - A) * u + (C - A) * v + (A - B - C + D) * u * v;
+      };
+      for (let j = 0; j < sz; j++) for (let i = 0; i < sz; i++) {
+        let v = 0, a = 0.5, per = base, norm = 0;
+        for (let o = 0; o < oct; o++) { v += pn((i / sz) * per, (j / sz) * per, per, seed + o * 31) * a; norm += a; a *= 0.5; per *= 2; }
+        const k = (j * sz + i) * 4;
+        id.data[k] = id.data[k + 1] = id.data[k + 2] = 255; id.data[k + 3] = f(v / norm) * 255;
+      }
+      x.putImageData(id, 0, 0);
+      return c;
+    }
+    /** mist coloured for the light level: pale grey by day, a dim blue-grey at night (it must not glow in the dark) */
+    fogTint(br) {
+      const q = Math.round(br * 8) / 8;
+      if (q !== this.fogQ) {
+        this.fogQ = q;
+        if (!this.fogCol) this.fogCol = K.mkCanvas(256, 256);
+        const x = this.fogCol.getContext('2d');
+        x.globalCompositeOperation = 'copy'; x.drawImage(this.fogTex, 0, 0);
+        x.globalCompositeOperation = 'source-in'; x.fillStyle = `rgb(${200 * q | 0},${206 * q | 0},${214 * q | 0})`; x.fillRect(0, 0, 256, 256);
+        x.globalCompositeOperation = 'source-over';
+      }
+      return this.fogCol;
+    }
+    /** cloud shadow mask for the current coverage; rebuilt only when coverage moves noticeably */
+    cloudShadowTex(cov) {
+      const q = Math.round(cov * 10) / 10;
+      if (q !== this.skyCov) {
+        this.skyCov = q;
+        const t = 0.66 - q * 0.36;
+        this.skyTex = this.mkSkyTex(256, 3, 6, 47, (v) => { const e = U.clamp((v - t) / 0.16, 0, 1); return e * e * (3 - 2 * e) * (0.65 + 0.35 * U.clamp((v - t) / 0.3, 0, 1)); });
+        // tint: a cool shadow colour, drawn over the lightmap
+        const x = this.skyTex.getContext('2d'); x.globalCompositeOperation = 'source-in'; x.fillStyle = 'rgb(62,70,86)'; x.fillRect(0, 0, 256, 256);
+      }
+      return this.skyTex;
     }
     resize() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2) * this.resScale;
@@ -324,6 +371,7 @@
       this.updateCamera(dt);
       this.fx.gore = g.settings.gore ? 1 : 0;
       this.fx.update(dt);
+      this.fx.weather(dt, w.weather.rain, this.time);
       const z = cam.z;
       const vx0 = cam.vx, vy0 = cam.vy, vx1 = vx0 + this.cw / z, vy1 = vy0 + this.ch / z;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -422,6 +470,7 @@
         if (a.x < vx0 - 30 || a.x > vx1 + 30 || a.y < vy0 - 30 || a.y > vy1 + 30) continue;
         if (a !== p && !this.visible(a)) continue;
         if (a === p && p.hidden) continue;
+        if (a.state === 'sleep') { K.drawSleeper(ctx, a); continue; }
         K.drawHuman(ctx, a, w, { sx: 2 + sun.dx * 3 * sun.a, sy: 3 + sun.dy * 3 * sun.a, td: a === p && td });
         if (a.bleed > 0 && Math.random() < dt * a.bleed * 3) this.fx.decal('drop', a.x + U.rnd(-5, 5), a.y + U.rnd(-5, 5));
       }
@@ -664,12 +713,15 @@
       l.fillStyle = `rgb(${amb[0] | 0},${amb[1] | 0},${amb[2] | 0})`; l.fillRect(0, 0, lw, lh);
       l.setTransform(z, 0, 0, z, -this.cam.vx * z, -this.cam.vy * z);
       // cloud shadows drift over the city by day
-      if (d > 0.2 && this.g.settings.clouds) {
-        l.globalCompositeOperation = 'destination-out';
-        l.globalAlpha = 0.28 * d * (0.4 + w.weather.cloud);
-        const sc = 1400, ox = (this.time * 18) % sc, oy = (this.time * 7) % sc;
-        for (let x = Math.floor((vx0 - ox) / sc) * sc + ox; x < vx1; x += sc) for (let y = Math.floor((vy0 - oy) / sc) * sc + oy; y < vy1; y += sc) l.drawImage(this.cloudTex, x, y, sc, sc);
-        l.globalCompositeOperation = 'source-over';
+      // the lightmap is multiplied over the scene, so a shadow must darken it (never punch holes into it)
+      if (d > 0.15 && this.g.settings.clouds) {
+        const wx = w.weather, cov = U.clamp(0.12 + wx.cloud * 0.8, 0, 0.95);
+        // under a closed overcast sky the shadows merge into an even grey; broken clouds cast the hardest shadows
+        l.globalAlpha = d * (0.45 + 0.45 * (1 - Math.abs(cov - 0.5) * 1.4)) * (1 - wx.rain * 0.45);
+        const tex = this.cloudShadowTex(cov), sc = 3200, sp = 14 + wx.wind * 40;
+        const ox = (this.time * sp) % sc, oy = (this.time * sp * 0.38) % sc;
+        for (let x = Math.floor((vx0 - ox) / sc) * sc + ox; x < vx1; x += sc) for (let y = Math.floor((vy0 - oy) / sc) * sc + oy; y < vy1; y += sc) l.drawImage(tex, x, y, sc + 1, sc + 1);
+        l.globalAlpha = 1;
       }
       l.globalCompositeOperation = 'lighter';
       const nightK = 1 - d;
@@ -771,11 +823,17 @@
         }
         ctx.stroke();
       }
-      if (wx.fog > 0.04) {
-        ctx.globalAlpha = Math.min(0.75, wx.fog * 0.75);
-        const sc = 900 * this.cam.z, ox = ((this.time * 12 - this.cam.vx) * this.cam.z) % sc, oy = ((-this.cam.vy) * this.cam.z * 0.9) % sc;
-        for (let x = ox - sc; x < this.cw; x += sc) for (let y = oy - sc; y < this.ch; y += sc) ctx.drawImage(this.cloudTex, x, y, sc, sc);
-        ctx.fillStyle = `rgba(160,170,180,${wx.fog * 0.18})`; ctx.fillRect(0, 0, this.cw, this.ch);
+      if (wx.fog > 0.04 || (wx.rain > 0.3 && g.settings.weather)) {
+        // two seamless banks of mist at different heights drift with the wind (parallax), plus an even haze
+        const fog = Math.max(wx.fog, (wx.rain - 0.3) * 0.35), br = 0.28 + w.daylight() * 0.72;
+        ctx.fillStyle = `rgba(${150 * br | 0},${160 * br | 0},${172 * br | 0},${fog * 0.22})`; ctx.fillRect(0, 0, this.cw, this.ch);
+        for (const [scW, sp, par, al] of [[1700, 9, 1, 0.55], [1100, 16, 1.18, 0.4]]) {
+          const z = this.cam.z * par, sc = scW * z;
+          const ox = U.mod((this.time * sp - this.cam.vx) * z, sc), oy = U.mod((this.time * sp * 0.3 - this.cam.vy) * z, sc);
+          ctx.globalAlpha = Math.min(0.8, fog * al);
+          const ft = this.fogTint(br);
+          for (let x = ox - sc; x < this.cw; x += sc) for (let y = oy - sc; y < this.ch; y += sc) ctx.drawImage(ft, x, y, sc + 1, sc + 1);
+        }
         ctx.globalAlpha = 1;
       }
       if (wx.flash > 0.5) { ctx.fillStyle = `rgba(230,235,255,${(wx.flash - 0.5) * 0.5})`; ctx.fillRect(0, 0, this.cw, this.ch); }
@@ -879,7 +937,7 @@
         if (!vis && !instinct) continue;
         const hy = sy - 22 * zs;
         const st = a.state;
-        if (a.ko > 0) { if (Math.floor(this.time * 1.5 + a.id) % 3 === 0) { o.fillStyle = 'rgba(200,220,255,0.8)'; o.font = `bold ${11 * s}px sans-serif`; o.textAlign = 'center'; o.fillText('z', sx + 8 * s, hy + 6 * s); } continue; }
+        if (a.ko > 0 || st === 'sleep') { if (Math.floor(this.time * 1.5 + a.id) % 3 === 0) { o.fillStyle = 'rgba(200,220,255,0.8)'; o.font = `bold ${11 * s}px sans-serif`; o.textAlign = 'center'; o.fillText('z', sx + 8 * s, hy + 6 * s); } continue; }
         if (a.kind === 'crew') {   // your people: green chevron + name
           o.fillStyle = st === 'hostile' ? '#ffd34d' : '#3ddc84'; o.beginPath(); o.moveTo(sx - 5 * s, hy - 3 * s); o.lineTo(sx, hy + 3 * s); o.lineTo(sx + 5 * s, hy - 3 * s); o.closePath(); o.fill();
           o.font = `600 ${9.5 * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.textBaseline = 'bottom'; o.fillStyle = 'rgba(220,255,230,0.85)'; o.fillText(a.name.split(' ')[0], sx, hy - 5 * s);
@@ -1110,6 +1168,10 @@
         case 'exhaustFlame': fx.fire(e.x, e.y, 2); fx.light(e.x, e.y, 70, [180, 120, 255], 0.6, 0.1); break;
         case 'geyser': fx.add({ k: 'smoke', x: e.x + U.rnd(-4, 4), y: e.y + U.rnd(-4, 4), vx: U.rnd(-40, 40), vy: U.rnd(-90, -30), life: 0.7, max: 0.7, size: 3, grow: 10, col: [170, 210, 255], a: 0.7 }); if (Math.random() < 0.1) fx.decal('drop', e.x + U.rnd(-30, 30), e.y + U.rnd(-30, 30), { s: 2, col: 'water' }); break;
         case 'tireBurst': fx.sparks(e.x, e.y, Math.random() * 6.3, 8); fx.dust(e.x, e.y, 4, [60, 60, 60]); break;
+        case 'clean': fx.clean(e.x, e.y, e.r, e.k); break;
+        case 'svcBag': fx.dust(e.x, e.y, 6, [40, 42, 48]); break;
+        case 'svcMop': fx.dust(e.x, e.y, 1, [200, 210, 220]); fx.decal('drop', e.x + U.rnd(-6, 6), e.y + U.rnd(-6, 6), { col: 'water', s: 2.4 }); break;
+        case 'svcSpark': fx.sparks(e.x, e.y, Math.random() * 6.3, 2, [255, 230, 160]); break;
         case 'propChanged': for (let j = e.y - 1; j <= e.y + e.h + 3; j++) for (let i = e.x - 1; i <= e.x + e.w + 3; i++) this.invalidateTile(i, j); break;
         case 'propSmash': this.invalidateTile(e.tx, e.ty); fx.sparks(e.x, e.y, Math.random() * 6.3, e.k === 'lamp' ? 14 : 6); if (e.k === 'lamp') { fx.glass(e.x, e.y, 10); fx.decal('glass', e.x, e.y); } if (e.player) this.cam.shake = Math.min(1, this.cam.shake + 0.25); break;
         case 'keys': fx.float(e.x, e.y - 30, '🔑 Schlüssel', '#ffd34d'); for (let k = 0; k < 8; k++) fx.sparks(e.x, e.y - 10, Math.random() * 6.3, 1, [255, 230, 140]); break;

@@ -64,6 +64,37 @@
         case 'gib': if (!g) return; this.stamp(x, y, 6, (c) => { c.fillStyle = '#4a0205'; c.beginPath(); c.ellipse(x, y, 3 + Math.random() * 3, 2 + Math.random() * 2, Math.random() * 6, 0, 6.3); c.fill(); c.fillStyle = '#d9c9b0'; c.fillRect(x - 1, y - 0.5, 2.4, 1); }); break;
       }
     }
+    /** wipe decals in a soft circle (k = how much of it goes per pass) */
+    clean(x, y, r, k = 1) {
+      this.stamp(x, y, r, (c) => {
+        const g = c.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `rgba(0,0,0,${k})`); g.addColorStop(0.7, `rgba(0,0,0,${k * 0.8})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.globalCompositeOperation = 'destination-out'; c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, 6.3); c.fill();
+      });
+    }
+    /** blood, skid marks and shell casings weather away: a dry street keeps them about a game day,
+     *  rain washes them off in a few hours. Chunks are visited round-robin and lose alpha linearly,
+     *  so even faint stains reach zero. */
+    weather(dt, rain, now) {
+      this.fadeT = (this.fadeT || 0) - dt;
+      if (this.fadeT > 0 || !this.decals.size) return;
+      this.fadeT = 0.5;
+      const keys = [...this.decals.keys()];
+      for (let n = 0; n < Math.min(3, keys.length); n++) {
+        this.fadeI = ((this.fadeI || 0) + 1) % keys.length;
+        const c = this.decals.get(keys[this.fadeI]);
+        if (c._fadeT == null) { c._fadeT = now; c._acc = 0; continue; }
+        const rate = 255 / 1500 * (1 + rain * 5);     // alpha per real second (1500 s ≈ a game day)
+        c._acc += (now - c._fadeT) * rate; c._fadeT = now;
+        const step = Math.floor(c._acc); if (step < 1) continue;
+        c._acc -= step;
+        const x = c.getContext('2d'), id = x.getImageData(0, 0, c.width, c.height), d = id.data;
+        let any = false;
+        for (let i = 3; i < d.length; i += 4) if (d[i]) { d[i] = d[i] > step ? d[i] - step : 0; if (d[i]) any = true; }
+        x.putImageData(id, 0, 0);
+        if (!any) this.decals.delete(keys[this.fadeI]);
+      }
+    }
     drawDecals(ctx, x0, y0, x1, y1) {
       for (const c of this.decals.values()) {
         if (c._x + DC < x0 || c._y + DC < y0 || c._x > x1 || c._y > y1) continue;
