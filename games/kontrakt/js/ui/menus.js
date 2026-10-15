@@ -1,6 +1,7 @@
 /* RDE // KONTRAKT — menus: phone apps, inventory, shops, stash, wardrobe, sleep, map, title, pause, results */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, TILE = K.TILE, W8 = K.WEAPONS;
   const $ = (s) => document.querySelector(s);
   const esc = U.esc;
@@ -94,76 +95,76 @@
       const c = w.contract;
       if (app === 'home') {
         const badge = w.offers.length;
-        body.innerHTML = `<div class="ph-wall"><b>${U.clock(w.time)}</b><span>${U.weekday(w.time)} · Tag ${U.day(w.time)} · Krähenburg</span></div>
+        body.innerHTML = `<div class="ph-wall"><b>${U.clock(w.time)}</b><span>${U.weekday(w.time)} ${tr('· Day')} ${U.day(w.time)} ${tr('· Port Raven')}</span></div>
           <div class="apps">
-            <button class="app" data-a="jobs"><i style="background:linear-gradient(135deg,#e0182d,#5a0a12)">🎯</i>Aufträge${badge ? `<span class="badge">${badge}</span>` : ''}</button>
-            <button class="app" data-a="map"><i style="background:linear-gradient(135deg,#2b6bd8,#0e2a5a)">🗺️</i>Karte</button>
-            <button class="app" data-a="profile"><i style="background:linear-gradient(135deg,#d4a63a,#5a4210)">🕴️</i>Profil${P.sp ? `<span class="badge">${P.sp}</span>` : ''}</button>
-            <button class="app" data-a="estate"><i style="background:linear-gradient(135deg,#3d8a4a,#123a1a)">🏠</i>Immobilien</button>
-            <button class="app" data-a="msgs"><i style="background:linear-gradient(135deg,#8a4ac8,#2a1240)">💬</i>Nachrichten</button>
-            <button class="app" data-a="bank"><i style="background:linear-gradient(135deg,#5fd38d,#14482a)">💰</i>Konto</button>
-            <button class="app" data-a="org"><i style="background:linear-gradient(135deg,#e0182d,#1a0507)">♛</i>Organisation</button>
-            <button class="app" data-a="props"><i style="background:linear-gradient(135deg,#8b5cf6,#1e1b4b)">🛋️</i>Einrichtung</button>
-            <button class="app" data-a="cars"><i style="background:linear-gradient(135deg,#3b82f6,#0f172a)">🚘</i>Car Service</button>
-            <button class="app" data-a="inv"><i style="background:linear-gradient(135deg,#6b6f78,#22252b)">🎒</i>Inventar</button>
-            <button class="app" data-a="settings"><i style="background:linear-gradient(135deg,#444,#111)">⚙️</i>Optionen</button>
-            <button class="app" data-a="help"><i style="background:linear-gradient(135deg,#c98a1e,#4a3008)">❓</i>Hilfe</button>
+            <button class="app" data-a="jobs"><i style="background:linear-gradient(135deg,#e0182d,#5a0a12)">🎯</i>${tr('Contracts')}${badge ? `<span class="badge">${badge}</span>` : ''}</button>
+            <button class="app" data-a="map"><i style="background:linear-gradient(135deg,#2b6bd8,#0e2a5a)">🗺️</i>${tr('Map')}</button>
+            <button class="app" data-a="profile"><i style="background:linear-gradient(135deg,#d4a63a,#5a4210)">🕴️</i>${tr('Profile')}${P.sp ? `<span class="badge">${P.sp}</span>` : ''}</button>
+            <button class="app" data-a="estate"><i style="background:linear-gradient(135deg,#3d8a4a,#123a1a)">🏠</i>${tr('Real estate')}</button>
+            <button class="app" data-a="msgs"><i style="background:linear-gradient(135deg,#8a4ac8,#2a1240)">💬</i>${tr('Messages')}</button>
+            <button class="app" data-a="bank"><i style="background:linear-gradient(135deg,#5fd38d,#14482a)">💰</i>${tr('Bank')}</button>
+            <button class="app" data-a="org"><i style="background:linear-gradient(135deg,#e0182d,#1a0507)">♛</i>${tr('Organization')}</button>
+            <button class="app" data-a="props"><i style="background:linear-gradient(135deg,#8b5cf6,#1e1b4b)">🛋️</i>${tr('Furnishing')}</button>
+            <button class="app" data-a="cars"><i style="background:linear-gradient(135deg,#3b82f6,#0f172a)">🚘</i>${tr('Car Service')}</button>
+            <button class="app" data-a="inv"><i style="background:linear-gradient(135deg,#6b6f78,#22252b)">🎒</i>${tr('Inventory')}</button>
+            <button class="app" data-a="settings"><i style="background:linear-gradient(135deg,#444,#111)">⚙️</i>${tr('Options')}</button>
+            <button class="app" data-a="help"><i style="background:linear-gradient(135deg,#c98a1e,#4a3008)">❓</i>${tr('Help')}</button>
           </div>
-          ${c && c.status === 'active' ? `<div class="card active" style="margin-top:18px"><div class="sub">Aktiver Auftrag</div><h4>${esc(c.name)}</h4><div class="meta"><span>${esc(c.title)}</span><b>${U.money(c.reward)}</b></div></div>` : ''}`;
+          ${c && c.status === 'active' ? `<div class="card active" style="margin-top:18px"><div class="sub">${tr('Active contract')}</div><h4>${esc(c.name)}</h4><div class="meta"><span>${esc(c.title)}</span><b>${U.money(c.reward)}</b></div></div>` : ''}`;
         this.g.phoneBadge = 0;
       } else if (app === 'jobs') {
-        let h = '<div class="ph-h">AUFTRÄGE</div>';
+        let h = `<div class="ph-h">${tr('CONTRACTS')}</div>`;
         if (c && c.status === 'active') {
           const cost = Math.round(c.reward * 0.1 / 50) * 50;
           const b0 = w.buildings[c.stops[c.stopI % c.stops.length]];
-          h += `<div class="card active"><div class="row"><canvas width="112" height="112" data-p="active"></canvas><div><div class="sub">AKTIV · ${esc(c.client)}</div><h4>${esc(c.name)}</h4><div class="sub">${esc(c.title)}</div></div></div>
+          h += `<div class="card active"><div class="row"><canvas width="112" height="112" data-p="active"></canvas><div><div class="sub">${tr('ACTIVE')} · ${esc(c.client)}</div><h4>${esc(c.name)}</h4><div class="sub">${esc(c.title)}</div></div></div>
             <p>${esc(c.bio)}</p>
             <div>${c.bonuses.map((b) => `<span class="pill red">${esc(b.name)}: ${esc(b.desc)}</span>`).join('')}</div>
-            <p><b>Intel:</b> ${c.intel ? `Aktueller Ort: <b>${esc(b0.name)}</b> (${esc(K.DISTRICTS[b0.district] || '')}). Routine: ${c.stops.map((i) => esc(w.buildings[i].name)).join(' → ')}. Leibwächter: ${c.guards}.` : 'Nur grobe Position bekannt (roter Kreis auf der Karte).'}</p>
-            <div class="meta"><span>Frist ${Math.floor((c.deadline - w.time) / 60)}h</span><b>${U.money(c.reward)}</b></div>
-            <div class="btns">${c.intel ? '' : `<button class="btn" data-x="intel">Intel kaufen ${U.money(cost)}</button>`}<button class="btn ghost" data-x="locate">Auf Karte</button><button class="btn ghost" data-x="abort">Abbrechen</button></div></div>`;
+            <p><b>${tr('Intel:')}</b> ${c.intel ? `${tr('Current location:')} <b>${esc(b0.name)}</b> (${esc(K.DISTRICTS[b0.district] || '')}${tr('). Routine:')} ${c.stops.map((i) => esc(w.buildings[i].name)).join(' → ')}${tr('. Bodyguards:')} ${c.guards}.` : tr('Only a rough position is known (red circle on the map).')}</p>
+            <div class="meta"><span>${tr('Deadline')} ${Math.floor((c.deadline - w.time) / 60)}h</span><b>${U.money(c.reward)}</b></div>
+            <div class="btns">${c.intel ? '' : `<button class="btn" data-x="intel">${tr('Buy intel')} ${U.money(cost)}</button>`}<button class="btn ghost" data-x="locate">${tr('On map')}</button><button class="btn ghost" data-x="abort">${tr('Abort')}</button></div></div>`;
         }
-        if (!w.offers.length) h += '<div class="card"><p>Keine neuen Angebote. Die Zentrale meldet sich.</p></div>';
+        if (!w.offers.length) h += `<div class="card"><p>${tr('No new offers. Headquarters will be in touch.')}</p></div>`;
         w.offers.forEach((o, i) => {
           h += `<div class="card"><div class="row"><canvas width="112" height="112" data-p="${i}"></canvas><div><div class="sub">${esc(o.client)} · ${'◆'.repeat(o.diff)}</div><h4>${esc(o.name)}</h4><div class="sub">${esc(o.title)}</div></div></div>
             <p>${esc(o.bio)}</p>
-            <div>${o.bonuses.map((b) => `<span class="pill">${esc(b.name)}</span>`).join('')}${o.guards ? `<span class="pill red">${o.guards} Leibwächter</span>` : ''}</div>
-            <div class="meta"><span>Frist ${Math.floor((o.deadline - w.time) / 60)}h</span><b>${U.money(o.reward)}</b></div>
-            <div class="btns"><button class="btn red" data-acc="${i}" ${c && c.status === 'active' ? 'disabled' : ''}>Annehmen</button></div></div>`;
+            <div>${o.bonuses.map((b) => `<span class="pill">${esc(b.name)}</span>`).join('')}${o.guards ? `<span class="pill red">${o.guards} ${tr('bodyguards')}</span>` : ''}</div>
+            <div class="meta"><span>${tr('Deadline')} ${Math.floor((o.deadline - w.time) / 60)}h</span><b>${U.money(o.reward)}</b></div>
+            <div class="btns"><button class="btn red" data-acc="${i}" ${c && c.status === 'active' ? 'disabled' : ''}>${tr('Accept')}</button></div></div>`;
         });
         body.innerHTML = h;
         body.querySelectorAll('canvas[data-p]').forEach((cv) => K.portrait(cv, cv.dataset.p === 'active' ? c : w.offers[+cv.dataset.p]));
       } else if (app === 'profile') {
         const need = w.xpNeed(P.level);
-        let h = `<div class="ph-h">PROFIL · STUFE ${P.level}</div><div class="xpbar"><i style="width:${(P.xp / need) * 100}%"></i></div><div class="sub" style="font-size:11px;color:#999;margin-top:-8px;margin-bottom:10px">${P.xp} / ${need} XP · ${P.sp} Fähigkeitspunkte</div>`;
+        let h = `<div class="ph-h">${tr('PROFILE · LEVEL {n}', { n: P.level })}</div><div class="xpbar"><i style="width:${(P.xp / need) * 100}%"></i></div><div class="sub" style="font-size:11px;color:#999;margin-top:-8px;margin-bottom:10px">${P.xp} / ${need} XP · ${P.sp} ${tr('skill points')}</div>`;
         for (const k in K.SKILLS) {
           const s = K.SKILLS[k], lv = P.skills[k] || 0;
           h += `<div class="skill"><i>${s.e}</i><div class="sk-n">${s.name}<small>${s.desc}</small></div><div class="pips">${[0, 1, 2, 3, 4].map((n) => `<u class="${n < lv ? 'on' : ''}"></u>`).join('')}</div><button data-sk="${k}" ${P.sp > 0 && lv < 5 ? '' : 'disabled'}>+</button></div>`;
         }
         const S = P.stats;
         const R = P.record || {}, rk = Object.keys(R);
-        h += `<div class="ph-h" style="margin-top:16px;font-size:15px">STRAFREGISTER</div>` + (rk.length ? rk.map((k) => `<div class="stat"><span>${K.CRIMES[k] ? K.CRIMES[k].name : k}</span><b>${R[k]}×</b></div>`).join('') : '<div class="stat"><span>Weiße Weste.</span><b>—</b></div>');
-        if (P.deal && P.deal.sold) h += `<div class="ph-h" style="margin-top:16px;font-size:15px">GESCHÄFTE</div><div class="stat"><span>Dealer-Ruf</span><b>${P.deal.rep}</b></div><div class="stat"><span>Verkauft</span><b>${P.deal.sold} g</b></div><div class="stat"><span>Pflanzen</span><b>${(P.plants || []).length}</b></div>`;
-        h += `<div class="ph-h" style="margin-top:16px;font-size:15px">STATISTIK</div>` + [['Aufträge erfüllt', S.contracts], ['Lautlose Assassinen', S.silent], ['Verdient', U.money(S.earned)], ['Ausgeschaltet', S.kills], ['Kopfschüsse', S.headshots], ['Takedowns', S.takedowns], ['Zivile Opfer', S.civKills], ['Tage in Krähenburg', U.day(w.time)]].map(([a, b]) => `<div class="stat"><span>${a}</span><b>${b}</b></div>`).join('');
+        h += `<div class="ph-h" style="margin-top:16px;font-size:15px">${tr('CRIMINAL RECORD')}</div>` + (rk.length ? rk.map((k) => `<div class="stat"><span>${K.CRIMES[k] ? K.CRIMES[k].name : k}</span><b>${R[k]}×</b></div>`).join('') : `<div class="stat"><span>${tr('Clean record.')}</span><b>—</b></div>`);
+        if (P.deal && P.deal.sold) h += `<div class="ph-h" style="margin-top:16px;font-size:15px">${tr('DEALINGS')}</div><div class="stat"><span>${tr('Dealer rep')}</span><b>${P.deal.rep}</b></div><div class="stat"><span>${tr('Sold')}</span><b>${P.deal.sold} g</b></div><div class="stat"><span>${tr('Plants')}</span><b>${(P.plants || []).length}</b></div>`;
+        h += `<div class="ph-h" style="margin-top:16px;font-size:15px">${tr('STATISTICS')}</div>` + [[tr('Contracts completed'), S.contracts], [tr('Silent Assassin ratings'), S.silent], [tr('Earned'), U.money(S.earned)], [tr('Neutralized'), S.kills], [tr('Headshots'), S.headshots], [tr('Takedowns'), S.takedowns], [tr('Civilian casualties'), S.civKills], [tr('Days in Port Raven'), U.day(w.time)]].map(([a, b]) => `<div class="stat"><span>${a}</span><b>${b}</b></div>`).join('');
         body.innerHTML = h;
       } else if (app === 'estate') {
-        let h = '<div class="ph-h">IMMOBILIEN</div>';
+        let h = `<div class="ph-h">${tr('REAL ESTATE')}</div>`;
         for (const d of K.PROPERTIES) {
           const own = P.owned.includes(d.id), b = w.propertyBuilding(d.id);
           if (!b) continue;
-          h += `<div class="card ${own ? 'active' : ''}"><div class="sub">${esc(K.DISTRICTS[b.district] || '')}${d.income ? ` · +${U.money(d.income)}/Tag` : ''}</div><h4>${esc(d.name)}</h4><p>${esc(d.desc)}</p>
-            <div class="meta"><span>${own ? (P.home === d.id ? '★ Zuhause' : 'Dein Besitz') : 'Zu verkaufen'}</span><b>${own ? '✔' : U.money(d.price)}</b></div>
-            <div class="btns"><button class="btn ghost" data-loc="${d.id}">Wegpunkt</button>${own ? '' : `<button class="btn red" data-buy="${d.id}" ${P.money >= d.price ? '' : 'disabled'}>Kaufen</button>`}</div></div>`;
+          h += `<div class="card ${own ? 'active' : ''}"><div class="sub">${esc(K.DISTRICTS[b.district] || '')}${d.income ? ` · +${U.money(d.income)}${tr('/day')}` : ''}</div><h4>${esc(d.name)}</h4><p>${esc(d.desc)}</p>
+            <div class="meta"><span>${own ? (P.home === d.id ? tr('★ Home') : tr('Yours')) : tr('For sale')}</span><b>${own ? '✔' : U.money(d.price)}</b></div>
+            <div class="btns"><button class="btn ghost" data-loc="${d.id}">${tr('Waypoint')}</button>${own ? '' : `<button class="btn red" data-buy="${d.id}" ${P.money >= d.price ? '' : 'disabled'}>${tr('Buy')}</button>`}</div></div>`;
         }
         body.innerHTML = h;
       } else if (app === 'msgs') {
         const log = this.g.ui.feedLog;
-        body.innerHTML = '<div class="ph-h">NACHRICHTEN</div>' + `<div class="msg"><small>Vesna · Zentrale</small>Willkommen zurück in Krähenburg. Deine Bude in der Altstadt steht bereit. Aufträge kommen aufs Handy. Bleib unsichtbar.</div>` + log.slice(0, 40).map((l) => `<div class="msg"><small>${l.t}</small>${esc(l.text)}</div>`).join('');
+        body.innerHTML = `<div class="ph-h">${tr('MESSAGES')}</div>` + `<div class="msg"><small>${tr('Vesna · Headquarters')}</small>${tr('Welcome back to Port Raven. Your place in Old Town is ready. Contracts come in on your phone. Stay invisible.')}</div>` + log.slice(0, 40).map((l) => `<div class="msg"><small>${l.t}</small>${esc(l.text)}</div>`).join('');
       } else if (app === 'bank') {
         let inc = 0; for (const id of P.owned) inc += w.propertyDef(id).income || 0;
-        body.innerHTML = `<div class="ph-h">KONTO</div><div class="card"><div class="sub">Bargeld</div><h4 style="font-size:30px;color:#9ff0b8">${U.money(P.money)}</h4></div><div class="card"><div class="sub">Konto · Sparkasse</div><h4 style="font-size:26px;color:#7fb7a0">${U.money(P.bank || 0)}</h4><p>Ein- und Auszahlen am Geldautomaten.</p></div>
-          <div class="card"><div class="sub">Passives Einkommen</div><h4>${U.money(inc)} / Tag</h4><p>Zahlt jeden Morgen um 08:00 aus.</p></div>
-          <div class="card"><div class="sub">Verdient mit Aufträgen</div><h4>${U.money(P.stats.earned)}</h4></div>`;
+        body.innerHTML = `<div class="ph-h">${tr('ACCOUNT')}</div><div class="card"><div class="sub">${tr('Cash')}</div><h4 style="font-size:30px;color:#9ff0b8">${U.money(P.money)}</h4></div><div class="card"><div class="sub">${tr('Account · Savings Bank')}</div><h4 style="font-size:26px;color:#7fb7a0">${U.money(P.bank || 0)}</h4><p>${tr('Deposit and withdraw at an ATM.')}</p></div>
+          <div class="card"><div class="sub">${tr('Passive income')}</div><h4>${U.money(inc)} ${tr('/ day')}</h4><p>${tr('Pays out every morning at 08:00.')}</p></div>
+          <div class="card"><div class="sub">${tr('Earned from contracts')}</div><h4>${U.money(P.stats.earned)}</h4></div>`;
       } else if (app === 'props') { this.propsApp(body); return; }
       else if (app === 'org' || app.startsWith('org:')) { this.orgApp(body, app.split(':')[1] || 'home'); return; }
       else if (app === 'cars' || app.startsWith('cars:')) { this.carApp(body, app.split(':')[1] || 'start'); return; }
@@ -182,7 +183,7 @@
       }));
       body.querySelectorAll('[data-sk]').forEach((b) => (b.onclick = () => { w.learn(b.dataset.sk); this.phone('profile'); }));
       body.querySelectorAll('[data-buy]').forEach((b) => (b.onclick = () => { if (w.buyProperty(b.dataset.buy)) this.g.save(true); this.phone('estate'); }));
-      body.querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { const bb = w.propertyBuilding(b.dataset.loc); this.g.waypoint = { x: (bb.entrance.x + 0.5) * TILE, y: (bb.entrance.y + 0.5) * TILE }; this.g.ui.feed('Wegpunkt gesetzt.'); }));
+      body.querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { const bb = w.propertyBuilding(b.dataset.loc); this.g.waypoint = { x: (bb.entrance.x + 0.5) * TILE, y: (bb.entrance.y + 0.5) * TILE }; this.g.ui.feed(tr('Waypoint set.')); }));
     }
 
     // ============================================================ panels
@@ -232,7 +233,7 @@
       const mods = this.g.world.carMods(fake);
       const top = Math.round(d.max * mods.max * K.KMH), acc = d.acc * mods.acc, grip = mods.grip;
       const bar = (name, v, max, txt) => `<div class="sk"><span>${name}</span><i><b style="width:${Math.min(100, v / max * 100)}%;background:#f59e0b"></b></i><em>${txt}</em></div>`;
-      return `<div class="skills carstats">${bar('Spitze', top, 260, top + ' km/h')}${bar('Beschl.', acc, 900, Math.round(acc))}${bar('Handling', grip, 1.5, grip.toFixed(2))}${bar('Bremsen', mods.brake, 1.6, '×' + mods.brake.toFixed(1))}${bar('Verbrauch', K.CARCLS[m.cls].fuel, 0.4, m.cls === 'ev' ? 'elektrisch' : K.CARCLS[m.cls].fuel.toFixed(2) + '%/s')}</div>`;
+      return `<div class="skills carstats">${bar(tr('Top speed'), top, 260, top + ' km/h')}${bar(tr('Accel.'), acc, 900, Math.round(acc))}${bar(tr('Handling'), grip, 1.5, grip.toFixed(2))}${bar(tr('Brakes'), mods.brake, 1.6, '×' + mods.brake.toFixed(1))}${bar(tr('Consumption'), K.CARCLS[m.cls].fuel, 0.4, m.cls === 'ev' ? tr('electric') : K.CARCLS[m.cls].fuel.toFixed(2) + '%/s')}</div>`;
     }
     dealer(sel) {
       const w = this.g.world, list = Object.entries(K.CARMODELS).filter(([, m]) => !m.hidden).sort((a, b) => a[1].price - b[1].price);
@@ -243,10 +244,10 @@
       const h = `<div class="dealer"><div class="dl-list">${list.map(([k, m]) => `<button class="dl-it ${k === sel ? 'on' : ''}" data-car="${k}"><b>${esc(m.name)}</b><small>${U.money(m.price)} · ${esc(K.CARCLS[m.cls] ? m.cls : '')}</small></button>`).join('')}</div>
         <div class="dl-main"><canvas id="dl-cv" width="560" height="260"></canvas>
           <h3>${esc(M.name)} <small>${esc(M.cls.toUpperCase())}</small></h3><p>${esc(M.desc || '')}</p>${this.carStats(sel)}
-          <div class="sub">Farbe ab Werk</div><div class="sw">${cols.map((c) => `<i data-col="${c}" class="${c === this.dealerCol ? 'on' : ''}" style="background:${c}"></i>`).join('')}</div>
-          <div class="btns"><button class="btn" id="dl-buy">Kaufen · ${U.money(M.price)}</button>${owned ? `<span class="tag">${owned}× in deinem Besitz</span>` : ''}</div>
-          <p style="color:#888;font-size:12px">Bezahlt wird bar oder per Karte. Der Wagen steht danach vor dem Autohaus. Tuning gibt's in der Werkstatt „Schraubstock“, Lieferung per Car-Service-App.</p></div></div>`;
-      const body = this.panel('AUTOHAUS KRÄHENBURG', h, 'dealer');
+          <div class="sub">${tr('Factory color')}</div><div class="sw">${cols.map((c) => `<i data-col="${c}" class="${c === this.dealerCol ? 'on' : ''}" style="background:${c}"></i>`).join('')}</div>
+          <div class="btns"><button class="btn" id="dl-buy">${tr('Buy ·')} ${U.money(M.price)}</button>${owned ? `<span class="tag">${owned}${tr('× owned')}</span>` : ''}</div>
+          <p style="color:#888;font-size:12px">${tr('Pay cash or card. The car will be waiting outside the dealership. Tuning at the “Vise” workshop, delivery via the Car Service app.')}</p></div></div>`;
+      const body = this.panel(tr('PORT RAVEN MOTORS'), h, 'dealer');
       const draw = () => this.carPreview(body.querySelector('#dl-cv'), { kind: sel, l: K.CARK[sel].l, w: K.CARK[sel].w, color: this.dealerCol, tune: {}, hp: 100 });
       draw();
       body.querySelectorAll('[data-car]').forEach((b) => (b.onclick = () => this.dealer(b.dataset.car)));
@@ -263,7 +264,7 @@
       const cur = (part) => part.id === 'color' ? c.color : (c.tune || {})[part.id] || 0;
       let h = `<div class="tune"><div class="tn-left"><canvas id="tn-cv" width="420" height="230"></canvas>
           <h3>${esc(M.name)} <small>${esc(c.plate || '')}</small></h3>${this.carStats(c.kind, c.tune)}
-          <div class="card tn-rep">${q ? `<b>🔧 Reparatur</b><p>Motor ${Math.round(c.eng)}% · Karosserie ${Math.round(c.bodyHP)}% · Reifen ${c.tires.filter((t) => t < 20).length ? c.tires.filter((t) => t < 20).length + ' platt' : 'ok'}</p><button class="btn" id="tn-rep" ${w.repairJob ? 'disabled' : ''}>${w.repairJob ? 'Wird repariert…' : `Reparieren · ${U.money(q.price)} · ~${Math.round(q.dur)} s`}</button>` : '<b>🔧 Kein Schaden</b><p>Der Wagen ist in Schuss.</p>'}</div></div>
+          <div class="card tn-rep">${q ? `<b>${tr('🔧 Repair')}</b><p>${tr('Engine')} ${Math.round(c.eng)}${tr('% · Body')} ${Math.round(c.bodyHP)}${tr('% · Tires')} ${c.tires.filter((t) => t < 20).length ? c.tires.filter((t) => t < 20).length + tr(' flat') : tr('ok')}</p><button class="btn" id="tn-rep" ${w.repairJob ? 'disabled' : ''}>${w.repairJob ? tr('Being repaired…') : `${tr('Repair ·')} ${U.money(q.price)} · ~${Math.round(q.dur)} s`}</button>` : `<b>${tr('🔧 No damage')}</b><p>${tr('The car is in good shape.')}</p>`}</div></div>
         <div class="tn-right"><div class="tn-cats">${K.TUNING.map((g) => `<button class="${g.cat === cat ? 'on' : ''}" data-cat="${g.cat}" style="--c:${g.col}">${g.icon} ${g.name}</button>`).join('')}</div>`;
       for (const part of G.parts) {
         h += `<div class="tn-part"><div class="sub">${esc(part.name)}${part.desc ? ` <small>· ${esc(part.desc)}</small>` : ''}</div><div class="tn-opts">`;
@@ -275,8 +276,8 @@
         });
         h += '</div></div>';
       }
-      h += `</div></div>${this.tunePrev ? `<div class="tn-buy"><span>Vorschau: <b>${esc(this.tunePrev.label)}</b></span><button class="btn" id="tn-ok">✅ Kaufen · ${U.money(this.tunePrev.price)}</button><button class="btn ghost" id="tn-no">❌ Abbrechen</button></div>` : ''}`;
-      const body = this.panel('WERKSTATT „SCHRAUBSTOCK“', h, 'tuning');
+      h += `</div></div>${this.tunePrev ? `<div class="tn-buy"><span>${tr('Preview:')} <b>${esc(this.tunePrev.label)}</b></span><button class="btn" id="tn-ok">${tr('✅ Buy ·')} ${U.money(this.tunePrev.price)}</button><button class="btn ghost" id="tn-no">${tr('❌ Cancel')}</button></div>` : ''}`;
+      const body = this.panel(tr('“VISE” WORKSHOP'), h, 'tuning');
       this.carPreview(body.querySelector('#tn-cv'), c);
       body.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = () => this.tuning(carId, b.dataset.cat)));
       const rep = body.querySelector('#tn-rep'); if (rep) rep.onclick = () => { if (w.startRepair(c)) { this.closePanel(); } };
@@ -298,62 +299,62 @@
     carApp(body, tab) {
       const w = this.g.world, R = w.ownedCars(), s = w.svc && w.svc.stage !== 'done' ? w.svc : null;
       this.phoneApp = 'cars:' + tab;
-      const tabs = `<div class="cs-tabs">${[['start', 'Start'], ['garage', 'Garage'], ['pickup', 'Abholen']].map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-ct="${k}">${n}</button>`).join('')}</div>`;
-      let h = `<div class="cs"><div class="cs-head"><b>🚘 KRÄHENBURG CAR SERVICE</b><small>Premium-Lieferung & Abholung</small></div>${tabs}`;
+      const tabs = `<div class="cs-tabs">${[['start', tr('Start')], ['garage', tr('Garage')], ['pickup', tr('Pick up')]].map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-ct="${k}">${n}</button>`).join('')}</div>`;
+      let h = `<div class="cs"><div class="cs-head"><b>${tr('🚘 PORT RAVEN CAR SERVICE')}</b><small>${tr('Premium delivery & pickup')}</small></div>${tabs}`;
       if (tab === 'start') {
-        h += s ? `<div class="cs-card blue"><b>${s.kind === 'deliver' ? 'Lieferung läuft' : 'Abholung läuft'}</b><p>${{ driving: `Fahrer unterwegs · Ankunft in ~${w.serviceEta()} s`, parking: 'Fahrer parkt…', handover: 'Fahrer bringt dir die Schlüssel', walking: 'Fahrer läuft zu deinem Auto', leaving: 'Fahrer bringt den Wagen in die Garage' }[s.stage] || ''}</p><button class="btn red" data-cs="cancel">Service stornieren</button></div>`
-          : '<div class="cs-card"><b>Kein aktiver Auftrag</b><p>Dein Wagen kommt zu dir — oder wir parken ihn sicher in der Garage.</p></div>';
-        h += `<div class="cs-card"><b>Preise</b><div class="stat"><span>Lieferung</span><b style="color:#3b82f6">${U.money(K.SERVICE.deliver)}</b></div><div class="stat"><span>Abholung</span><b style="color:#10b981">${U.money(K.SERVICE.pickup)}</b></div><div class="stat"><span>Versicherung (Totalschaden)</span><b>${Math.round(K.SERVICE.insure * 100)}% vom Neupreis</b></div></div>`;
+        h += s ? `<div class="cs-card blue"><b>${s.kind === 'deliver' ? tr('Delivery in progress') : tr('Pickup in progress')}</b><p>${{ driving: `${tr('Driver en route · arriving in ~')}${w.serviceEta()} s`, parking: tr('Driver is parking…'), handover: tr('Driver is bringing you the keys'), walking: tr('Driver is walking to your car'), leaving: tr('Driver is taking the car to the garage') }[s.stage] || ''}</p><button class="btn red" data-cs="cancel">${tr('Cancel service')}</button></div>`
+          : `<div class="cs-card"><b>${tr('No active job')}</b><p>${tr('Your car comes to you — or we park it safely in the garage.')}</p></div>`;
+        h += `<div class="cs-card"><b>${tr('Prices')}</b><div class="stat"><span>${tr('Delivery')}</span><b style="color:#3b82f6">${U.money(K.SERVICE.deliver)}</b></div><div class="stat"><span>${tr('Pickup')}</span><b style="color:#10b981">${U.money(K.SERVICE.pickup)}</b></div><div class="stat"><span>${tr('Insurance (total loss)')}</span><b>${Math.round(K.SERVICE.insure * 100)}${tr('% of the new price')}</b></div></div>`;
       } else if (tab === 'garage') {
-        if (!R.length) h += '<div class="cs-card"><p>Du besitzt noch kein Auto. Autohaus Krähenburg, Mitte.</p></div>';
+        if (!R.length) h += `<div class="cs-card"><p>${tr('You don’t own a car yet. Port Raven Motors, Midtown.')}</p></div>`;
         for (const r of R) {
-          const st = { stored: 'In der Garage', out: 'Geparkt in der Stadt', destroyed: 'Totalschaden' }[r.state] || r.state;
+          const st = { stored: tr('In the garage'), out: tr('Parked in the city'), destroyed: tr('Total loss') }[r.state] || r.state;
           h += `<div class="cs-car"><div><b>${esc(r.name)}</b><small>${esc(r.plate)} · ${st}${r.state !== 'destroyed' ? ` · ⛽ ${Math.round(r.fuel != null ? r.fuel : 100)}%` : ''}</small></div>
-            ${r.state === 'stored' ? `<button class="btn" data-cs="deliver" data-id="${r.id}" ${s ? 'disabled' : ''}>Liefern · ${U.money(K.SERVICE.deliver)}</button>` : r.state === 'destroyed' ? `<button class="btn ghost" data-cs="insure" data-id="${r.id}">Versicherung · ${U.money(Math.round(K.CARMODELS[r.kind].price * K.SERVICE.insure / 10) * 10)}</button>` : `<button class="btn ghost" data-cs="locate" data-id="${r.id}">Orten</button>`}</div>`;
+            ${r.state === 'stored' ? `<button class="btn" data-cs="deliver" data-id="${r.id}" ${s ? 'disabled' : ''}>${tr('Deliver ·')} ${U.money(K.SERVICE.deliver)}</button>` : r.state === 'destroyed' ? `<button class="btn ghost" data-cs="insure" data-id="${r.id}">${tr('Insurance ·')} ${U.money(Math.round(K.CARMODELS[r.kind].price * K.SERVICE.insure / 10) * 10)}</button>` : `<button class="btn ghost" data-cs="locate" data-id="${r.id}">${tr('Locate')}</button>`}</div>`;
         }
       } else {
-        h += `<div class="cs-card green"><b>Auto abholen lassen</b><p>Ein Fahrer holt dein nächstes geparktes Auto (bis ca. 25 m Umkreis) und bringt es sicher in die Garage.</p><button class="btn" data-cs="pickup" ${s ? 'disabled' : ''}>Fahrzeug einlagern · ${U.money(K.SERVICE.pickup)}</button></div>`;
+        h += `<div class="cs-card green"><b>${tr('Have a car picked up')}</b><p>${tr('A driver collects your nearest parked car (within about 25 m) and takes it safely to the garage.')}</p><button class="btn" data-cs="pickup" ${s ? 'disabled' : ''}>${tr('Store the vehicle ·')} ${U.money(K.SERVICE.pickup)}</button></div>`;
       }
       body.innerHTML = h + '</div>';
       body.querySelectorAll('[data-ct]').forEach((b) => (b.onclick = () => this.carApp(body, b.dataset.ct)));
       body.querySelectorAll('[data-cs]').forEach((b) => (b.onclick = () => {
         const a = b.dataset.cs, id = +b.dataset.id;
         if (a === 'deliver') w.serviceDeliver(id); else if (a === 'pickup') w.servicePickup(); else if (a === 'cancel') w.serviceCancel(); else if (a === 'insure') w.insureCar(id);
-        else if (a === 'locate') { const r = R.find((q) => q.id === id), c = r && w.worldCarOf(r); if (c) { this.g.waypoint = { x: c.x, y: c.y }; this.g.ui.feed('Wegpunkt zu deinem Auto gesetzt.'); } }
+        else if (a === 'locate') { const r = R.find((q) => q.id === id), c = r && w.worldCarOf(r); if (c) { this.g.waypoint = { x: c.x, y: c.y }; this.g.ui.feed(tr('Waypoint to your car set.')); } }
         this.carApp(body, a === 'deliver' || a === 'pickup' ? 'start' : tab);
       }));
     }
     gangSection() {
       const w = this.g.world, P = w.P, G = K.GANGS;
-      if (!P.gang) return `<div class="sec">Gang & Revier</div><div class="card"><p>Du hast noch keine eigene Gang. Gründe eine (${U.money(K.GANG_FOUND_FEE)}), zeichne dein Tag und sprüh es auf Tag-Spots, um Blöcke zu übernehmen. Jeder Block bringt ${U.money(K.TURF_INCOME)}/Tag, Dealen im eigenen Revier +25%.</p><div class="btns"><button class="btn" data-gang="found">Gang gründen…</button></div></div>`;
-      let h = `<div class="sec">Gang & Revier <small>Tag-Spots sind auf der Karte als Blöcke eingefärbt</small></div><div class="card gangcard"><div class="gangtag" style="border-color:${P.gang.col}">${P.gang.tag ? `<img src="${P.gang.tag}">` : `<b style="color:${P.gang.col}">${esc(P.gang.name)}</b>`}</div><div><h4 style="color:${P.gang.col}">${esc(P.gang.name)}</h4><p>${w.playerBlocks()} Blöcke · +${U.money(w.playerBlocks() * K.TURF_INCOME)}/Tag · 🎨 ${P.inv.spray || 0} Sprühdosen</p><div class="btns"><button class="btn ghost" data-gang="tag">Tag neu zeichnen</button></div></div></div><div class="ganglist">`;
+      if (!P.gang) return `<div class="sec">${tr('Gang & turf')}</div><div class="card"><p>${tr('You don’t have a gang of your own yet. Start one (')}${U.money(K.GANG_FOUND_FEE)}${tr('), draw your tag and spray it on tag spots to take over blocks. Every block brings in')} ${U.money(K.TURF_INCOME)}${tr('/day, dealing on your own turf +25%.')}</p><div class="btns"><button class="btn" data-gang="found">${tr('Start a gang…')}</button></div></div>`;
+      let h = `<div class="sec">${tr('Gang & turf')} <small>${tr('Tag spots are shown as colored blocks on the map')}</small></div><div class="card gangcard"><div class="gangtag" style="border-color:${P.gang.col}">${P.gang.tag ? `<img src="${P.gang.tag}">` : `<b style="color:${P.gang.col}">${esc(P.gang.name)}</b>`}</div><div><h4 style="color:${P.gang.col}">${esc(P.gang.name)}</h4><p>${w.playerBlocks()} ${tr('blocks · +')}${U.money(w.playerBlocks() * K.TURF_INCOME)}${tr('/day · 🎨')} ${P.inv.spray || 0} ${tr('spray cans')}</p><div class="btns"><button class="btn ghost" data-gang="tag">${tr('Redraw tag')}</button></div></div></div><div class="ganglist">`;
       for (const [k, g] of Object.entries(G)) {
         const war = P.wars[k], n = w.gangBlocks(k);
-        h += `<div class="card ganrow" style="border-left:4px solid ${g.col}"><b style="color:${g.col}">${g.name}</b><span>${n} Blöcke</span><span>${war ? '<b style="color:#ff3b4e">⚔ KRIEG</b>' : 'Frieden'}</span>${n === 0 ? '<span style="color:#888">zerschlagen</span>' : war ? `<button class="btn ghost" data-peace="${k}">Frieden kaufen · ${U.money(w.peacePrice(k))}</button>` : `<button class="btn red" data-war="${k}">Krieg erklären</button>`}</div>`;
+        h += `<div class="card ganrow" style="border-left:4px solid ${g.col}"><b style="color:${g.col}">${g.name}</b><span>${n} ${tr('blocks')}</span><span>${war ? '<b style="color:#ff3b4e">⚔ KRIEG</b>' : tr('Peace')}</span>${n === 0 ? '<span style="color:#888">zerschlagen</span>' : war ? `<button class="btn ghost" data-peace="${k}">${tr('Buy peace ·')} ${U.money(w.peacePrice(k))}</button>` : `<button class="btn red" data-war="${k}">${tr('Declare war')}</button>`}</div>`;
       }
       return h + '</div>';
     }
     bindGang(body, again) {
       const w = this.g.world;
       body.querySelectorAll('[data-gang]').forEach((b) => (b.onclick = () => this.tagEditor(b.dataset.gang === 'found')));
-      body.querySelectorAll('[data-war]').forEach((b) => (b.onclick = () => { if (b.dataset.sure) { w.declareWar(b.dataset.war); again(); } else { b.dataset.sure = 1; b.textContent = 'Wirklich? Die schießen.'; } }));
+      body.querySelectorAll('[data-war]').forEach((b) => (b.onclick = () => { if (b.dataset.sure) { w.declareWar(b.dataset.war); again(); } else { b.dataset.sure = 1; b.textContent = tr('Really? They shoot.'); } }));
       body.querySelectorAll('[data-peace]').forEach((b) => (b.onclick = () => { w.makePeace(b.dataset.peace); again(); }));
     }
     /** freehand tag editor: caps, colours, undo — the result is stored as a PNG */
     tagEditor(found) {
       const w = this.g.world, P = w.P;
       const cols = ['#c8102e', '#ff6a00', '#f2c14e', '#3ddc84', '#1fb5ff', '#a855f7', '#ff4fd8', '#f4f4f4', '#111111'];
-      const caps = [['Skinny', 2, 0], ['Soft', 5, 4], ['NY', 8, 0], ['Standard', 12, 1], ['Fat', 20, 8], ['Ultra Fat', 32, 12]];
+      const caps = [[tr('Skinny'), 2, 0], [tr('Soft'), 5, 4], ['NY', 8, 0], [tr('Standard'), 12, 1], [tr('Fat'), 20, 8], [tr('Ultra Fat'), 32, 12]];
       const g = P.gang || { name: '', col: '#c8102e' };
       const h = `<div class="tagwrap"><div class="tagside">
-        <label>Name<input id="tg-name" maxlength="24" value="${esc(g.name)}" placeholder="z. B. Rote Drachen"></label>
-        <div class="sub">Gangfarbe</div><div class="sw" id="tg-gcol">${cols.slice(0, 7).map((c) => `<i data-gc="${c}" style="background:${c}" class="${c === g.col ? 'on' : ''}"></i>`).join('')}</div>
-        <div class="sub">Sprühfarbe</div><div class="sw" id="tg-col">${cols.map((c, i) => `<i data-c="${c}" style="background:${c}" class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>
-        <div class="sub">Cap</div><div class="caps">${caps.map(([n, wd, bl], i) => `<button class="btn ghost ${i === 3 ? 'on' : ''}" data-cap="${i}">${n}</button>`).join('')}</div>
-        <div class="btns"><button class="btn ghost" id="tg-undo">↶ Rückgängig [Z]</button><button class="btn ghost" id="tg-clear">Leeren</button></div>
-        <button class="btn" id="tg-save">${P.gang ? 'Speichern' : 'Gang gründen · ' + U.money(K.GANG_FOUND_FEE)}</button>
-      </div><canvas id="tg-cv" width="384" height="128"></canvas></div><p style="color:#888;font-size:12px">Mal mit der Maus. Dein Tag erscheint auf jedem Tag-Spot, den du besprühst — und auf der Karte in deiner Gangfarbe.</p>`;
-      const body = this.panel(P.gang ? 'TAG ZEICHNEN' : 'GANG GRÜNDEN', h, 'tag');
+        <label>${tr('Name')}<input id="tg-name" maxlength="24" value="${esc(g.name)}" placeholder="${tr('e.g. Red Dragon Elite')}"></label>
+        <div class="sub">${tr('Gang color')}</div><div class="sw" id="tg-gcol">${cols.slice(0, 7).map((c) => `<i data-gc="${c}" style="background:${c}" class="${c === g.col ? 'on' : ''}"></i>`).join('')}</div>
+        <div class="sub">${tr('Spray color')}</div><div class="sw" id="tg-col">${cols.map((c, i) => `<i data-c="${c}" style="background:${c}" class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>
+        <div class="sub">${tr('Cap')}</div><div class="caps">${caps.map(([n, wd, bl], i) => `<button class="btn ghost ${i === 3 ? 'on' : ''}" data-cap="${i}">${n}</button>`).join('')}</div>
+        <div class="btns"><button class="btn ghost" id="tg-undo">${tr('↶ Undo [Z]')}</button><button class="btn ghost" id="tg-clear">${tr('Clear')}</button></div>
+        <button class="btn" id="tg-save">${P.gang ? tr('Save') : `${tr('Start the gang ·')} ` + U.money(K.GANG_FOUND_FEE)}</button>
+      </div><canvas id="tg-cv" width="384" height="128"></canvas></div><p style="color:#888;font-size:12px">${tr('Paint with the mouse. Your tag appears on every tag spot you spray — and on the map in your gang color.')}</p>`;
+      const body = this.panel(P.gang ? 'TAG ZEICHNEN' : tr('START A GANG'), h, 'tag');
       const cv = body.querySelector('#tg-cv'), x = cv.getContext('2d');
       const strokes = []; let cur = null, col = cols[0], cap = caps[3], gcol = g.col;
       this.tagBase = null;
@@ -372,7 +373,7 @@
       body.querySelectorAll('[data-gc]').forEach((b) => (b.onclick = () => { gcol = b.dataset.gc; body.querySelectorAll('[data-gc]').forEach((q) => q.classList.toggle('on', q === b)); }));
       body.querySelectorAll('[data-cap]').forEach((b) => (b.onclick = () => { cap = caps[+b.dataset.cap]; body.querySelectorAll('[data-cap]').forEach((q) => q.classList.toggle('on', q === b)); }));
       body.querySelector('#tg-save').onclick = () => {
-        const name = body.querySelector('#tg-name').value.trim() || 'Rote Drachen';
+        const name = body.querySelector('#tg-name').value.trim() || tr('Red Dragon Elite');
         const empty = !strokes.length && !(this.tagBase && P.gang && P.gang.tag);
         const png = empty ? null : cv.toDataURL('image/png');
         if (w.foundGang(name, gcol, png)) { this.g.save(true); this.crew(); }
@@ -384,9 +385,9 @@
       let meta = `<div class="sub" style="color:${rar.col}">${rar.name} · ${C.pers[m.pers].name}</div>`;
       if (m.level) {
         const t = C.tiers[K.crewTier(m)], mo = K.crewMorale(m);
-        const st = m.state === 'active' ? '🟢 im Einsatz' : m.state === 'down' ? `🏥 Klinik (bis ${U.clock(m.downUntil)})` : '⚪ bereit';
-        meta += `<div class="crewmeta"><span>Stufe ${m.level}</span><span style="color:${t.col}">♥ ${t.name}</span><span style="color:${mo.col}">${mo.name} (${Math.round(m.morale)})</span><span>${st}</span><span>☠ ${m.kills}</span><span>🩹 ${m.kits}</span><span>${esc(W8[m.weapon] ? W8[m.weapon].name : m.weapon)}</span><span>Lohn ${U.money(m.wage)}/Tag</span></div>`;
-      } else meta += `<div class="crewmeta"><span>${esc(W8[m.weapon].name)}</span><span>Lohn ${U.money(m.wage)}/Tag</span></div>`;
+        const st = m.state === 'active' ? tr('🟢 on duty') : m.state === 'down' ? `${tr('🏥 Hospital (until')} ${U.clock(m.downUntil)})` : '⚪ bereit';
+        meta += `<div class="crewmeta"><span>${tr('Level')} ${m.level}</span><span style="color:${t.col}">♥ ${t.name}</span><span style="color:${mo.col}">${mo.name} (${Math.round(m.morale)})</span><span>${st}</span><span>☠ ${m.kills}</span><span>🩹 ${m.kits}</span><span>${esc(W8[m.weapon] ? W8[m.weapon].name : m.weapon)}</span><span>${tr('Wage')} ${U.money(m.wage)}${tr('/day')}</span></div>`;
+      } else meta += `<div class="crewmeta"><span>${esc(W8[m.weapon].name)}</span><span>${tr('Wage')} ${U.money(m.wage)}${tr('/day')}</span></div>`;
       return `<div class="card crewcard" style="border-color:${rar.col}55"><canvas class="crewpic" data-pic="${m.id || 'o' + m.name}" width="96" height="96"></canvas><div class="cbody"><h4>${esc(m.name)}</h4>${meta}<div class="skills">${bars}</div><div class="btns">${buttons}</div></div></div>`;
     }
     drawCrewPics(body, list) {
@@ -397,21 +398,21 @@
     }
     recruit() {
       const w = this.g.world, P = w.P, offers = w.crewOffers(), R = w.crewRoster();
-      let h = `<p class="lead">„Gute Leute kosten. Die besten noch mehr. Jeden Tag hab ich drei neue Gesichter.“ — Kralle</p><div class="sec">Heute verfügbar</div><div class="crewgrid">`;
-      offers.forEach((c, i) => { h += this.crewCard(c, c.hired ? '<span class="tag">Vergeben</span>' : `<button class="btn" data-hire="${i}">Anheuern · ${U.money(c.price)}</button>`); });
-      h += `</div><div class="sec">Deine Crew <small>${R.length}/${K.CREW.maxOwned} · max. ${K.CREW.maxActive} gleichzeitig · Lohn wird täglich fällig</small></div><div class="crewgrid">`;
+      let h = `<p class="lead">${tr('“Good people cost. The best cost more. Every day I’ve got three new faces.” — Claw')}</p><div class="sec">${tr('Available today')}</div><div class="crewgrid">`;
+      offers.forEach((c, i) => { h += this.crewCard(c, c.hired ? `<span class="tag">${tr('Taken')}</span>` : `<button class="btn" data-hire="${i}">${tr('Hire ·')} ${U.money(c.price)}</button>`); });
+      h += `</div><div class="sec">${tr('Your crew')} <small>${R.length}/${K.CREW.maxOwned} · max. ${K.CREW.maxActive} ${tr('at once · wages due daily')}</small></div><div class="crewgrid">`;
       R.forEach((m) => { h += this.crewCard(m, this.rosterButtons(m)); });
-      if (!R.length) h += '<p style="color:#888">Noch niemand. Allein ist man schnell tot.</p>';
+      if (!R.length) h += `<p style="color:#888">${tr('Nobody yet. Alone, you’re dead fast.')}</p>`;
       h += '</div>' + this.gangSection();
-      const body = this.panel('CREW ANHEUERN', h, 'recruit');
+      const body = this.panel(tr('HIRE CREW'), h, 'recruit');
       this.drawCrewPics(body, [...offers, ...R]);
       body.querySelectorAll('[data-hire]').forEach((b) => (b.onclick = () => { w.hireCrew(+b.dataset.hire); this.recruit(); }));
       this.bindRoster(body, () => this.recruit());
       this.bindGang(body, () => this.recruit());
     }
     rosterButtons(m) {
-      if (m.state === 'down') return `<button class="btn" data-rev="${m.id}">Sofort entlassen · ${U.money(this.g.world.crewHospitalFee(m))}</button><button class="btn ghost" data-fire="${m.id}">Rauswerfen</button>`;
-      return (m.state === 'active' ? `<button class="btn ghost" data-home="${m.id}">Heimschicken</button><button class="btn ghost" data-give="${m.id}">Aktuelle Waffe geben</button>` : `<button class="btn" data-call="${m.id}">Rufen</button>`) + `<button class="btn ghost" data-fire="${m.id}">Rauswerfen</button>`;
+      if (m.state === 'down') return `<button class="btn" data-rev="${m.id}">${tr('Discharge now ·')} ${U.money(this.g.world.crewHospitalFee(m))}</button><button class="btn ghost" data-fire="${m.id}">${tr('Fire')}</button>`;
+      return (m.state === 'active' ? `<button class="btn ghost" data-home="${m.id}">${tr('Send home')}</button><button class="btn ghost" data-give="${m.id}">${tr('Give current weapon')}</button>` : `<button class="btn" data-call="${m.id}">${tr('Call')}</button>`) + `<button class="btn ghost" data-fire="${m.id}">${tr('Fire')}</button>`;
     }
     bindRoster(body, again) {
       const w = this.g.world;
@@ -419,22 +420,22 @@
       body.querySelectorAll('[data-home]').forEach((b) => (b.onclick = () => { w.sendHome(+b.dataset.home); again(); }));
       body.querySelectorAll('[data-give]').forEach((b) => (b.onclick = () => { w.crewCommand('give', +b.dataset.give); again(); }));
       body.querySelectorAll('[data-rev]').forEach((b) => (b.onclick = () => { w.crewRevive(+b.dataset.rev); again(); }));
-      body.querySelectorAll('[data-fire]').forEach((b) => (b.onclick = () => { if (b.dataset.sure) { w.fireCrew(+b.dataset.fire); again(); } else { b.dataset.sure = 1; b.textContent = 'Sicher?'; } }));
+      body.querySelectorAll('[data-fire]').forEach((b) => (b.onclick = () => { if (b.dataset.sure) { w.fireCrew(+b.dataset.fire); again(); } else { b.dataset.sure = 1; b.textContent = tr('Sure?'); } }));
     }
     crew() {
       const w = this.g.world, P = w.P, R = w.crewRoster(), C = K.CREW;
       const form = P.crewForm || 'follow', stance = P.crewStance || 'defensive', mode = P.crewMode || 'follow';
       const cmd = (c, label, on, arg) => `<button class="btn ${on ? '' : 'ghost'}" data-cmd="${c}"${arg ? ` data-arg="${arg}"` : ''}>${label}</button>`;
-      let h = this.gangSection() + `<div class="sec">Befehle <small>[V] im Spiel: Ziel unterm Fadenkreuz angreifen</small></div><div class="btns cmdrow">
-        ${cmd('follow', '🚶 Folgen', mode === 'follow')}${cmd('stay', '🛑 Position halten', mode === 'stay')}${cmd('formation', '◇ Formation: ' + C.formations[form].name, true)}
-        ${cmd('attackAll', '⚔ Alles angreifen')}${cmd('heal', '🩹 Mich verarzten')}${cmd('holster', P.crewHolster ? '🔫 Waffen ziehen' : '✋ Waffen weg')}${cmd('dismissAll', '🏠 Alle heimschicken')}</div>
-        <div class="sec">Haltung</div><div class="btns cmdrow">${Object.entries(C.stances).map(([k, n]) => cmd('stance', n, stance === k, k)).join('')}</div>
-        <p style="color:#888;font-size:12px">Friedlich: wehren sich nur. Defensiv: schützen dich vor allem, was dich angreift. Aggressiv: gehen auch auf Gangs und Räuber los.</p>
-        <div class="sec">Crew <small>Neue Leute gibt es beim Vermittler in der Bar „Blauer Engel“</small></div><div class="crewgrid">`;
+      let h = this.gangSection() + `<div class="sec">${tr('Orders')} <small>${tr('[V] in game: attack the target under the crosshair')}</small></div><div class="btns cmdrow">
+        ${cmd('follow', tr('🚶 Follow'), mode === 'follow')}${cmd('stay', tr('🛑 Hold position'), mode === 'stay')}${cmd('formation', `${tr('◇ Formation:')} ` + C.formations[form].name, true)}
+        ${cmd('attackAll', tr('⚔ Attack everything'))}${cmd('heal', tr('🩹 Patch me up'))}${cmd('holster', P.crewHolster ? tr('🔫 Weapons out') : tr('✋ Weapons away'))}${cmd('dismissAll', tr('🏠 Send everyone home'))}</div>
+        <div class="sec">${tr('Stance')}</div><div class="btns cmdrow">${Object.entries(C.stances).map(([k, n]) => cmd('stance', n, stance === k, k)).join('')}</div>
+        <p style="color:#888;font-size:12px">${tr('Peaceful: only defend themselves. Defensive: protect you from anything that attacks you. Aggressive: also go after gangs and robbers.')}</p>
+        <div class="sec">${tr('Crew')} <small>${tr('New people from the fixer at the “Blue Angel” bar')}</small></div><div class="crewgrid">`;
       R.forEach((m) => { h += this.crewCard(m, this.rosterButtons(m)); });
-      if (!R.length) h += '<p style="color:#888">Du hast noch keine Crew. Sprich mit Kralle in der Bar „Blauer Engel“.</p>';
+      if (!R.length) h += `<p style="color:#888">${tr('You don’t have a crew yet. Talk to Claw at the “Blue Angel” bar.')}</p>`;
       h += '</div>';
-      const body = this.panel('CREW', h, 'crew');
+      const body = this.panel(tr('CREW'), h, 'crew');
       this.drawCrewPics(body, R);
       body.querySelectorAll('[data-cmd]').forEach((b) => (b.onclick = () => { w.crewCommand(b.dataset.cmd, b.dataset.arg); this.crew(); }));
       this.bindRoster(body, () => this.crew());
@@ -442,23 +443,23 @@
     }
     bank() {
       const w = this.g.world, P = w.P;
-      const h = `<div class="cols"><div class="card"><div class="sub">Bargeld</div><h4 style="font-size:30px;color:#9ff0b8">${U.money(P.money)}</h4><p>Bargeld verlierst du beim Tod (15%). Schwarzmarkt und Dealer nehmen nur Bares.</p>
-        <div class="btns"><button class="btn" data-dep="100">+100 einzahlen</button><button class="btn" data-dep="1000">+1.000</button><button class="btn red" data-dep="1e12">Alles einzahlen</button></div></div>
-        <div class="card"><div class="sub">Konto · Krähenburger Sparkasse</div><h4 style="font-size:30px;color:#7fb7a0">${U.money(P.bank || 0)}</h4><p>Auftragshonorare und Geschäftseinnahmen landen hier. Legale Läden nehmen Karte.</p>
-        <div class="btns"><button class="btn" data-wd="100">100 abheben</button><button class="btn" data-wd="1000">1.000</button><button class="btn" data-wd="5000">5.000</button><button class="btn ghost" data-wd="1e12">Alles</button></div></div></div>`;
-      const b = this.panel('GELDAUTOMAT', h, 'bank');
+      const h = `<div class="cols"><div class="card"><div class="sub">${tr('Cash')}</div><h4 style="font-size:30px;color:#9ff0b8">${U.money(P.money)}</h4><p>${tr('You lose cash when you die (15%). The black market and dealers only take cash.')}</p>
+        <div class="btns"><button class="btn" data-dep="100">${tr('Deposit +100')}</button><button class="btn" data-dep="1000">${tr('+1,000')}</button><button class="btn red" data-dep="1e12">${tr('Deposit everything')}</button></div></div>
+        <div class="card"><div class="sub">${tr('Account · Port Raven Savings Bank')}</div><h4 style="font-size:30px;color:#7fb7a0">${U.money(P.bank || 0)}</h4><p>${tr('Contract fees and business income land here. Legal stores take cards.')}</p>
+        <div class="btns"><button class="btn" data-wd="100">${tr('Withdraw 100')}</button><button class="btn" data-wd="1000">${tr('1,000')}</button><button class="btn" data-wd="5000">${tr('5,000')}</button><button class="btn ghost" data-wd="1e12">${tr('All')}</button></div></div></div>`;
+      const b = this.panel(tr('ATM'), h, 'bank');
       b.querySelectorAll('[data-dep]').forEach((x) => (x.onclick = () => { w.bankDeposit(+x.dataset.dep); this.bank(); }));
       b.querySelectorAll('[data-wd]').forEach((x) => (x.onclick = () => { w.bankWithdraw(+x.dataset.wd); this.bank(); }));
     }
     showJail(e) {
       const el = $('#dead');
       const h = Math.floor(e.min / 60), m = e.min % 60;
-      el.innerHTML = `<div class="res-box"><div class="k">AMTSGERICHT KRÄHENBURG · SCHNELLVERFAHREN</div><h1 style="color:#ff9a4a">${h}h ${String(m).padStart(2, '0')}m HAFT</h1><h3>${e.surrendered ? 'Geständig und kooperativ — 30% Strafnachlass' : 'Festgenommen'}</h3>
+      el.innerHTML = `<div class="res-box"><div class="k">${tr('PORT RAVEN DISTRICT COURT · FAST-TRACK PROCEDURE')}</div><h1 style="color:#ff9a4a">${tr('{t} INSIDE', { t: `${h}h ${String(m).padStart(2, '0')}m` })}</h1><h3>${e.surrendered ? tr('Confessed and cooperative — 30% off the sentence') : tr('Arrested')}</h3>
         ${e.charges.map((c, i) => `<div class="ln" style="animation-delay:${0.2 + i * 0.15}s"><span>${esc(c.name)}${c.n > 1 ? ' ×' + c.n : ''}</span><b>${Math.round(c.min / 6) / 10}h</b></div>`).join('')}
-        ${e.lost.length ? `<div class="ln" style="animation-delay:${0.3 + e.charges.length * 0.15}s"><span>Beschlagnahmt</span><b style="font-size:12px;max-width:60%;text-align:right">${esc(e.lost.join(', '))}</b></div>` : ''}
-        <div class="tot" style="color:#ff9a4a"><span>KAUTION</span><span>${U.money(e.bail)}</span></div>
-        <p style="color:#999;font-size:12px">In der Zelle läuft die Zeit 14× schneller. Zahl die Kaution mit <b>K</b> oder knack die Zellentür mit <b>E</b>, wenn kein Wärter hinsieht.</p>
-        <div class="btns" style="justify-content:center;margin-top:12px"><button class="btn" id="dead-ok">In die Zelle</button></div></div>`;
+        ${e.lost.length ? `<div class="ln" style="animation-delay:${0.3 + e.charges.length * 0.15}s"><span>${tr('Confiscated')}</span><b style="font-size:12px;max-width:60%;text-align:right">${esc(e.lost.join(', '))}</b></div>` : ''}
+        <div class="tot" style="color:#ff9a4a"><span>${tr('BAIL')}</span><span>${U.money(e.bail)}</span></div>
+        <p style="color:#999;font-size:12px">${tr('In the cell, time runs 14× faster. Pay bail with')} <b>K</b> ${tr('or crack the cell door with')} <b>E</b>${tr('when no guard is looking.')}</p>
+        <div class="btns" style="justify-content:center;margin-top:12px"><button class="btn" id="dead-ok">${tr('To the cell')}</button></div></div>`;
       el.classList.remove('hidden'); this.sync();
       el.querySelector('#dead-ok').onclick = () => { el.classList.add('hidden'); this.sync(); this.g.fadeIn(); };
     }
@@ -469,40 +470,40 @@
         const inHb = hb.findIndex((e) => e && e.t === t && e.id === id);
         return `<div class="tile ${this.invSel && this.invSel.t === t && this.invSel.id === id ? 'sel' : ''}" data-drag="${t}" data-t="${t}" data-id="${id}" title="${esc(t === 'w' ? W8[id].name : K.ITEMS[id].name)}">${K.slotIcon(t, id)}${extra ? `<b>${extra}</b>` : ''}${inHb >= 0 ? `<u>${inHb + 1}</u>` : ''}<small>${esc(sub)}</small></div>`;
       };
-      let h = `<div class="inv2"><div class="inv-left"><div class="sec">Waffen <small>in die Hotbar ziehen</small></div><div class="tiles">`;
+      let h = `<div class="inv2"><div class="inv-left"><div class="sec">${tr('Weapons')} <small>${tr('drag into the hotbar')}</small></div><div class="tiles">`;
       for (const x of P.weapons) {
         if (x.id === 'fists') continue;
         const d = W8[x.id];
         h += tile('w', x.id, d.type === 'gun' ? `${x.mag}` : x.n > 1 ? `×${x.n}` : '', d.name);
       }
-      h += `</div><div class="sec" style="margin-top:12px">Gegenstände <small>${wl.toFixed(1)} / ${lim} kg</small></div><div class="tiles">`;
+      h += `</div><div class="sec" style="margin-top:12px">${tr('Items')} <small>${wl.toFixed(1)} / ${lim} kg</small></div><div class="tiles">`;
       const keys = Object.keys(P.inv);
-      if (!keys.length) h += '<p style="color:#888">Leer.</p>';
+      if (!keys.length) h += `<p style="color:#888">${tr('Empty.')}</p>`;
       for (const k of keys) h += tile('i', k, `×${P.inv[k]}`, K.ITEMS[k].name);
-      h += `</div><div class="sec" style="margin-top:12px">Munition</div><div class="ammo">`;
+      h += `</div><div class="sec" style="margin-top:12px">${tr('Ammo')}</div><div class="ammo">`;
       const cals = Object.keys(P.ammo).filter((k) => P.ammo[k] > 0);
-      h += cals.length ? cals.map((k) => `<span>${K.AMMO[k].name} <b>${P.ammo[k]}</b></span>`).join('') : '<span>Keine Munition.</span>';
-      h += `</div></div><div class="inv-right"><div class="sec">Details</div><div id="inv-det" class="card">${this.invDetails(w)}</div>
-        <div class="sec">Outfit & Status</div><div class="stat"><span>${esc(K.OUTFITS[P.outfit].name)}</span><b>${K.OUTFITS[P.outfit].disguise ? 'Verkleidung' : 'Zivil'}</b></div>
-        <div class="stat"><span>Gesundheit</span><b>${Math.ceil(w.player.hp)} / ${w.maxHp()}</b></div><div class="stat"><span>Hunger · Durst · Energie</span><b>${Math.round(P.hunger)}% · ${Math.round(P.thirst)}% · ${Math.round(P.energy)}%</b></div><div class="stat"><span>Weste</span><b>${Math.round(w.player.armor)}%</b></div></div></div>
-        <div class="sec" style="margin-top:12px">Hotbar <small>ziehen = belegen · Slots tauschen · rausziehen/Rechtsklick = leeren · Maus über Kachel + 1–9</small></div>
+      h += cals.length ? cals.map((k) => `<span>${K.AMMO[k].name} <b>${P.ammo[k]}</b></span>`).join('') : `<span>${tr('No ammo.')}</span>`;
+      h += `</div></div><div class="inv-right"><div class="sec">${tr('Details')}</div><div id="inv-det" class="card">${this.invDetails(w)}</div>
+        <div class="sec">${tr('Outfit & status')}</div><div class="stat"><span>${esc(K.OUTFITS[P.outfit].name)}</span><b>${K.OUTFITS[P.outfit].disguise ? tr('In disguise') : tr('Plain clothes')}</b></div>
+        <div class="stat"><span>${tr('Health')}</span><b>${Math.ceil(w.player.hp)} / ${w.maxHp()}</b></div><div class="stat"><span>${tr('Hunger · Thirst · Energy')}</span><b>${Math.round(P.hunger)}% · ${Math.round(P.thirst)}% · ${Math.round(P.energy)}%</b></div><div class="stat"><span>${tr('Vest')}</span><b>${Math.round(w.player.armor)}%</b></div></div></div>
+        <div class="sec" style="margin-top:12px">${tr('Hotbar')} <small>${tr('drag = assign · swap slots · drag out/right-click = clear · hover a tile + 1–9')}</small></div>
         <div class="inv-hb">${K.hotbarHTML(w, true)}</div>
-        <div class="inv-zones"><div class="zone" data-zone="use">✋ Benutzen / Ausrüsten</div><div class="zone" data-zone="holster">🫳 Alles wegstecken</div><div class="zone bad" data-zone="drop">🗑 Wegwerfen</div></div>`;
-      const b = this.panel('INVENTAR', h, 'inv');
+        <div class="inv-zones"><div class="zone" data-zone="use">${tr('✋ Use / Equip')}</div><div class="zone" data-zone="holster">${tr('🫳 Holster everything')}</div><div class="zone bad" data-zone="drop">${tr('🗑 Drop')}</div></div>`;
+      const b = this.panel(tr('INVENTORY'), h, 'inv');
       this.bindInventoryDnD(b);
     }
     invDetails(w) {
       const P = w.P, s = this.invSel;
-      if (!s || (s.t === 'w' ? !P.weapons.some((q) => q.id === s.id) : !P.inv[s.id])) return '<p style="color:#888">Klick auf eine Kachel für Details. Doppelklick benutzt sie.</p>';
+      if (!s || (s.t === 'w' ? !P.weapons.some((q) => q.id === s.id) : !P.inv[s.id])) return `<p style="color:#888">${tr('Click a tile for details. Double-click uses it.')}</p>`;
       if (s.t === 'w') {
         const d = W8[s.id], x = P.weapons.find((q) => q.id === s.id);
-        const st = d.type === 'gun' ? `${K.AMMO[d.ammo].name} · Magazin ${x.mag}/${d.mag} · Reserve ${P.ammo[d.ammo] || 0} · Schaden ${d.dmg}${d.pellets ? '×' + d.pellets : ''}${x.sup ? ' · gedämpft' : ''}` : d.desc || `Schaden ${d.dmg}`;
-        return `<div class="det-h">${K.slotIcon('w', s.id)}<h4>${esc(d.name)}</h4></div><p>${esc(st)}</p><div class="btns"><button class="btn" data-act="use">Ausrüsten</button><button class="btn ghost" data-act="drop">Ablegen</button></div>`;
+        const st = d.type === 'gun' ? `${K.AMMO[d.ammo].name} ${tr('· magazine')} ${x.mag}/${d.mag} ${tr('· reserve')} ${P.ammo[d.ammo] || 0} ${tr('· damage')} ${d.dmg}${d.pellets ? '×' + d.pellets : ''}${x.sup ? ` ${tr('· suppressed')}` : ''}` : d.desc || `${tr('Damage')} ${d.dmg}`;
+        return `<div class="det-h">${K.slotIcon('w', s.id)}<h4>${esc(d.name)}</h4></div><p>${esc(st)}</p><div class="btns"><button class="btn" data-act="use">${tr('Equip')}</button><button class="btn ghost" data-act="drop">${tr('Take off')}</button></div>`;
       }
       const it = K.ITEMS[s.id], usable = !it.sellOnly && !it.quest && s.id !== 'lockpick';
-      const st = [it.food ? `Hunger +${it.food}` : '', it.water ? `Durst +${it.water}` : '', it.energy ? `Energie +${it.energy}` : '', it.hp ? `HP +${it.hp}` : '', it.desc || '', it.hot ? 'Heiße Ware' : ''].filter(Boolean).join(' · ');
-      const label = s.id === 'mask' ? (P.masked ? 'Abnehmen' : 'Aufsetzen') : s.id === 'growkit' || s.id === 'seed' ? 'Pflanzen' : s.id === 'bud' ? 'Rauchen' : it.place ? 'Platzieren' : 'Benutzen';
-      return `<div class="det-h">${K.slotIcon('i', s.id)}<h4>${esc(it.name)} <small>×${P.inv[s.id]}</small></h4></div><p>${esc(st || '—')}</p><div class="btns">${usable ? `<button class="btn" data-act="use">${label}</button>` : ''}<button class="btn ghost" data-act="drop">Wegwerfen</button></div>`;
+      const st = [it.food ? `${tr('Hunger +')}${it.food}` : '', it.water ? `${tr('Thirst +')}${it.water}` : '', it.energy ? `${tr('Energy +')}${it.energy}` : '', it.hp ? `HP +${it.hp}` : '', it.desc || '', it.hot ? tr('Hot goods') : ''].filter(Boolean).join(' · ');
+      const label = s.id === 'mask' ? (P.masked ? tr('Take off') : tr('Put on')) : s.id === 'growkit' || s.id === 'seed' ? tr('Plants') : s.id === 'bud' ? tr('Smoke') : it.place ? tr('Place') : tr('Use');
+      return `<div class="det-h">${K.slotIcon('i', s.id)}<h4>${esc(it.name)} <small>×${P.inv[s.id]}</small></h4></div><p>${esc(st || '—')}</p><div class="btns">${usable ? `<button class="btn" data-act="use">${label}</button>` : ''}<button class="btn ghost" data-act="drop">${tr('Drop')}</button></div>`;
     }
     /** act on a dragged/selected thing: use · drop · put into hotbar slot */
     invAct(t, id, act, slot) {
@@ -559,23 +560,23 @@
     }
     shop(id, bid, tab = 'buy') {
       const w = this.g.world, P = w.P, s = K.SHOPS[id];
-      let h = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="tabs"><button data-tab="buy" class="${tab === 'buy' ? 'on' : ''}">Kaufen</button>${s.buysAll || id === 'gun' ? `<button data-tab="sell" class="${tab === 'sell' ? 'on' : ''}">Verkaufen</button>` : ''}</div><div class="wallet">${U.money(P.money)}</div></div>`;
-      if (s.heal) h += `<div class="it on"><div class="ic">🏥</div><div class="nm">Vollständige Behandlung<small>Heilt alle Wunden und stoppt Blutungen.</small></div><div class="pr">${U.money(s.heal)}</div><button class="btn red" data-heal>Behandeln</button></div><div style="height:10px"></div>`;
+      let h = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="tabs"><button data-tab="buy" class="${tab === 'buy' ? 'on' : ''}">${tr('Buy')}</button>${s.buysAll || id === 'gun' ? `<button data-tab="sell" class="${tab === 'sell' ? 'on' : ''}">${tr('Sell')}</button>` : ''}</div><div class="wallet">${U.money(P.money)}</div></div>`;
+      if (s.heal) h += `<div class="it on"><div class="ic">🏥</div><div class="nm">${tr('Full treatment')}<small>${tr('Heals all wounds and stops bleeding.')}</small></div><div class="pr">${U.money(s.heal)}</div><button class="btn red" data-heal>${tr('Treat')}</button></div><div style="height:10px"></div>`;
       h += '<div class="list">';
       if (tab === 'buy') {
         for (const key of s.items) {
           const { price, name } = w.priceOf(key);
           let sub = '', owned = false;
-          if (W8[key]) { const d = W8[key]; sub = d.type === 'gun' ? `${K.AMMO[d.ammo].name} · ${d.mag} Schuss · Schaden ${d.dmg}${d.pellets ? '×' + d.pellets : ''}${d.sup ? ' · gedämpft' : d.canSup ? ' · Dämpfer möglich' : ''}` : d.desc || (d.type === 'melee' ? `Nahkampf · Schaden ${d.dmg}` : ''); owned = !d.stack && !d.consumable && P.weapons.some((x) => x.id === key); }
-          else if (key.startsWith('a:')) sub = `Du hast: ${P.ammo[key.slice(2)] || 0}`;
-          else if (key.startsWith('o:')) { const o = K.OUTFITS[key.slice(2)]; sub = o.desc || (o.disguise ? `Verkleidung · Zugang: ${o.role}` : 'Zivile Kleidung'); owned = P.outfits.includes(key.slice(2)); }
-          else { const it = K.ITEMS[key]; sub = [it.food ? `Hunger +${it.food}` : '', it.water ? `Durst +${it.water}` : '', it.energy ? `Energie +${it.energy}` : '', it.hp ? `HP +${it.hp}` : '', it.desc || ''].filter(Boolean).join(' · '); }
+          if (W8[key]) { const d = W8[key]; sub = d.type === 'gun' ? `${K.AMMO[d.ammo].name} · ${d.mag} ${tr('Firearm · damage')} ${d.dmg}${d.pellets ? '×' + d.pellets : ''}${d.sup ? ` ${tr('· suppressed')}` : d.canSup ? ` ${tr('· takes a suppressor')}` : ''}` : d.desc || (d.type === 'melee' ? `${tr('Melee · damage')} ${d.dmg}` : ''); owned = !d.stack && !d.consumable && P.weapons.some((x) => x.id === key); }
+          else if (key.startsWith('a:')) sub = `${tr('You have:')} ${P.ammo[key.slice(2)] || 0}`;
+          else if (key.startsWith('o:')) { const o = K.OUTFITS[key.slice(2)]; sub = o.desc || (o.disguise ? `${tr('Disguise · access:')} ${o.role}` : tr('Civilian clothes')); owned = P.outfits.includes(key.slice(2)); }
+          else { const it = K.ITEMS[key]; sub = [it.food ? `${tr('Hunger +')}${it.food}` : '', it.water ? `${tr('Thirst +')}${it.water}` : '', it.energy ? `${tr('Energy +')}${it.energy}` : '', it.hp ? `HP +${it.hp}` : '', it.desc || ''].filter(Boolean).join(' · '); }
           const eat = s.eat && K.ITEMS[key] && (K.ITEMS[key].food || K.ITEMS[key].water);
-          h += `<div class="it"><div class="ic">${icon(key)}</div><div class="nm">${esc(name)}<small>${esc(sub)}</small></div><div class="pr ${P.money < price ? 'bad' : ''}">${U.money(price)}</div>${eat ? `<button class="btn ghost" data-eat="${key}" ${P.money < price ? 'disabled' : ''}>Hier essen</button>` : ''}<button class="btn" data-buy="${key}" ${owned || P.money < price ? 'disabled' : ''}>${owned ? 'Besitzt' : 'Kaufen'}</button></div>`;
+          h += `<div class="it"><div class="ic">${icon(key)}</div><div class="nm">${esc(name)}<small>${esc(sub)}</small></div><div class="pr ${P.money < price ? 'bad' : ''}">${U.money(price)}</div>${eat ? `<button class="btn ghost" data-eat="${key}" ${P.money < price ? 'disabled' : ''}>${tr('Eat here')}</button>` : ''}<button class="btn" data-buy="${key}" ${owned || P.money < price ? 'disabled' : ''}>${owned ? tr('Owned') : tr('Buy')}</button></div>`;
         }
       } else {
-        P.weapons.forEach((x, i) => { if (!i) return; const v = Math.round((W8[x.id].price || 0) * 0.4) * (x.n || 1); h += `<div class="it"><div class="ic">${icon(x.id)}</div><div class="nm">${esc(W8[x.id].name)}</div><div class="pr">${U.money(v)}</div><button class="btn" data-sellw="${i}">Verkaufen</button></div>`; });
-        if (s.buysAll) for (const k in P.inv) { const v = w.priceOf(k, true); if (!v) continue; const n = P.inv[k]; h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)} ×${n}<small>${K.ITEMS[k].hot ? 'Hehlerware' : K.ITEMS[k].drug ? 'Großhandel — sicherer als die Straße, aber billiger' : ''}</small></div><div class="pr">${U.money(v)}${n > 1 ? '/Stk' : ''}</div><button class="btn" data-selli="${k}">1</button>${n > 1 ? `<button class="btn red" data-sellall="${k}">Alle ${U.money(v * n)}</button>` : ''}</div>`; }
+        P.weapons.forEach((x, i) => { if (!i) return; const v = Math.round((W8[x.id].price || 0) * 0.4) * (x.n || 1); h += `<div class="it"><div class="ic">${icon(x.id)}</div><div class="nm">${esc(W8[x.id].name)}</div><div class="pr">${U.money(v)}</div><button class="btn" data-sellw="${i}">${tr('Sell')}</button></div>`; });
+        if (s.buysAll) for (const k in P.inv) { const v = w.priceOf(k, true); if (!v) continue; const n = P.inv[k]; h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)} ×${n}<small>${K.ITEMS[k].hot ? tr('Stolen goods') : K.ITEMS[k].drug ? tr('Wholesale — safer than the street, but cheaper') : ''}</small></div><div class="pr">${U.money(v)}${n > 1 ? tr('/pc') : ''}</div><button class="btn" data-selli="${k}">1</button>${n > 1 ? `<button class="btn red" data-sellall="${k}">${tr('All')} ${U.money(v * n)}</button>` : ''}</div>`; }
       }
       h += '</div>';
       const b = this.panel(s.name, h, 'shop');
@@ -592,20 +593,20 @@
       const w = this.g.world, P = w.P, rec = w.placedRec(uid); if (!rec) return this.closePanel();
       const d = K.PLACE[rec.id], S = rec.store, cap = d.store, u = w.storeUsed(rec), only = cap.only;
       const row = (ic, nm, q, attr, lbl) => `<div class="it"><div class="ic">${ic}</div><div class="nm">${nm}</div><div class="q">${q}</div><button class="btn ghost" ${attr}>${lbl}</button></div>`;
-      let h = `<div class="ctr-cap"><span>Fächer ${u.slots}/${cap.slots}</span><div class="bar"><i style="width:${(u.slots / cap.slots) * 100}%"></i></div><span>${u.kg.toFixed(1)}/${cap.kg} kg</span><div class="bar"><i style="width:${Math.min(100, (u.kg / cap.kg) * 100)}%"></i></div></div>`;
-      if (d.lock) h += `<div class="ctr-lock">🔒 <span>Zahlenschloss · Code <b>${esc(rec.code)}</b></span><input data-code maxlength="4" placeholder="neu" inputmode="numeric"><button class="btn ghost" data-setcode>Ändern</button><small style="margin-left:auto;color:#a5b4fc">${['', 'Einfaches Schloss', 'Tresorschloss', 'Hochsicherheit'][d.lock]}</small></div>`;
-      else h += '<div class="ctr-lock" style="border-color:rgba(244,63,94,.4);background:rgba(244,63,94,.08)">🔓 <span>Unverschlossen — Einbrecher bedienen sich.</span></div>';
-      h += '<div class="cols"><div><div class="sec">Bei dir</div><div class="list">';
-      P.weapons.forEach((x, i) => { if (i) h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-pw="${i}"`, 'Rein ▶'); });
+      let h = `<div class="ctr-cap"><span>${tr('Slots')} ${u.slots}/${cap.slots}</span><div class="bar"><i style="width:${(u.slots / cap.slots) * 100}%"></i></div><span>${u.kg.toFixed(1)}/${cap.kg} kg</span><div class="bar"><i style="width:${Math.min(100, (u.kg / cap.kg) * 100)}%"></i></div></div>`;
+      if (d.lock) h += `<div class="ctr-lock">🔒 <span>${tr('Combination lock · code')} <b>${esc(rec.code)}</b></span><input data-code maxlength="4" placeholder="neu" inputmode="numeric"><button class="btn ghost" data-setcode>${tr('Change')}</button><small style="margin-left:auto;color:#a5b4fc">${['', tr('Simple lock'), tr('Safe lock'), tr('High security')][d.lock]}</small></div>`;
+      else h += `<div class="ctr-lock" style="border-color:rgba(244,63,94,.4);background:rgba(244,63,94,.08)">🔓 <span>${tr('Unlocked — burglars help themselves.')}</span></div>`;
+      h += `<div class="cols"><div><div class="sec">${tr('On you')}</div><div class="list">`;
+      P.weapons.forEach((x, i) => { if (i) h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-pw="${i}"`, tr('In ▶')); });
       if (only !== 'w') {
-        for (const k in P.ammo) if (P.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, P.ammo[k], `data-pa="${k}"`, 'Rein ▶');
-        for (const k in P.inv) h += row(icon(k), esc(K.ITEMS[k].name), '×' + P.inv[k], `data-pi="${k}"`, 'Rein ▶');
+        for (const k in P.ammo) if (P.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, P.ammo[k], `data-pa="${k}"`, tr('In ▶'));
+        for (const k in P.inv) h += row(icon(k), esc(K.ITEMS[k].name), '×' + P.inv[k], `data-pi="${k}"`, tr('In ▶'));
       }
       h += `</div></div><div><div class="sec">${esc(d.name)}</div><div class="list">`;
-      S.weapons.forEach((x, i) => (h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-sw="${i}"`, '◀ Raus')));
-      for (const k in S.ammo) if (S.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, S.ammo[k], `data-sa="${k}"`, '◀ Raus');
-      for (const k in S.items) if (S.items[k] > 0) h += row(icon(k), esc(K.ITEMS[k].name), '×' + S.items[k], `data-si="${k}"`, '◀ Raus');
-      if (!u.slots) h += '<div class="it"><div class="nm"><small>Leer.</small></div></div>';
+      S.weapons.forEach((x, i) => (h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-sw="${i}"`, tr('◀ Out'))));
+      for (const k in S.ammo) if (S.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, S.ammo[k], `data-sa="${k}"`, tr('◀ Out'));
+      for (const k in S.items) if (S.items[k] > 0) h += row(icon(k), esc(K.ITEMS[k].name), '×' + S.items[k], `data-si="${k}"`, tr('◀ Out'));
+      if (!u.slots) h += `<div class="it"><div class="nm"><small>${tr('Empty.')}</small></div></div>`;
       h += '</div></div></div>';
       const b = this.panel(d.name.toUpperCase(), h, 'container');
       const re = () => this.container(uid);
@@ -621,15 +622,15 @@
     corner(uid) {
       const w = this.g.world, P = w.P, rec = w.org().dealers.find((d) => d.uid === uid); if (!rec) return this.closePanel();
       const drugs = ['bud', 'meth', 'coke', 'weedbrick'].filter((k) => K.ITEMS[k]);
-      let h = `<div class="ctr-cap"><span>${esc(K.DISTRICTS[w.districtAt(rec.x, rec.y)] || '')} · ${w.ownTurfAt(rec.x, rec.y) ? 'dein Revier (+30% Absatz)' : 'fremdes Pflaster'}</span><span>Verkauft: ${rec.sold}</span><span>Anteil Dealer: ${Math.round(K.ORG.dealerCut * 100)}%</span></div>`;
-      h += `<div class="job"><b>Kasse: ${U.money(rec.cash)}</b><div class="btns" style="margin-top:8px"><button class="btn red" data-dc ${rec.cash ? '' : 'disabled'}>Kassieren</button><button class="btn ghost" data-df>Feuern</button></div></div>`;
-      h += '<div class="cols"><div><div class="sec">Bei dir</div><div class="list">';
-      for (const k of drugs) if (P.inv[k]) h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)}</div><div class="q">×${P.inv[k]}</div><button class="btn ghost" data-dg="${k}">Alles geben ▶</button></div>`;
-      h += '</div></div><div><div class="sec">Ware an der Ecke</div><div class="list">';
-      for (const k in rec.stock) h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)}</div><div class="q">×${rec.stock[k]}</div><button class="btn ghost" data-dt="${k}">◀ Zurück</button></div>`;
-      if (!Object.keys(rec.stock).length) h += '<div class="it"><div class="nm"><small>Nichts mehr da. Ohne Ware kein Geschäft.</small></div></div>';
-      h += '</div></div></div><p style="font-size:12px;color:#9ca3af">Nachts und in belebten Vierteln läuft mehr. Razzien sind in Mitte häufiger, im eigenen Revier seltener; in fremdem Revier wird eher geraubt.</p>';
-      const b = this.panel(`ECKE · ${rec.name.toUpperCase()}`, h, 'corner');
+      let h = `<div class="ctr-cap"><span>${esc(K.DISTRICTS[w.districtAt(rec.x, rec.y)] || '')} · ${w.ownTurfAt(rec.x, rec.y) ? tr('your turf (+30% sales)') : tr('foreign turf')}</span><span>${tr('Sold:')} ${rec.sold}</span><span>${tr('Dealer’s cut:')} ${Math.round(K.ORG.dealerCut * 100)}%</span></div>`;
+      h += `<div class="job"><b>${tr('Cash:')} ${U.money(rec.cash)}</b><div class="btns" style="margin-top:8px"><button class="btn red" data-dc ${rec.cash ? '' : 'disabled'}>${tr('Collect')}</button><button class="btn ghost" data-df>${tr('Fire')}</button></div></div>`;
+      h += `<div class="cols"><div><div class="sec">${tr('On you')}</div><div class="list">`;
+      for (const k of drugs) if (P.inv[k]) h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)}</div><div class="q">×${P.inv[k]}</div><button class="btn ghost" data-dg="${k}">${tr('Give everything ▶')}</button></div>`;
+      h += `</div></div><div><div class="sec">${tr('Product on the corner')}</div><div class="list">`;
+      for (const k in rec.stock) h += `<div class="it"><div class="ic">${icon(k)}</div><div class="nm">${esc(K.ITEMS[k].name)}</div><div class="q">×${rec.stock[k]}</div><button class="btn ghost" data-dt="${k}">${tr('◀ Back')}</button></div>`;
+      if (!Object.keys(rec.stock).length) h += `<div class="it"><div class="nm"><small>${tr('Nothing left. No product, no business.')}</small></div></div>`;
+      h += `</div></div></div><p style="font-size:12px;color:#9ca3af">${tr('More sells at night and in busy districts. Raids are more common in Midtown and rarer on your own turf; on foreign turf, robberies are more likely.')}</p>`;
+      const b = this.panel(`${tr('CORNER')} · ${rec.name.toUpperCase()}`, h, 'corner');
       const re = () => this.corner(uid);
       b.querySelectorAll('[data-dg]').forEach((x) => (x.onclick = () => { w.dealerGive(rec, x.dataset.dg, 1e9); re(); }));
       b.querySelectorAll('[data-dt]').forEach((x) => (x.onclick = () => { w.dealerTake(rec, x.dataset.dt); re(); }));
@@ -641,33 +642,33 @@
       const w = this.g.world, P = w.P, O = w.org();
       this.phoneApp = 'org:' + tab;
       const r = w.orgRank(), next = K.ORG.ranks[r + 1], cur = K.ORG.ranks[r][0];
-      const tabs = `<div class="cs-tabs">${[['home', 'Übersicht'], ['racket', 'Schutzgeld'], ['corners', 'Ecken'], ['biz', 'Geschäfte']].map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-ot="${k}">${n}</button>`).join('')}</div>`;
-      let h = `<div class="ph-h">ORGANISATION</div><div class="org-rank"><b>${esc(K.ORG.ranks[r][1])}</b><small>${P.gang ? esc(P.gang.name) : 'ohne Gang'} · Ruf ${Math.floor(O.rep)}${next ? ' / ' + next[0] : ''}</small><div class="xpbar"><i style="width:${next ? ((O.rep - cur) / (next[0] - cur)) * 100 : 100}%"></i></div></div>${tabs}`;
+      const tabs = `<div class="cs-tabs">${[['home', tr('Overview')], ['racket', tr('Protection')], ['corners', tr('Corners')], ['biz', tr('Businesses')]].map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-ot="${k}">${n}</button>`).join('')}</div>`;
+      let h = `<div class="ph-h">${tr('ORGANIZATION')}</div><div class="org-rank"><b>${esc(K.ORG.ranks[r][1])}</b><small>${P.gang ? esc(P.gang.name) : tr('no gang')} ${tr('· rep')} ${Math.floor(O.rep)}${next ? ' / ' + next[0] : ''}</small><div class="xpbar"><i style="width:${next ? ((O.rep - cur) / (next[0] - cur)) * 100 : 100}%"></i></div></div>${tabs}`;
       const rk = Object.entries(O.racket), dl = O.dealers.filter((d) => !d.gone);
       let biz = 0; for (const id of P.owned) biz += Math.round((w.propertyDef(id).income || 0) * w.bizMult(id));
       if (tab === 'home') {
         const rDay = rk.reduce((s, [, R]) => s + R.rate, 0), turf = w.playerBlocks ? w.playerBlocks() * K.TURF_INCOME : 0;
-        h += `<div class="card"><div class="sub">Tageseinnahmen (geschätzt)</div>
-          <div class="stat"><span>Legale Geschäfte</span><b>${U.money(biz)}</b></div>
-          <div class="stat"><span>Reviere (${w.playerBlocks ? w.playerBlocks() : 0} Blöcke)</span><b>${U.money(turf)}</b></div>
-          <div class="stat"><span>Schutzgeld (${rk.length} Läden)</span><b>${U.money(rDay)}</b></div>
-          <div class="stat"><span>Dealer heute (${dl.length}/${w.maxDealers()})</span><b>${U.money(O.today.dealers || 0)}</b></div></div>
-          <div class="card"><p>Fordere Schutzgeld direkt im Laden [T] — mit gezogener Waffe, deiner Crew oder im eigenen Revier geben sie eher nach. Eröffne Ecken für Dealer und versorge sie mit Ware. Höherer Rang = mehr Ecken.</p></div>`;
+        h += `<div class="card"><div class="sub">${tr('Daily income (estimated)')}</div>
+          <div class="stat"><span>${tr('Legal businesses')}</span><b>${U.money(biz)}</b></div>
+          <div class="stat"><span>${tr('Turf (')}${w.playerBlocks ? w.playerBlocks() : 0} ${tr('blocks)')}</span><b>${U.money(turf)}</b></div>
+          <div class="stat"><span>${tr('Protection (')}${rk.length} ${tr('stores)')}</span><b>${U.money(rDay)}</b></div>
+          <div class="stat"><span>${tr('Dealers today (')}${dl.length}/${w.maxDealers()})</span><b>${U.money(O.today.dealers || 0)}</b></div></div>
+          <div class="card"><p>${tr('Demand protection money right in the store [T] — they cave faster with a drawn weapon, your crew, or on your own turf. Open corners for dealers and keep them supplied. Higher rank = more corners.')}</p></div>`;
       } else if (tab === 'racket') {
-        if (!rk.length) h += '<div class="card"><p>Noch kein Laden zahlt dir. Geh in einen Laden und sprich den Inhaber an [T].</p></div>';
-        for (const [bid, R] of rk) { const b = w.buildings[bid]; h += `<div class="card"><div class="sub">${esc(K.DISTRICTS[b.district] || '')}${w.ownTurfAt(b.x * TILE, b.y * TILE) ? ' · dein Revier: Gang kassiert automatisch' : ''}</div><h4>${esc(R.name)}</h4><div class="meta"><span>${U.money(R.rate)}/Tag${R.unpaid > 2 ? ` · ⚠ ${R.unpaid} Tage nicht abgeholt` : ''}</span><b>${R.owed ? 'offen ' + U.money(R.owed) : '✔'}</b></div><div class="btns"><button class="btn ghost" data-oloc="${bid}">Wegpunkt</button></div></div>`; }
+        if (!rk.length) h += `<div class="card"><p>${tr('No store pays you yet. Walk into a store and talk to the owner [T].')}</p></div>`;
+        for (const [bid, R] of rk) { const b = w.buildings[bid]; h += `<div class="card"><div class="sub">${esc(K.DISTRICTS[b.district] || '')}${w.ownTurfAt(b.x * TILE, b.y * TILE) ? ` ${tr('· your turf: the gang collects automatically')}` : ''}</div><h4>${esc(R.name)}</h4><div class="meta"><span>${U.money(R.rate)}${tr('/day')}${R.unpaid > 2 ? ` · ⚠ ${R.unpaid} ${tr('days not collected')}` : ''}</span><b>${R.owed ? 'offen ' + U.money(R.owed) : '✔'}</b></div><div class="btns"><button class="btn ghost" data-oloc="${bid}">${tr('Waypoint')}</button></div></div>`; }
       } else if (tab === 'corners') {
-        h += `<div class="card"><p>Stell dich auf die Straße, wo die Ecke sein soll. Ein Dealer kostet ${U.money(K.ORG.dealerFee)} Startgeld und behält ${Math.round(K.ORG.dealerCut * 100)}%.</p><div class="btns"><button class="btn red" data-oopen ${dl.length >= w.maxDealers() ? 'disabled' : ''}>Hier eine Ecke eröffnen</button></div></div>`;
-        for (const d of dl) h += `<div class="card"><div class="sub">${esc(K.DISTRICTS[w.districtAt(d.x, d.y)] || '')}</div><h4>${esc(d.name)}</h4><div class="meta"><span>Ware: ${w.dealerUnits(d)} · verkauft ${d.sold}</span><b>${U.money(d.cash)}</b></div><div class="btns"><button class="btn ghost" data-oway="${d.uid}">Wegpunkt</button></div></div>`;
+        h += `<div class="card"><p>${tr('Stand on the street where the corner should be. A dealer costs')} ${U.money(K.ORG.dealerFee)} ${tr('up front and keeps')} ${Math.round(K.ORG.dealerCut * 100)}%.</p><div class="btns"><button class="btn red" data-oopen ${dl.length >= w.maxDealers() ? 'disabled' : ''}>${tr('Open a corner here')}</button></div></div>`;
+        for (const d of dl) h += `<div class="card"><div class="sub">${esc(K.DISTRICTS[w.districtAt(d.x, d.y)] || '')}</div><h4>${esc(d.name)}</h4><div class="meta"><span>${tr('Product:')} ${w.dealerUnits(d)} · ${tr('sold {n}', { n: d.sold })}</span><b>${U.money(d.cash)}</b></div><div class="btns"><button class="btn ghost" data-oway="${d.uid}">${tr('Waypoint')}</button></div></div>`;
       } else {
         const mine = P.owned.filter((id) => w.propertyDef(id).income);
-        if (!mine.length) h += '<div class="card"><p>Du besitzt noch kein Geschäft. Immobilien-App: Bar, Diner, Tankstelle, Werkstatt, Clubs.</p></div>';
-        for (const id of mine) { const d = w.propertyDef(id), lv = w.bizLevel(id), up = K.ORG.bizUp[lv]; h += `<div class="card"><h4>${esc(d.name)}</h4><div class="meta"><span>${U.money(Math.round(d.income * w.bizMult(id)))}/Tag · Ausbau ${lv}/${K.ORG.bizUp.length}</span><b>${lv ? '+' + Math.round((w.bizMult(id) - 1) * 100) + '%' : ''}</b></div>${up ? `<div class="btns"><button class="btn" data-oup="${id}" ${P.money >= w.bizUpgradeCost(id) ? '' : 'disabled'}>${esc(up.name)} · ${U.money(w.bizUpgradeCost(id))}</button></div>` : '<p style="color:#10b981">Voll ausgebaut.</p>'}</div>`; }
+        if (!mine.length) h += `<div class="card"><p>${tr('You don’t own a business yet. Real estate app: bar, diner, gas station, workshop, clubs.')}</p></div>`;
+        for (const id of mine) { const d = w.propertyDef(id), lv = w.bizLevel(id), up = K.ORG.bizUp[lv]; h += `<div class="card"><h4>${esc(d.name)}</h4><div class="meta"><span>${U.money(Math.round(d.income * w.bizMult(id)))}${tr('/day · upgrade')} ${lv}/${K.ORG.bizUp.length}</span><b>${lv ? '+' + Math.round((w.bizMult(id) - 1) * 100) + '%' : ''}</b></div>${up ? `<div class="btns"><button class="btn" data-oup="${id}" ${P.money >= w.bizUpgradeCost(id) ? '' : 'disabled'}>${esc(up.name)} · ${U.money(w.bizUpgradeCost(id))}</button></div>` : `<p style="color:#10b981">${tr('Fully upgraded.')}</p>`}</div>`; }
       }
       body.innerHTML = h;
       body.querySelectorAll('[data-ot]').forEach((b) => (b.onclick = () => this.orgApp(body, b.dataset.ot)));
-      body.querySelectorAll('[data-oloc]').forEach((b) => (b.onclick = () => { const bb = w.buildings[b.dataset.oloc]; this.g.waypoint = { x: (bb.entrance.x + 0.5) * TILE, y: (bb.entrance.y + 0.5) * TILE }; this.g.ui.feed('Wegpunkt gesetzt.'); }));
-      body.querySelectorAll('[data-oway]').forEach((b) => (b.onclick = () => { const d = O.dealers.find((q) => q.uid === +b.dataset.oway); if (d) { this.g.waypoint = { x: d.x, y: d.y }; this.g.ui.feed('Wegpunkt gesetzt.'); } }));
+      body.querySelectorAll('[data-oloc]').forEach((b) => (b.onclick = () => { const bb = w.buildings[b.dataset.oloc]; this.g.waypoint = { x: (bb.entrance.x + 0.5) * TILE, y: (bb.entrance.y + 0.5) * TILE }; this.g.ui.feed(tr('Waypoint set.')); }));
+      body.querySelectorAll('[data-oway]').forEach((b) => (b.onclick = () => { const d = O.dealers.find((q) => q.uid === +b.dataset.oway); if (d) { this.g.waypoint = { x: d.x, y: d.y }; this.g.ui.feed(tr('Waypoint set.')); } }));
       const op = body.querySelector('[data-oopen]'); if (op) op.onclick = () => { w.openCorner(); this.orgApp(body, 'corners'); };
       body.querySelectorAll('[data-oup]').forEach((b) => (b.onclick = () => { w.bizUpgrade(b.dataset.oup); this.orgApp(body, 'biz'); }));
     }
@@ -679,12 +680,12 @@
       let h = '';
       if (j) {
         const r = R.find((q) => q.id === j.rid), k = U.clamp((w.time - j.start) / Math.max(1, j.end - j.start), 0, 1), done = w.time >= j.end;
-        h += `<div class="job"><b>${esc(r ? r.name : '?')}</b> — ${done ? 'fertig!' : `noch ${Math.ceil(j.end - w.time)} Spielminuten`}<div class="bar"><i style="width:${k * 100}%"></i></div>${done ? '<button class="btn red" data-collect>Abholen</button>' : '<small style="color:#a5b4fc">Die Station arbeitet auch, wenn du weg bist oder schläfst.</small>'}</div>`;
+        h += `<div class="job"><b>${esc(r ? r.name : '?')}</b> — ${done ? 'fertig!' : `noch ${Math.ceil(j.end - w.time)} ${tr('game minutes')}`}<div class="bar"><i style="width:${k * 100}%"></i></div>${done ? `<button class="btn red" data-collect>${tr('Pick up')}</button>` : `<small style="color:#a5b4fc">${tr('The station keeps working while you’re away or asleep.')}</small>`}</div>`;
       }
       for (const r of R) {
         const ins = Object.entries(r.in).map(([k, n]) => `<span class="${(P.inv[k] || 0) >= n ? 'have' : 'miss'}">${n}× ${esc(nm(k))} (${P.inv[k] || 0})</span>`).join(' + ');
         const outs = Object.entries(r.out).map(([k, n]) => `${n}× ${esc(nm(k))}`).join(', ');
-        h += `<div class="rcp"><div><b>${esc(r.name)}</b><small>${ins} → ${outs} · ${r.min} min${r.risk ? ' · ⚠ Explosionsgefahr' : ''}${r.smell ? ' · 👃 riecht' : ''}</small></div><button class="btn" data-start="${r.id}" ${j || !w.canCraft(r) ? 'disabled' : ''}>Starten</button></div>`;
+        h += `<div class="rcp"><div><b>${esc(r.name)}</b><small>${ins} → ${outs} · ${r.min} min${r.risk ? ` ${tr('· ⚠ risk of explosion')}` : ''}${r.smell ? ' · 👃 riecht' : ''}</small></div><button class="btn" data-start="${r.id}" ${j || !w.canCraft(r) ? 'disabled' : ''}>${tr('Start')}</button></div>`;
       }
       const b = this.panel(d.name.toUpperCase(), h, 'station');
       b.querySelectorAll('[data-start]').forEach((x) => (x.onclick = () => { w.startCraft(rec, x.dataset.start); this.station(uid); }));
@@ -694,66 +695,66 @@
     propsApp(body) {
       const w = this.g.world, P = w.P;
       this.phoneApp = 'props';
-      let h = '<div class="fx-app"><div class="ph-h">EINRICHTUNG</div><p style="font-size:12px;color:#a5b4fc;margin-top:-6px">Kurier liefert sofort ins Inventar. Platzieren: Item benutzen (Inventar oder Hotbar).</p>';
+      let h = `<div class="fx-app"><div class="ph-h">${tr('FURNISHING')}</div><p style="font-size:12px;color:#a5b4fc;margin-top:-6px">${tr('Courier delivers straight to your inventory. To place: use the item (inventory or hotbar).')}</p>`;
       for (const cat of ['home', 'store', 'street']) {
         h += `<div class="cat">${K.PLACE_CATS[cat]}</div>`;
         for (const d of Object.values(K.PLACE)) if (d.cat === cat && !d.black) {
           const n = P.inv['pl_' + d.id] || 0, placed = w.placedList().filter((r) => r.id === d.id).length;
-          h += `<div class="pi"><i>${d.e}</i><div><b>${esc(d.name)}</b><small>${d.store ? `${d.store.slots} Fächer · ${d.store.kg} kg${d.lock ? ' · 🔒' : ''}` : d.where === 'own' ? 'Nur in eigener Immobilie' : 'Straße oder Immobilie'}${n || placed ? ` · ${n} im Inventar, ${placed} platziert` : ''}</small></div><button class="btn" data-pbuy="${d.id}" ${P.money >= d.price ? '' : 'disabled'}>${U.money(d.price)}</button></div>`;
+          h += `<div class="pi"><i>${d.e}</i><div><b>${esc(d.name)}</b><small>${d.store ? `${d.store.slots} ${tr('slots ·')} ${d.store.kg} kg${d.lock ? ' · 🔒' : ''}` : d.where === 'own' ? tr('Only in your own property') : tr('Street or property')}${n || placed ? ` · ${n} ${tr('in inventory,')} ${placed} platziert` : ''}</small></div><button class="btn" data-pbuy="${d.id}" ${P.money >= d.price ? '' : 'disabled'}>${U.money(d.price)}</button></div>`;
         }
       }
-      h += `<div class="cat">Stationen</div><p style="font-size:12px;color:#9ca3af">Labore und Werkbank gibt es nur auf dem Schwarzmarkt am Hafen.</p><div class="cat">Platziert: ${w.placedList().length}/${K.PLACE_MAX}</div></div>`;
+      h += `<div class="cat">${tr('Stations')}</div><p style="font-size:12px;color:#9ca3af">${tr('Labs and the workbench are only sold at the black market in the docks.')}</p><div class="cat">${tr('Placed:')} ${w.placedList().length}/${K.PLACE_MAX}</div></div>`;
       body.innerHTML = h;
       body.querySelectorAll('[data-pbuy]').forEach((b) => (b.onclick = () => {
         const d = K.PLACE[b.dataset.pbuy];
-        if (!w.pay(d.price)) return w.notify('Zu wenig Bargeld.', 'bad');
-        w.addItem('pl_' + d.id); w.emit('sfx', { s: 'purchase' }); w.notify(`${d.name} geliefert.`, 'good');
+        if (!w.pay(d.price)) return w.notify(tr('Not enough cash.'), 'bad');
+        w.addItem('pl_' + d.id); w.emit('sfx', { s: 'purchase' }); w.notify(tr('{name} delivered.', { name: d.name }), 'good');
         this.propsApp(body);
       }));
     }
     stash(propId) {
       const w = this.g.world, P = w.P, S = P.stash[propId] || (P.stash[propId] = { items: {}, weapons: [], ammo: {}, money: 0 });
       const row = (ic, nm, q, attr, lbl) => `<div class="it"><div class="ic">${ic}</div><div class="nm">${nm}</div><div class="q">${q}</div><button class="btn ghost" ${attr}>${lbl}</button></div>`;
-      let h = '<div class="cols"><div><div class="sec">Bei dir</div><div class="list">';
-      P.weapons.forEach((x, i) => { if (i) h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-pw="${i}"`, 'Einlagern ▶'); });
-      for (const k in P.ammo) if (P.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, P.ammo[k], `data-pa="${k}"`, 'Einlagern ▶');
-      for (const k in P.inv) h += row(icon(k), esc(K.ITEMS[k].name), '×' + P.inv[k], `data-pi="${k}"`, 'Einlagern ▶');
-      h += '</div></div><div><div class="sec">Lager · ' + esc(w.propertyDef(propId).name) + '</div><div class="list">';
-      S.weapons.forEach((x, i) => (h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-sw="${i}"`, '◀ Nehmen')));
-      for (const k in S.ammo) if (S.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, S.ammo[k], `data-sa="${k}"`, '◀ Nehmen');
-      for (const k in S.items) if (S.items[k] > 0) h += row(icon(k), esc(K.ITEMS[k].name), '×' + S.items[k], `data-si="${k}"`, '◀ Nehmen');
-      if (!S.weapons.length && !Object.keys(S.items).length && !Object.values(S.ammo).some((v) => v > 0)) h += '<div class="it"><div class="nm"><small>Leer.</small></div></div>';
+      let h = `<div class="cols"><div><div class="sec">${tr('On you')}</div><div class="list">`;
+      P.weapons.forEach((x, i) => { if (i) h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-pw="${i}"`, tr('Store ▶')); });
+      for (const k in P.ammo) if (P.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, P.ammo[k], `data-pa="${k}"`, tr('Store ▶'));
+      for (const k in P.inv) h += row(icon(k), esc(K.ITEMS[k].name), '×' + P.inv[k], `data-pi="${k}"`, tr('Store ▶'));
+      h += `</div></div><div><div class="sec">${tr('Storage ·')} ` + esc(w.propertyDef(propId).name) + '</div><div class="list">';
+      S.weapons.forEach((x, i) => (h += row(icon(x.id), esc(W8[x.id].name), x.n ? '×' + x.n : '', `data-sw="${i}"`, tr('◀ Take'))));
+      for (const k in S.ammo) if (S.ammo[k] > 0) h += row(icon('a:' + k), K.AMMO[k].name, S.ammo[k], `data-sa="${k}"`, tr('◀ Take'));
+      for (const k in S.items) if (S.items[k] > 0) h += row(icon(k), esc(K.ITEMS[k].name), '×' + S.items[k], `data-si="${k}"`, tr('◀ Take'));
+      if (!S.weapons.length && !Object.keys(S.items).length && !Object.values(S.ammo).some((v) => v > 0)) h += `<div class="it"><div class="nm"><small>${tr('Empty.')}</small></div></div>`;
       h += '</div></div></div>';
-      const b = this.panel('WAFFENKAMMER & LAGER', h, 'stash');
+      const b = this.panel(tr('ARMORY & STORAGE'), h, 'stash');
       const re = () => this.stash(propId);
       b.querySelectorAll('[data-pw]').forEach((x) => (x.onclick = () => { const i = +x.dataset.pw; S.weapons.push(P.weapons[i]); w.removeWeaponAt(i); re(); }));
       b.querySelectorAll('[data-pa]').forEach((x) => (x.onclick = () => { const k = x.dataset.pa; S.ammo[k] = (S.ammo[k] || 0) + P.ammo[k]; P.ammo[k] = 0; re(); }));
       b.querySelectorAll('[data-pi]').forEach((x) => (x.onclick = () => { const k = x.dataset.pi; S.items[k] = (S.items[k] || 0) + P.inv[k]; delete P.inv[k]; re(); }));
-      b.querySelectorAll('[data-sw]').forEach((x) => (x.onclick = () => { const i = +x.dataset.sw, wp = S.weapons[i]; if (P.weapons.length >= 16) return w.notify('Kein Platz mehr für Waffen (max. 15).', 'bad'); const d = W8[wp.id]; if (!d.stack && !d.consumable && P.weapons.some((q) => q.id === wp.id)) return w.notify('Hast du schon dabei.', 'bad'); if (d.stack || d.consumable) w.addWeapon(wp.id, { n: wp.n }); else { P.weapons.push(wp); w.hotbarAdd('w', wp.id); } S.weapons.splice(i, 1); re(); }));
+      b.querySelectorAll('[data-sw]').forEach((x) => (x.onclick = () => { const i = +x.dataset.sw, wp = S.weapons[i]; if (P.weapons.length >= 16) return w.notify(tr('No room for more weapons (max. 15).'), 'bad'); const d = W8[wp.id]; if (!d.stack && !d.consumable && P.weapons.some((q) => q.id === wp.id)) return w.notify(tr('You already have that on you.'), 'bad'); if (d.stack || d.consumable) w.addWeapon(wp.id, { n: wp.n }); else { P.weapons.push(wp); w.hotbarAdd('w', wp.id); } S.weapons.splice(i, 1); re(); }));
       b.querySelectorAll('[data-sa]').forEach((x) => (x.onclick = () => { const k = x.dataset.sa; P.ammo[k] = (P.ammo[k] || 0) + S.ammo[k]; S.ammo[k] = 0; re(); }));
       b.querySelectorAll('[data-si]').forEach((x) => (x.onclick = () => { const k = x.dataset.si; w.addItem(k, S.items[k]); delete S.items[k]; re(); }));
     }
     wardrobe() {
       const w = this.g.world, P = w.P;
       let h = '<div class="outfits">';
-      for (const o of P.outfits) h += `<div class="outfit ${o === P.outfit ? 'on' : ''}"><canvas width="160" height="160" data-o="${o}"></canvas><div>${esc(K.OUTFITS[o].name)}</div><button class="btn ${o === P.outfit ? 'ghost' : ''}" data-wear="${o}" ${o === P.outfit ? 'disabled' : ''}>${o === P.outfit ? 'Getragen' : 'Anziehen'}</button></div>`;
-      h += '</div><p style="font-size:12px;color:#999;margin-top:14px">Tipp: Ein Outfitwechsel ohne Zeugen senkt die Fahndung um 2 Sterne. Neue Kleidung gibt es in der Boutique Noir.</p>';
-      const b = this.panel('KLEIDERSCHRANK', h, 'wardrobe');
+      for (const o of P.outfits) h += `<div class="outfit ${o === P.outfit ? 'on' : ''}"><canvas width="160" height="160" data-o="${o}"></canvas><div>${esc(K.OUTFITS[o].name)}</div><button class="btn ${o === P.outfit ? 'ghost' : ''}" data-wear="${o}" ${o === P.outfit ? 'disabled' : ''}>${o === P.outfit ? tr('Wearing') : tr('Put on')}</button></div>`;
+      h += `</div><p style="font-size:12px;color:#999;margin-top:14px">${tr('Tip: changing outfits without witnesses drops your wanted level by 2 stars. New clothes at Boutique Noir.')}</p>`;
+      const b = this.panel(tr('WARDROBE'), h, 'wardrobe');
       b.querySelectorAll('canvas[data-o]').forEach((cv) => K.portrait(cv, { outfit: cv.dataset.o, skin: w.player.skin, hair: null, female: false }));
       b.querySelectorAll('[data-wear]').forEach((x) => (x.onclick = () => { w.setOutfit(x.dataset.wear); this.wardrobe(); }));
     }
     sleep(propId) {
       const w = this.g.world, h0 = w.hour();
       const toMorning = ((7 - h0 + 24) % 24) || 24;
-      const h = `<p style="color:#cfc9be">Schlaf stellt Energie und Gesundheit wieder her und speichert das Spiel. Hunger und Durst laufen weiter.</p><div class="btns">
-        <button class="btn red" data-h="${toMorning.toFixed(2)}">Bis 07:00 (${Math.round(toMorning)}h)</button><button class="btn" data-h="8">8 Stunden</button><button class="btn ghost" data-h="4">Nickerchen (4h)</button><button class="btn ghost" data-home>Als Zuhause festlegen</button></div>`;
-      const b = this.panel('SCHLAFEN', h, 'sleep');
+      const h = `<p style="color:#cfc9be">${tr('Sleep restores energy and health and saves the game. Hunger and thirst keep ticking.')}</p><div class="btns">
+        <button class="btn red" data-h="${toMorning.toFixed(2)}">${tr('Until 07:00 (')}${Math.round(toMorning)}h)</button><button class="btn" data-h="8">${tr('8 hours')}</button><button class="btn ghost" data-h="4">${tr('Nap (4h)')}</button><button class="btn ghost" data-home>${tr('Set as home')}</button></div>`;
+      const b = this.panel(tr('SLEEP'), h, 'sleep');
       b.querySelectorAll('[data-h]').forEach((x) => (x.onclick = () => { this.closePanel(); this.g.doSleep(+x.dataset.h, propId); }));
-      b.querySelector('[data-home]').onclick = () => { w.P.home = propId; w.notify('Neues Zuhause festgelegt.', 'good'); this.closePanel(); };
+      b.querySelector('[data-home]').onclick = () => { w.P.home = propId; w.notify(tr('New home set.'), 'good'); this.closePanel(); };
     }
     property(id) {
       const w = this.g.world, d = w.propertyDef(id), P = w.P;
-      const h = `<p style="color:#cfc9be;font-size:15px">${esc(d.desc)}</p><div class="stat"><span>Preis</span><b>${U.money(d.price)}</b></div>${d.income ? `<div class="stat"><span>Einnahmen</span><b>+${U.money(d.income)} / Tag</b></div>` : ''}<div class="stat"><span>Ausstattung</span><b>Bett · Kleiderschrank · Waffenkammer</b></div><div class="btns" style="margin-top:14px"><button class="btn red" data-buy ${P.money >= d.price ? '' : 'disabled'}>Kaufen</button><span class="wallet" style="margin-left:auto">${U.money(P.money)}</span></div>`;
+      const h = `<p style="color:#cfc9be;font-size:15px">${esc(d.desc)}</p><div class="stat"><span>${tr('Price')}</span><b>${U.money(d.price)}</b></div>${d.income ? `<div class="stat"><span>${tr('Income')}</span><b>+${U.money(d.income)} ${tr('/ day')}</b></div>` : ''}<div class="stat"><span>${tr('Furnishings')}</span><b>${tr('Bed · wardrobe · armory')}</b></div><div class="btns" style="margin-top:14px"><button class="btn red" data-buy ${P.money >= d.price ? '' : 'disabled'}>${tr('Buy')}</button><span class="wallet" style="margin-left:auto">${U.money(P.money)}</span></div>`;
       const b = this.panel(d.name, h, 'property');
       b.querySelector('[data-buy]').onclick = () => { if (w.buyProperty(id)) { this.closePanel(); this.g.save(true); } };
     }
@@ -848,44 +849,47 @@
       const w = this.g.world, el = $('#mv-legend'); if (this.mapLegendOff) return;
       const row = (i, t) => `<i>${i}</i><span>${t}</span>`;
       const sec = (t, rows) => `<h4>${t}</h4><div class="lg">${rows.map((r) => row(r[0], r[1])).join('')}</div>`;
-      el.innerHTML = sec('Markierungen', [['<span style="color:#fff">➤</span>', 'Du'], ['<span style="color:#ff2030">●</span>', 'Zielperson'], ['<span style="color:#ffd34d">○</span>', 'Wegpunkt']])
-        + sec('Besitz', [['🏠', 'Dein Besitz'], ['🏷️', 'Zu verkaufen']])
-        + sec('Unterwelt', [['🔫', 'Waffen'], ['💀', 'Schwarzmarkt'], ['🌱', 'Growshop'], ['💃', 'Stripclub'], ['🎵', 'Club']])
-        + sec('Einkaufen & Essen', [['🛒', 'Späti'], ['💊', 'Apotheke'], ['👔', 'Boutique'], ['🍔', 'Diner'], ['🍸', 'Bar'], ['🍹', 'Beachclub']])
-        + sec('Geld', [['🏧', 'Geldautomat'], ['🏦', 'Bank'], ['💎', 'Juwelier']])
-        + sec('Auto', [['⛽', 'Tankstelle'], ['🚗', 'Autohaus'], ['🔧', 'Werkstatt']])
-        + sec('Staat', [['🏥', 'Klinik'], ['🚓', 'Polizei']])
-        + sec('Reviere', Object.entries(K.GANGS).map(([k, g]) => [`<span style="color:${g.col}">■</span>`, g.name]).concat(w.P.gang ? [[`<span style="color:${w.P.gang.col}">■</span>`, U.esc(w.P.gang.name)]] : []).concat([['⚔', 'Krieg']]))
-        + '<h4>Steuerung</h4><div style="line-height:1.7;color:#8d8a84">Mausrad / + − Zoom<br>Ziehen / Pfeile Verschieben<br>Leertaste auf dich · 0 ganze Stadt<br>L Legende</div>';
+      el.innerHTML = sec(tr('Markers'), [['<span style="color:#fff">➤</span>', tr('You')], ['<span style="color:#ff2030">●</span>', tr('Target')], ['<span style="color:#ffd34d">○</span>', tr('Waypoint')]])
+        + sec(tr('Holdings'), [['🏠', tr('Yours')], ['🏷️', tr('For sale')]])
+        + sec(tr('Underworld'), [['🔫', tr('Weapons')], ['💀', tr('Black market')], ['🌱', tr('Grow shop')], ['💃', tr('Strip club')], ['🎵', tr('Club')]])
+        + sec(tr('Shopping & food'), [['🛒', tr('Corner shop')], ['💊', tr('Pharmacy')], ['👔', tr('Boutique')], ['🍔', tr('Diner')], ['🍸', tr('Bar')], ['🍹', tr('Beach club')]])
+        + sec(tr('Money'), [['🏧', tr('ATM')], ['🏦', tr('Bank')], ['💎', tr('Jeweler')]])
+        + sec(tr('Car'), [['⛽', tr('Gas station')], ['🚗', tr('Car dealer')], ['🔧', tr('Workshop')]])
+        + sec(tr('State'), [['🏥', tr('Clinic')], ['🚓', tr('Police')]])
+        + sec(tr('Turf'), Object.entries(K.GANGS).map(([k, g]) => [`<span style="color:${g.col}">■</span>`, g.name]).concat(w.P.gang ? [[`<span style="color:${w.P.gang.col}">■</span>`, U.esc(w.P.gang.name)]] : []).concat([['⚔', tr('War')]]))
+        + `<h4>${tr('Controls')}</h4><div style="line-height:1.7;color:#8d8a84">${tr('Mouse wheel / + − zoom')}<br>${tr('Drag / arrows to pan')}<br>${tr('Space centers on you · 0 whole city')}<br>${tr('L legend')}</div>`;
     }
 
     // ============================================================ title / pause / results
     controls() {
-      const k = [['W A S D', 'Bewegen', 'Maus', 'Zielen / Blickrichtung'], ['Shift', 'Sprinten', 'LMB', 'Angriff / Schießen / Werfen'], ['C', 'Ducken (leiser, schwerer zu sehen)', 'RMB', 'Präzise zielen (Scope)'], ['E tippen', 'Aufheben · Durchsuchen · Benutzen (was du anschaust)', 'E halten', 'Leiche / Bewusstlosen ziehen'], ['R', 'Nachladen', 'T halten an Haustür', 'Lauschen: ist jemand zu Hause?'], ['F', 'Takedown von hinten / Auto', 'T', 'Verkleidung vom Körper nehmen'], ['Q (halten)', 'Instinkt: durch Wände sehen', 'G', 'C4 zünden'], ['1–9 / Mausrad', 'Hotbar: Waffe ziehen/wegstecken, Item benutzen', 'H / 0', 'Alles wegstecken · Fäuste'], ['TAB', 'Inventar: Drag & Drop in die Hotbar', 'Maus über Kachel + 1–9', 'Slot direkt belegen'], ['TAB', 'Inventar', 'P', 'Handy (Aufträge, Profil…)'], ['M', 'Stadtkarte (Mausrad Zoom, Ziehen, L Legende)', 'L', 'Taschenlampe'], ['Z', 'Zoomstufe', 'ESC', 'Pause / Schließen'], ['Leertaste', 'Handbremse (Auto)', 'F11', 'Vollbild'], ['X', 'Ergeben (bei Fahndung)', 'K', 'Kaution zahlen (im Knast)'], ['RMB + Waffe auf Person', 'Überfall: Hände hoch!', 'E / T bei Passanten', 'Klauen, Ausrauben, Dealen'], ['Im Auto: B / N', 'Gurt an/aus · Motor an/aus', 'Im Auto: X / L', 'Tempomat · Licht (Abblend/Fern)'], ['Im Auto: Q / E', 'Blinker links / rechts (beide = Warnblinker)', 'Im Auto: Shift / T', 'Nitro · Werkstatt-Aktion'], ['Im Auto: LMB / RMB', 'Drive-by oder Bord-MG · Raketen', 'Im Auto: F / H', 'Aussteigen · Hupe'], ['B', 'Crew-Menü (Befehle, Formation, Haltung)', 'V', 'Crew: Ziel unterm Fadenkreuz angreifen'], ['E / T an Tresortür', 'Keycard / Thermobohrer (oder C4)', 'T an Vitrine', 'Juwelier: Vitrine einschlagen'], ['RMB mit Zielfernrohr', 'Scope · Shift: Atem anhalten', 'Prop-Item benutzen', 'Platzieren: R/Mausrad drehen, LMB setzen, RMB abbrechen'], ['E am Prop', 'Container öffnen · Station · Schlafen', 'T halten am Prop', 'Abbauen (zurück ins Inventar)']];
+      const k = [['W A S D', tr('Move'), tr('Mouse'), tr('Aim / facing')], [tr('Shift'), tr('Sprint'), 'LMB', tr('Attack / shoot / throw')], ['C', tr('Crouch (quieter, harder to spot)'), 'RMB', tr('Precise aim (scope)')], ['E tippen', tr('Pick up · search · use (whatever you look at)'), tr('Hold E'), tr('Drag a body / unconscious person')], ['R', tr('Reload'), tr('Hold T at a front door'), tr('Listen: is anyone home?')], ['F', tr('Takedown from behind / car'), 'T', tr('Take a disguise from a body')], [tr('Q (hold)'), tr('Instinct: see through walls'), 'G', tr('Detonate C4')], [tr('1–9 / mouse wheel'), tr('Hotbar: draw/holster weapon, use item'), 'H / 0', tr('Holster everything · fists')], ['TAB', tr('Inventory: drag & drop into the hotbar'), tr('Hover a tile + 1–9'), tr('Assign a slot directly')], ['TAB', tr('Inventory'), 'P', tr('Phone (contracts, profile…)')], ['M', tr('City map (wheel zoom, drag, L legend)'), 'L', tr('Flashlight')], ['Z', tr('Zoom level'), 'ESC', tr('Pause / close')], [tr('Space'), tr('Handbrake (car)'), 'F11', tr('Fullscreen')], ['X', tr('Surrender (when wanted)'), 'K', tr('Pay bail (in jail)')], [tr('RMB + weapon on a person'), tr('Stick-up: hands up!'), tr('E / T on passers-by'), tr('Pickpocket, rob, deal')], [tr('In a car: B / N'), tr('Seatbelt on/off · engine on/off'), tr('In a car: X / L'), tr('Cruise control · lights (low/high)')], [tr('In a car: Q / E'), tr('Indicator left / right (both = hazards)'), tr('In a car: Shift / T'), tr('Nitro · workshop action')], [tr('In a car: LMB / RMB'), tr('Drive-by or mounted MG · rockets'), tr('In a car: F / H'), tr('Get out · horn')], ['B', tr('Crew menu (orders, formation, stance)'), 'V', tr('Crew: attack the target under the crosshair')], [tr('E / T at a vault door'), tr('Keycard / thermal drill (or C4)'), tr('T at a display case'), tr('Jeweler: smash a display case')], [tr('RMB with a scope'), tr('Scope · Shift: hold breath'), tr('Use a prop item'), tr('Placing: R/wheel rotates, LMB places, RMB cancels')], [tr('E at a prop'), tr('Open container · station · sleep'), tr('Hold T at a prop'), tr('Dismantle (back to inventory)')]];
       const h = `<div class="kbd-grid">${k.map((r) => `<kbd>${r[0]}</kbd><span>${r[1]}</span><kbd>${r[2]}</kbd><span>${r[3]}</span>`).join('')}</div>
-        <div class="sec" style="margin-top:18px">So spielst du</div>
-        <p style="font-size:13px;color:#cfc9be;line-height:1.6">Aufträge kommen aufs <b>Handy (P)</b>. Finde das Ziel — mit gekauftem Intel wird es markiert, sonst kennst du nur grob den Bereich. Nimm Verkleidungen von bewusstlosen oder toten Wachen (<b>T</b>), um in Sperrgebiete zu kommen. Wirf <b>Münzen</b>, um Wachen wegzulocken, und erledige Ziele lautlos von hinten (<b>F</b>) mit der Klaviersaite. Leichen versteckst du in Containern und Schränken (<b>E</b>). Zeugen rufen die Polizei — wechsle das Outfit ungesehen, um die Fahndung zu senken. Willst du nicht sterben, ergib dich mit <b>X</b>: weniger Haft, aber Knast ist Knast. Halt Passanten oder Ladenbesitzer mit gezogener Waffe (<b>RMB</b>) in Schach und raub sie aus, zieh Brieftaschen von hinten, durchwühl fremde Wohnungen, hack Geldautomaten. Mit einer Sturmhaube erkennt dich niemand. Im Growshop gibt es Samen und Töpfe — pflanz in deiner Bude, gieß, dünge, ernte und verkauf an Passanten (<b>T</b>) oder am Schwarzmarkt. Iss, trink, schlaf in deinem eigenen Bett, kauf Waffen, Häuser und Geschäfte. Krähenburg lebt — Tag und Nacht, Regen und Nebel.</p>`;
-      if (!$('#title').classList.contains('hidden')) this.titlePanel('STEUERUNG', h);
-      else this.panel('STEUERUNG', h, 'help');
+        <div class="sec" style="margin-top:18px">${tr('How to play')}</div>
+        <p style="font-size:13px;color:#cfc9be;line-height:1.6">${tr('Contracts arrive on your')} <b>${tr('phone (P)')}</b>${tr('. Find the target — bought intel marks it, otherwise you only know the rough area. Take disguises from unconscious or dead guards (')}<b>T</b>${tr(') to get into restricted areas. Throw')} <b>${tr('coins')}</b>${tr(' to lure guards away, and take targets out silently from behind (')}<b>F</b>${tr(') with the fiber wire. Hide bodies in containers and closets (')}<b>E</b>${tr('). Witnesses call the cops — change outfits unseen to lower your wanted level. If you don’t want to die, surrender with')} <b>X</b>${tr(': less time, but jail is jail. Hold up passers-by or store owners at gunpoint (')}<b>RMB</b>${tr(') and rob them, lift wallets from behind, ransack other people’s apartments, hack ATMs. Nobody recognizes you in a balaclava. The grow shop sells seeds and pots — plant in your place, water, fertilize, harvest and sell to passers-by (')}<b>T</b>${tr(') or at the black market. Eat, drink, sleep in your own bed, buy guns, houses and businesses. Port Raven is alive — day and night, rain and fog.')}</p>`;
+      if (!$('#title').classList.contains('hidden')) this.titlePanel(tr('CONTROLS'), h);
+      else this.panel(tr('CONTROLS'), h, 'help');
     }
     titlePanel(t, h) { $('#title').classList.add('hidden'); const b = this.panel(t, h, 'title-sub'); this.backToTitle = true; return b; }
     settings() {
       const g = this.g, s = g.settings;
       const tog = (k, name, sub) => `<div class="set"><div>${name}<small>${sub}</small></div><button class="tog ${s[k] ? 'on' : ''}" data-t="${k}"></button></div>`;
-      const h = `${tog('post', 'Post-FX (WebGL)', 'Bloom, Farbkorrektur, Chromatic Aberration, Film-Grain')}${tog('vice', 'Kino-Look', 'Filmisches Grading: kühle Schatten, warme Lichter, wärmer zur goldenen Stunde')}${tog('fov', 'Sichtfeld-Schatten', 'Nur was du siehst ist sichtbar — für Stealth')}${tog('gore', 'Blut & Gore', 'Blutspritzer, Lachen, Körperteile')}${tog('music', 'Dynamische Musik', 'Noir-Jazz, Spannung & Kampf passen sich an')}${tog('voice', 'NPC-Stimmen', 'Sprachausgabe für wichtige Rufe (Browser-TTS)')}${tog('barks', 'Sprechblasen', 'Was NPCs sagen')}${tog('weather', 'Wetter-Effekte', 'Regen, Nebel, Gewitter')}${tog('clouds', 'Wolkenschatten', '')}${tog('shake', 'Kamera-Wackeln', '')}
-        <div class="set"><div>Lautstärke</div><input type="range" min="0" max="1" step="0.05" value="${s.volume}" data-r="volume"></div>
-        <div class="set"><div>Musik</div><input type="range" min="0" max="1" step="0.05" value="${s.musicVol}" data-r="musicVol"></div>
-        <div class="set"><div>Auflösung<small>Weniger = schneller</small></div><select data-s="res"><option value="1" ${s.res == 1 ? 'selected' : ''}>100%</option><option value="0.8" ${s.res == 0.8 ? 'selected' : ''}>80%</option><option value="0.65" ${s.res == 0.65 ? 'selected' : ''}>65%</option><option value="0.5" ${s.res == 0.5 ? 'selected' : ''}>50%</option></select></div>
-        <div class="set"><div>Schwierigkeit<small>Schaden, den du nimmst</small></div><select data-s="difficulty"><option value="0.6" ${s.difficulty == 0.6 ? 'selected' : ''}>Tourist</option><option value="1" ${s.difficulty == 1 ? 'selected' : ''}>Profi</option><option value="1.5" ${s.difficulty == 1.5 ? 'selected' : ''}>Meisterassassine</option></select></div>`;
-      const b = !$('#title').classList.contains('hidden') ? this.titlePanel('EINSTELLUNGEN', h) : this.panel('EINSTELLUNGEN', h, 'settings');
+      const langSel = `<div class="set"><div>${K.tr('Language')}<small>${K.tr('Restarts the menu; your game is saved first')}</small></div><select data-lang>${Object.entries(K.LANG_NAMES).map(([c, n]) => `<option value="${c}" ${K.lang === c ? 'selected' : ''}>${n}</option>`).join('')}</select></div>`;
+      const h = langSel + `${tog('post', tr('Post-FX (WebGL)'), tr('Bloom, color grading, chromatic aberration, film grain'))}${tog('vice', tr('Cinematic look'), tr('Filmic grading: cool shadows, warm highlights, warmer at golden hour'))}${tog('fov', tr('Field-of-view shadows'), tr('Only what you see is visible — for stealth'))}${tog('gore', tr('Blood & gore'), tr('Blood spatter, pools, body parts'))}${tog('music', tr('Dynamic music'), tr('Noir jazz, tension & combat adapt'))}${tog('voice', tr('NPC voices'), tr('Voice output for important shouts (browser TTS)'))}${tog('barks', tr('Speech bubbles'), tr('What NPCs say'))}${tog('weather', tr('Weather effects'), tr('Rain, fog, thunderstorms'))}${tog('clouds', tr('Cloud shadows'), '')}${tog('shake', tr('Camera shake'), '')}
+        <div class="set"><div>${tr('Volume')}</div><input type="range" min="0" max="1" step="0.05" value="${s.volume}" data-r="volume"></div>
+        <div class="set"><div>${tr('Music')}</div><input type="range" min="0" max="1" step="0.05" value="${s.musicVol}" data-r="musicVol"></div>
+        <div class="set"><div>${tr('Resolution')}<small>${tr('Lower = faster')}</small></div><select data-s="res"><option value="1" ${s.res == 1 ? 'selected' : ''}>100%</option><option value="0.8" ${s.res == 0.8 ? 'selected' : ''}>80%</option><option value="0.65" ${s.res == 0.65 ? 'selected' : ''}>65%</option><option value="0.5" ${s.res == 0.5 ? 'selected' : ''}>50%</option></select></div>
+        <div class="set"><div>${tr('Difficulty')}<small>${tr('Damage you take')}</small></div><select data-s="difficulty"><option value="0.6" ${s.difficulty == 0.6 ? 'selected' : ''}>${tr('Tourist')}</option><option value="1" ${s.difficulty == 1 ? 'selected' : ''}>${tr('Pro')}</option><option value="1.5" ${s.difficulty == 1.5 ? 'selected' : ''}>${tr('Master Assassin')}</option></select></div>`;
+      const b = !$('#title').classList.contains('hidden') ? this.titlePanel(tr('SETTINGS'), h) : this.panel(tr('SETTINGS'), h, 'settings');
       b.querySelectorAll('[data-t]').forEach((x) => (x.onclick = () => { s[x.dataset.t] = !s[x.dataset.t]; x.classList.toggle('on', s[x.dataset.t]); g.applySettings(); }));
       b.querySelectorAll('[data-r]').forEach((x) => (x.oninput = () => { s[x.dataset.r] = +x.value; g.applySettings(); }));
       b.querySelectorAll('[data-s]').forEach((x) => (x.onchange = () => { s[x.dataset.s] = +x.value; g.applySettings(); }));
+      const ls = b.querySelector('[data-lang]');
+      if (ls) ls.onchange = () => { s.lang = ls.value; g.applySettings(); g.switchLanguage(); };
     }
     pause() { if (this.g.world && !this.anyOpen()) { $('#pause').classList.remove('hidden'); this.sync(); } }
     pauseAction(a) {
       $('#pause').classList.add('hidden'); this.sync();
-      if (a === 'save') { if (this.g.save()) this.g.ui.toast('GESPEICHERT'); }
+      if (a === 'save') { if (this.g.save()) this.g.ui.toast(tr('SAVED')); }
       if (a === 'settings') this.settings();
       if (a === 'controls') this.controls();
       if (a === 'title') this.g.toTitle();
@@ -903,23 +907,23 @@
     showResult(e) {
       const el = $('#result');
       const c = e.c;
-      el.innerHTML = `<div class="res-box"><div class="k">AUFTRAG ABGESCHLOSSEN</div><h1>${esc(e.rating)}</h1><h3>${esc(c.name)} · ${esc(c.title)}</h3>
+      el.innerHTML = `<div class="res-box"><div class="k">${tr('CONTRACT COMPLETE')}</div><h1>${esc(e.rating)}</h1><h3>${esc(c.name)} · ${esc(c.title)}</h3>
         ${e.lines.map((l, i) => `<div class="ln ${l.bonus && !l.ok ? 'no' : ''} ${l.v < 0 ? 'neg' : ''}" style="animation-delay:${0.25 + i * 0.22}s"><span>${l.bonus ? (l.ok ? '✔ ' : '✕ ') : ''}${esc(l.t)}</span><b>${l.v < 0 ? '−' + U.money(-l.v) : U.money(l.v)}</b></div>`).join('')}
-        <div class="tot"><span>AUSZAHLUNG</span><span>${U.money(e.pay)}</span></div><div style="color:#9fd2ff;margin-top:6px;font-family:Oswald">+${e.xp} XP</div>
-        <div class="btns" style="justify-content:center;margin-top:20px"><button class="btn red" id="res-ok">Weiter</button></div></div>`;
+        <div class="tot"><span>${tr('PAYOUT')}</span><span>${U.money(e.pay)}</span></div><div style="color:#9fd2ff;margin-top:6px;font-family:Oswald">+${e.xp} XP</div>
+        <div class="btns" style="justify-content:center;margin-top:20px"><button class="btn red" id="res-ok">${tr('Continue')}</button></div></div>`;
       el.classList.remove('hidden'); this.sync();
       el.querySelector('#res-ok').onclick = () => { el.classList.add('hidden'); this.sync(); this.g.save(true); };
     }
     showDead(e) {
       const el = $('#dead');
-      const why = { bullet: 'Erschossen', melee: 'Erstochen', fist: 'Totgeprügelt', explosion: 'In die Luft gesprengt', car: 'Überfahren', bleed: 'Verblutet', hunger: 'Verhungert', thirst: 'Verdurstet' }[e.kind] || 'Ausgeschaltet';
-      el.innerHTML = `<div class="res-box"><div class="k">KRÄHENBURG VERGISST NIEMANDEN</div><h1>${why.toUpperCase()}</h1><h3>Du wachst in der St. Marien Klinik auf.</h3><p style="color:#999;font-size:13px">Die Klinik berechnet 15% deines Bargelds. Bei Fahndung ab 2 Sternen beschlagnahmt die Polizei deine Schusswaffen.</p><div class="btns" style="justify-content:center;margin-top:16px"><button class="btn red" id="dead-ok">Aufwachen</button></div></div>`;
+      const why = { bullet: tr('Shot dead'), melee: tr('Stabbed'), fist: tr('Beaten to death'), explosion: tr('Blown up'), car: tr('Run over'), bleed: tr('Bled out'), hunger: tr('Starved'), thirst: tr('Died of thirst') }[e.kind] || tr('Neutralized');
+      el.innerHTML = `<div class="res-box"><div class="k">${tr('PORT RAVEN NEVER FORGETS')}</div><h1>${why.toUpperCase()}</h1><h3>${tr('You wake up in St. Mary’s Clinic.')}</h3><p style="color:#999;font-size:13px">${tr('The clinic charges 15% of your cash. At 2+ wanted stars, the police confiscate your firearms.')}</p><div class="btns" style="justify-content:center;margin-top:16px"><button class="btn red" id="dead-ok">${tr('Wake up')}</button></div></div>`;
       el.classList.remove('hidden'); this.sync();
       el.querySelector('#dead-ok').onclick = () => { el.classList.add('hidden'); this.g.world.respawnAtHospital(); this.sync(); this.g.fadeIn(); };
     }
     showArrest(e) {
       const el = $('#dead');
-      el.innerHTML = `<div class="res-box"><div class="k">POLIZEIREVIER KRÄHENBURG</div><h1 style="color:#6fa8ff">VERHAFTET</h1><h3>Eine Nacht in der Zelle.</h3><div class="ln" style="animation-delay:.2s"><span>Geldstrafe</span><b>−${U.money(e.fine)}</b></div><div class="ln" style="animation-delay:.4s"><span>Beschlagnahmte Schusswaffen</span><b>${e.lost}</b></div><div class="btns" style="justify-content:center;margin-top:16px"><button class="btn" id="dead-ok">Entlassen</button></div></div>`;
+      el.innerHTML = `<div class="res-box"><div class="k">${tr('PORT RAVEN POLICE PRECINCT')}</div><h1 style="color:#6fa8ff">${tr('ARRESTED')}</h1><h3>${tr('One night in the cell.')}</h3><div class="ln" style="animation-delay:.2s"><span>${tr('Fine')}</span><b>−${U.money(e.fine)}</b></div><div class="ln" style="animation-delay:.4s"><span>${tr('Confiscated firearms')}</span><b>${e.lost}</b></div><div class="btns" style="justify-content:center;margin-top:16px"><button class="btn" id="dead-ok">${tr('Released')}</button></div></div>`;
       el.classList.remove('hidden'); this.sync();
       el.querySelector('#dead-ok').onclick = () => { el.classList.add('hidden'); this.sync(); this.g.fadeIn(); };
     }

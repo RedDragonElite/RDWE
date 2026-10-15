@@ -2,7 +2,8 @@
  * Keys 1–9 use the slot (weapon: draw / put away again, item: use), 0 = fists, H = put everything away. */
 (function (K) {
   'use strict';
-  const W8 = K.WEAPONS;
+  const tr = K.tr;   // translate (K.T is the tile table)
+  const W8 = K.WEAPONS, T = K.T;
   K.HOTBAR_N = 9;
 
   K.mixin({
@@ -49,7 +50,7 @@
     hotbarUse(i) {
       const e = this.hotbar()[i]; if (!e) return false;
       if (e.t === 'w') return this.equipWeapon(e.id, true);
-      if (!(this.P.inv[e.id] > 0)) { this.notify(`${K.ITEMS[e.id] ? K.ITEMS[e.id].name : e.id}: keins mehr da.`, 'bad'); return false; }
+      if (!(this.P.inv[e.id] > 0)) { this.notify(tr('{item}: none left.', { item: K.ITEMS[e.id] ? K.ITEMS[e.id].name : e.id }), 'bad'); return false; }
       return this.useItem(e.id);
     },
     /** mouse wheel: step through the weapons on the bar */

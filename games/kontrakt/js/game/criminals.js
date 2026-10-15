@@ -3,6 +3,7 @@
  * and stopping one is not a crime — it's a reward. */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, TILE = K.TILE;
 
   K.mixin({
@@ -65,8 +66,8 @@
         a.dv = this.steer(a, Math.hypot(v.x - a.x, v.y - a.y) < 6 * TILE ? 120 : 75, dt);
         if (Math.hypot(v.x - a.x, v.y - a.y) < 30) {
           a.state = 'mug'; B.t = 0; v.state = 'cower'; v.crouch = true; v.brain.cowerT = 5; v.brain.cowerBy = a.id; v.path = null;
-          this.bark(a, U.pick(['Geld her! Sofort!', 'Brieftasche, aber zackig!', 'Keine Bewegung, gib alles her!']), 2.2);
-          this.bark(v, U.pick(['Bitte nicht!', 'Okay, okay…', 'Hilfe…']), 2);
+          this.bark(a, U.pick([tr('Money! Now!'), tr('Wallet, quick!'), tr('Don’t move, hand it all over!')]), 2.2);
+          this.bark(v, U.pick([tr('Please don’t!'), tr('Okay, okay…'), tr('Help…')]), 2);
           this.npcCrime(a, 'robbery', v);
         }
         return;
@@ -88,8 +89,8 @@
         if (!k) { a.state = 'escape'; return; }
         a.state = 'holdup'; B.t = 0; B.keeper = k.id;
         k.state = 'cower'; k.crouch = true; k.brain.cowerT = 6; k.brain.cowerBy = a.id;
-        this.bark(a, U.pick(['Das ist ein Überfall! Kasse auf!', 'Alles in die Tüte, los!']), 2.4);
-        this.bark(k, 'Ganz ruhig… ganz ruhig…', 2);
+        this.bark(a, U.pick([tr('This is a robbery! Open the till!'), tr('Everything in the bag, move!')]), 2.4);
+        this.bark(k, tr('Easy… easy…'), 2);
         this.npcCrime(a, 'robbery', k);
       }
     },
@@ -99,7 +100,7 @@
       if (v) { a.faceTo = Math.atan2(v.y - a.y, v.x - a.x); if (v.state === 'cower') v.brain.cowerT = Math.max(v.brain.cowerT, 1); }
       if (a.brain.t > 2.8) {
         if (v && v.alive) { a.wallet += v.wallet || 0; v.wallet = 0; v.robbed = true; this.flee(v, a.x, a.y, true); v.reportT = 2 + Math.random() * 3; v.reportType = 'robbery'; v.reportFoe = a.id; v.reportX = a.x; v.reportY = a.y; }
-        this.bark(a, U.pick(['Danke, Schätzchen.', 'Und kein Wort zu den Bullen!']), 1.8);
+        this.bark(a, U.pick([tr('Thanks, sweetheart.'), tr('And not a word to the cops!')]), 1.8);
         a.state = 'escape';
       }
     },
@@ -111,7 +112,7 @@
         const loot = Math.round((K.SHOPS[b.shop].till || 400) * (0.6 + Math.random() * 0.5));
         a.wallet += loot; b.tillDay = this.today();
         this.dispatch(a.x, a.y, 2, { foe: a.id });   // silent alarm
-        this.bark(a, 'Schönen Tag noch!', 1.6);
+        this.bark(a, tr('Have a nice day!'), 1.6);
         a.state = 'escape';
       }
     },
@@ -126,24 +127,24 @@
     },
     ai_cuffed(a, dt) {
       a.dv = [0, 0]; a.brain.t = (a.brain.t || 0) + dt;
-      if (a.brain.t > 4) { this.removeActor(a); this.emit('notify', { text: 'Ein Räuber wurde festgenommen und abgeführt.', kind: 'good' }); }
+      if (a.brain.t > 4) { this.removeActor(a); this.emit('notify', { text: tr('A robber was arrested and taken away.'), kind: 'good' }); }
     },
     /** a cop closing in on an unarmed robber cuffs instead of shooting */
     copCuffs(cop, t) {
       if (Math.hypot(t.x - cop.x, t.y - cop.y) > 32) return false;
       if (this.wdef(t).type === 'gun' && Math.random() < 0.5) return false;
       t.state = 'cuffed'; t.brain.t = 0; t.crim = false; t.vx = t.vy = 0;
-      this.bark(cop, 'Handschellen! Du bist festgenommen.', 2);
-      this.bark(t, U.pick(['Okay, okay, ich ergeb mich!', 'Scheiße…']), 2);
+      this.bark(cop, tr('Cuffs on! You’re under arrest.'), 2);
+      this.bark(t, U.pick([tr('Okay, okay, I give up!'), tr('Shit…')]), 2);
       this.calmDown(cop);
       return true;
     },
     heroReward(t, src) {
       if (t.kind !== 'thug' || !t.crim || !src || src.kind !== 'player') return;
       t.crim = false;
-      this.addXP(30, 'Räuber gestoppt');
-      this.emit('banner', { title: 'HELD DER STRASSE', sub: 'Du hast einen Räuber gestoppt — die Beute liegt bei ihm.', kind: 'gold' });
-      for (const c of this.near(t.x, t.y, 10 * TILE)) if (c.kind === 'civ' && c.alive && Math.random() < 0.4) this.bark(c, U.pick(['Danke!', 'Bravo!', 'Endlich tut mal jemand was!']), 2);
+      this.addXP(30, tr('Robber stopped'));
+      this.emit('banner', { title: tr('STREET HERO'), sub: tr('You stopped a robber — the loot is on him.'), kind: 'gold' });
+      for (const c of this.near(t.x, t.y, 10 * TILE)) if (c.kind === 'civ' && c.alive && Math.random() < 0.4) this.bark(c, U.pick([tr('Thank you!'), tr('Bravo!'), tr('Finally someone does something!')]), 2);
     },
   });
 })(globalThis.K = globalThis.K || {});

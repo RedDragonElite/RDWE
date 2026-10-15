@@ -8,7 +8,7 @@
  * All delays are game minutes (one real second is one game minute). */
 (function (K) {
   'use strict';
-  const U = K.U, TILE = K.TILE;
+  const U = K.U, TILE = K.TILE, tr = K.tr;
 
   K.SVC = {
     bodyFound: [25, 50],      // found body → coroner on scene
@@ -20,23 +20,24 @@
     near: 40,                 // tiles: within this the job is done in person
     work: { body: 7, blood: 9, lamp: 8, prop: 8, wreck: 6 },
     crew: {
-      body: { car: 'van', color: '#1d2026', livery: 'coroner', outfit: 'coroner', n: 2, name: 'Bestatter' },
-      blood: { car: 'van', color: '#e9792b', livery: 'clean', outfit: 'cleaner', n: 1, name: 'Stadtreinigung' },
-      lamp: { car: 'van', color: '#f0c419', livery: 'power', outfit: 'worker', n: 1, name: 'Stadtwerke' },
-      prop: { car: 'van', color: '#f0c419', livery: 'power', outfit: 'worker', n: 2, name: 'Stadtwerke' },
-      wreck: { car: 'pickup', color: '#d9a21b', livery: 'tow', outfit: 'worker', n: 1, name: 'Abschleppdienst' },
+      body: { car: 'van', color: '#1d2026', livery: 'coroner', outfit: 'coroner', n: 2, name: 'Undertaker' },
+      blood: { car: 'van', color: '#e9792b', livery: 'clean', outfit: 'cleaner', n: 1, name: 'City Sanitation' },
+      lamp: { car: 'van', color: '#f0c419', livery: 'power', outfit: 'worker', n: 1, name: 'City Utilities' },
+      prop: { car: 'van', color: '#f0c419', livery: 'power', outfit: 'worker', n: 2, name: 'City Utilities' },
+      wreck: { car: 'pickup', color: '#d9a21b', livery: 'tow', outfit: 'worker', n: 1, name: 'Tow Service' },
     },
   };
-  K.OUTFITS.coroner = { name: 'Bestatter', body: '#2a2d33', trim: '#c9ccd2', pants: '#1c1e22', role: 'civ', disguise: true };
-  K.OUTFITS.cleaner = { name: 'Stadtreinigung', body: '#ef7d22', trim: '#e8e8e8', pants: '#3a3f47', role: 'civ', disguise: true };
-  K.OUTFITS.worker = { name: 'Stadtwerke', body: '#f2c21b', trim: '#e8e8e8', pants: '#2d3a52', role: 'civ', disguise: true };
-  const BARK = {
-    body: ['Armer Kerl.', 'Sack zu. Wir nehmen ihn mit.', 'Der dritte diese Woche…', 'Fotos sind gemacht, ab damit.'],
-    blood: ['Das kriegt man nie ganz raus.', 'Wer macht so eine Sauerei…', 'Noch mal mit Chlor drüber.'],
-    lamp: ['Neue Birne, neues Glück.', 'Schon wieder umgefahren.'],
-    prop: ['Wer fährt denn so?', 'Hoch damit.'],
-    wreck: ['Den hat\'s erwischt.', 'Haken dran, ab zum Schrott.'],
-  };
+  K.i18nData(K.SVC.crew);
+  K.OUTFITS.coroner = K.i18nData({ name: 'Undertaker', body: '#2a2d33', trim: '#c9ccd2', pants: '#1c1e22', role: 'civ', disguise: true });
+  K.OUTFITS.cleaner = K.i18nData({ name: 'City Sanitation', body: '#ef7d22', trim: '#e8e8e8', pants: '#3a3f47', role: 'civ', disguise: true });
+  K.OUTFITS.worker = K.i18nData({ name: 'City Utilities', body: '#f2c21b', trim: '#e8e8e8', pants: '#2d3a52', role: 'civ', disguise: true });
+  const BARK = K.i18nStrings({
+    body: ['Poor guy.', 'Zip the bag. He comes with us.', 'Third one this week…', 'Photos are done, take him away.'],
+    blood: ['That never comes all the way out.', 'Who makes a mess like this…', 'One more pass with bleach.'],
+    lamp: ['New bulb, new luck.', 'Knocked down again.'],
+    prop: ['Who drives like that?', 'Up it goes.'],
+    wreck: ['That one\'s had it.', 'Hook it up, off to the scrapyard.'],
+  });
   const rnd = (r) => r[0] + Math.random() * (r[1] - r[0]);
 
   K.mixin({
@@ -204,7 +205,7 @@
       if (j.kind === 'blood' && Math.random() < dt * 2) this.emit('clean', { x: j.x + U.rnd(-40, 40), y: j.y + U.rnd(-40, 40), r: 1.4 * TILE, k: 0.35 });
       if (j.kind === 'blood' && Math.random() < dt * 3) this.emit('svcMop', { x: a.x + Math.cos(a.angle) * 14, y: a.y + Math.sin(a.angle) * 14 });
       if (j.kind === 'lamp' && Math.random() < dt * 4) this.emit('svcSpark', { x: j.x, y: j.y });
-      if (!a.brain.said && a.brain.work > 1.5 && Math.hypot(this.player.x - a.x, this.player.y - a.y) < 10 * TILE) { a.brain.said = true; this.bark(a, U.pick(BARK[j.kind] || ['So.']), 2.4); }
+      if (!a.brain.said && a.brain.work > 1.5 && Math.hypot(this.player.x - a.x, this.player.y - a.y) < 10 * TILE) { a.brain.said = true; this.bark(a, U.pick(BARK[j.kind] || [tr('Right.')]), 2.4); }
       if (a.brain.work >= K.SVC.work[j.kind]) {
         if (!this.svcDo(j, false)) { a.brain.work = K.SVC.work[j.kind] - 2; return; }
         a.crouch = false;
@@ -222,7 +223,7 @@
       for (const p of this.props) if (p && p.k === 'dumpster' && p.bodies) { n += p.bodies; p.bodies = 0; }
       for (const a of this.actors) if (!a.alive && a.hidden && !a.removed && a.hiddenSpot != null && this.props[a.hiddenSpot] && this.props[a.hiddenSpot].k === 'dumpster') this.removeActor(a);
       if (n && Math.random() < 0.35) {
-        this.emit('radio', { text: 'Müllabfuhr meldet Leichenfund in einem Container — Ermittlungen laufen.' });
+        this.emit('radio', { text: tr('Garbage crew reports a body in a dumpster — investigation under way.') });
       }
     },
   });

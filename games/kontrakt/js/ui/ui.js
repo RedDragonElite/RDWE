@@ -1,6 +1,7 @@
 /* RDE // KONTRAKT — HUD: clock, money, vitals, weapon, wanted, tracker, prompts, feed, banners, minimap */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, T = K.T, TILE = K.TILE;
   const $ = (s) => document.querySelector(s);
   const WEATHER = { clear: '☀️', cloudy: '☁️', rain: '🌧️', storm: '⛈️', fog: '🌫️' };
@@ -82,14 +83,14 @@
       this.t += dt;
       // clock & place
       this.set('time', U.clock(w.time), (v) => (e.time.textContent = v));
-      this.set('day', `${U.weekday(w.time)} · Tag ${U.day(w.time)}`, (v) => (e.day.textContent = v));
+      this.set('day', tr('{weekday} · Day {day}', { weekday: U.weekday(w.time), day: U.day(w.time) }), (v) => (e.day.textContent = v));
       this.set('wx', (w.daylight() < 0.35 ? NIGHTW : WEATHER)[w.weather.kind], (v) => (e.weather.textContent = v));
       const dname = K.DISTRICTS[w.districtAt(p.x, p.y)] || '';
       const b = w.bldAt(p.x, p.y);
       const z = w.zoneAt(p.x, p.y);
       const place = b >= 0 ? `${dname} · ${w.buildings[b].name}` : dname;
-      this.set('place', place + (z >= 0 ? '|z' + (w.zones[z].roles.includes(w.role(p)) ? 'ok' : 'no') : ''), () => { e.district.innerHTML = U.esc(place) + (z >= 0 ? (w.zones[z].roles.includes(w.role(p)) ? ' <span style="color:#5fd38d">· ZUGANG (Verkleidung)</span>' : ' <span style="color:#ff3b4e">· SPERRGEBIET</span>') : ''); });
-      this.set('bank', P.bank || 0, (v) => (e.bank.textContent = `Konto ${U.money(v)}${P.deal && P.deal.rep ? ` · Dealer-Ruf ${P.deal.rep}` : ''}`));
+      this.set('place', place + (z >= 0 ? '|z' + (w.zones[z].roles.includes(w.role(p)) ? 'ok' : 'no') : ''), () => { e.district.innerHTML = U.esc(place) + (z >= 0 ? (w.zones[z].roles.includes(w.role(p)) ? ` <span style="color:#5fd38d">· ${tr('ACCESS (disguise)')}</span>` : ` <span style="color:#ff3b4e">· ${tr('RESTRICTED AREA')}</span>`) : ''); });
+      this.set('bank', P.bank || 0, (v) => (e.bank.textContent = `${tr('Bank {money}', { money: U.money(v) })}${P.deal && P.deal.rep ? ' · ' + tr('Dealer rep {rep}', { rep: P.deal.rep }) : ''}`));
       this.jailbox(P, w);
       // injuries: body figure + critical overlay
       { const I = p.inj, key = I ? Object.keys(K.ZONES).map((z) => (I.wounds[z] || 0) + (I.frac[z] ? 'f' : '') + (I.artery === z ? 'a' : '')).join(',') : '';
@@ -101,7 +102,7 @@
           document.getElementById('dn-label').textContent = D.label;
           const s = Math.floor(w.t - D.t0); document.getElementById('dn-time').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
           const amb = w.cars.find((c) => c.kind === 'ambulance' && c.unit && c.unit.ems === p.id && !c.dead);
-          document.getElementById('dn-ems').textContent = amb ? (amb.unit.mode === 'respond' ? `🚑 Rettungswagen unterwegs · ca. ${Math.max(5, Math.round(Math.hypot(amb.x - p.x, amb.y - p.y) / Math.max(120, amb.speed || 0)))} s` : '🚑 Sanitäter bei dir') : (s < K.EMS.giveUp ? `Aufgeben möglich in ${K.EMS.giveUp - s} s` : '');
+          document.getElementById('dn-ems').textContent = amb ? (amb.unit.mode === 'respond' ? tr('🚑 Ambulance en route · ~{s} s', { s: Math.max(5, Math.round(Math.hypot(amb.x - p.x, amb.y - p.y) / Math.max(120, amb.speed || 0))) }) : tr('🚑 Paramedics on scene')) : (s < K.EMS.giveUp ? tr('You can give up in {s} s', { s: K.EMS.giveUp - s }) : '');
         } } }
       // prop placement bar (dark slate + violet)
       const pl = w.placing;
@@ -111,7 +112,7 @@
         if (!pl) return;
         const d = K.PLACE[pl.id];
         pb.querySelector('i').textContent = d.e; pb.querySelector('b').textContent = `${d.name}${P.inv['pl_' + pl.id] > 1 ? ' ×' + P.inv['pl_' + pl.id] : ''}`;
-        const st = pb.querySelector('span'); st.textContent = pl.ok ? '✔ Passt' : '✘ ' + pl.why; st.className = pl.ok ? 'ok' : 'no';
+        const st = pb.querySelector('span'); st.textContent = pl.ok ? tr('✔ Fits') : '✘ ' + pl.why; st.className = pl.ok ? 'ok' : 'no';
       });
       if (this.set('money', P.money, (v) => (e.money.textContent = U.money(v)))) { e.money.classList.add('bump'); clearTimeout(this.mt); this.mt = setTimeout(() => e.money.classList.remove('bump'), 250); }
       // wanted
@@ -120,7 +121,7 @@
       e.stars.classList.toggle('blink', wl > 0 && w.heat.seenT > 3);
       e.heat.style.width = wl > 0 ? (100 - (w.heatProgress || 0) * 100) + '%' : '0%';
       { const H = w.heat, st = p.hidden ? (wl > 0 ? 'hide' : 'hid0') : wl <= 0 ? '' : H.seenT < 1.5 ? 'seen' : H.search ? 'search' : 'lost';
-        this.set('hunt', st, (v) => { const el = this.huntEl || (this.huntEl = document.getElementById('hunt')); el.className = v; el.textContent = { seen: 'SICHTKONTAKT', search: 'SUCHE LÄUFT', lost: 'AUSSER SICHT', hide: 'VERSTECKT · SUCHE LÄUFT', hid0: 'VERSTECKT', '': '' }[v]; }); }
+        this.set('hunt', st, (v) => { const el = this.huntEl || (this.huntEl = document.getElementById('hunt')); el.className = v; el.textContent = { seen: tr('SPOTTED'), search: tr('SEARCHING'), lost: tr('OUT OF SIGHT'), hide: tr('HIDDEN · SEARCHING'), hid0: tr('HIDDEN'), '': '' }[v]; }); }
       // vitals
       const mh = w.maxHp();
       this.set('hp', Math.ceil(Math.max(0, p.hp)), (v) => { e.hp.style.width = (v / mh * 100) + '%'; e.hpT.textContent = v; });
@@ -128,21 +129,21 @@
       e.stam.style.width = P.stamina + '%';
       for (const [k, el] of [['hunger', e.food], ['thirst', e.water], ['energy', e.energy]]) {
         const v = Math.round(P[k]);
-        this.set(k, v, () => { el.querySelector('i').style.height = v + '%'; el.classList.toggle('low', v < 20); el.title = `${k === 'hunger' ? 'Hunger' : k === 'thirst' ? 'Durst' : 'Energie'}: ${v}%`; });
+        this.set(k, v, () => { el.querySelector('i').style.height = v + '%'; el.classList.toggle('low', v < 20); el.title = `${k === 'hunger' ? tr('Hunger') : k === 'thirst' ? tr('Thirst') : tr('Energy')}: ${v}%`; });
       }
       this.set('bleed', p.bleed > 0, (v) => e.bleed.classList.toggle('on', v));
       this.set('drunk', P.drunk > 0.25, (v) => e.drunk.classList.toggle('on', v));
       // weapon
       const wi = w.curWeapon(), d = K.WEAPONS[wi.id];
-      const ammo = d.type === 'gun' ? `${wi.mag}<small> / ${P.ammo[d.ammo] || 0}</small>${wi.sup ? '<span class="sup">GEDÄMPFT</span>' : ''}` : d.consumable || d.stack ? `×${wi.n || 1}` : '';
+      const ammo = d.type === 'gun' ? `${wi.mag}<small> / ${P.ammo[d.ammo] || 0}</small>${wi.sup ? `<span class="sup">${tr('SUPPRESSED')}</span>` : ''}` : d.consumable || d.stack ? `×${wi.n || 1}` : '';
       const down = P.handsDown && P.slot === 0;
-      this.set('wname', down ? 'Weggesteckt' : d.name, (v) => { e.wName.textContent = v; e.wIcon.src = K.iconURL(wi.id); e.wIcon.style.opacity = down ? 0.35 : 1; });
-      this.set('wammo', ammo + (p.reloading ? 'r' : ''), () => { e.wAmmo.innerHTML = p.reloading ? '<small>LÄDT…</small>' : ammo; e.wAmmo.classList.toggle('empty', d.type === 'gun' && wi.mag === 0); });
+      this.set('wname', down ? tr('Holstered') : d.name, (v) => { e.wName.textContent = v; e.wIcon.src = K.iconURL(wi.id); e.wIcon.style.opacity = down ? 0.35 : 1; });
+      this.set('wammo', ammo + (p.reloading ? 'r' : ''), () => { e.wAmmo.innerHTML = p.reloading ? `<small>${tr('RELOADING…')}</small>` : ammo; e.wAmmo.classList.toggle('empty', d.type === 'gun' && wi.mag === 0); });
       // hotbar: weapons and items, keys 1–9
       const hb = w.hotbar(), curId = !down && P.weapons[P.slot] ? P.weapons[P.slot].id : null;
       const slots = hb.map((x) => (x ? x.t + x.id + (x.t === 'w' ? (x.id === curId ? '*' : '') + ((P.weapons.find((q) => q.id === x.id) || {}).n || '') : P.inv[x.id] || 0) + (x.id === 'mask' && P.masked ? 'm' : '') : '-')).join(',');
       this.set('slots', slots, () => { e.wSlots.innerHTML = K.hotbarHTML(w); });
-      const st = [P.handsDown && P.slot === 0 ? '<b>HÄNDE UNTEN</b>' : '', p.crouch ? '<b class="on">GEDUCKT</b>' : '', P.instinct ? '<b class="blue">INSTINKT</b>' : '', w.aiming ? '<b>ZIELEN</b>' : '', w.drag ? '<b class="on">ZIEHT LEICHE</b>' : '', P.flashlight ? '<b>LAMPE</b>' : '', K.OUTFITS[P.outfit].disguise ? `<b class="blue">${K.OUTFITS[P.outfit].name.toUpperCase()}</b>` : ''].join('');
+      const st = [P.handsDown && P.slot === 0 ? `<b>${tr('HANDS DOWN')}</b>` : '', p.crouch ? `<b class="on">${tr('CROUCHED')}</b>` : '', P.instinct ? `<b class="blue">${tr('INSTINCT')}</b>` : '', w.aiming ? `<b>${tr('AIMING')}</b>` : '', w.drag ? `<b class="on">${tr('DRAGGING BODY')}</b>` : '', P.flashlight ? `<b>${tr('FLASHLIGHT')}</b>` : '', K.OUTFITS[P.outfit].disguise ? `<b class="blue">${K.OUTFITS[P.outfit].name.toUpperCase()}</b>` : ''].join('');
       this.set('stance', st, (v) => (e.stance.innerHTML = v));
       // prompt
       const ctx = w.ctx || [];
@@ -153,7 +154,7 @@
         const pick = [], used = new Set();
         for (const c of ctx) { const id = c.key + (c.long ? 'L' : ''); if (used.has(id)) continue; used.add(id); pick.push(c); }
         const more = ctx.filter((c) => c.key === 'E' && !c.long && c.fn).length - 1;
-        e.prompt.innerHTML = pick.slice(0, 4).map((c) => `<div class="${c.fn ? '' : 'off'}"><kbd>${c.key}</kbd>${U.esc(c.label)}${c.long || (c.hold && !c.auto) ? ' <small style="opacity:.6">(halten)</small>' : ''}${c.key === 'E' && !c.long && more > 0 && c === pick.find((q) => q.key === 'E' && !q.long) ? ` <small style="opacity:.5">+${more} · anschauen</small>` : ''}</div>`).join('');
+        e.prompt.innerHTML = pick.slice(0, 4).map((c) => `<div class="${c.fn ? '' : 'off'}"><kbd>${c.key}</kbd>${U.esc(c.label)}${c.long || (c.hold && !c.auto) ? ` <small style="opacity:.6">${tr('(hold)')}</small>` : ''}${c.key === 'E' && !c.long && more > 0 && c === pick.find((q) => q.key === 'E' && !q.long) ? ` <small style="opacity:.5">${tr('+{n} · look to pick', { n: more })}</small>` : ''}</div>`).join('');
       });
       this.tracker();
       this.carHud(w, p, P);
@@ -165,7 +166,7 @@
         const el = document.getElementById('crewhud'); if (!el) return;
         el.innerHTML = R.map((m) => {
           const a = w.crewActor(m), rar = K.CREW.rarities.find((x) => x.key === m.rarity);
-          const st = !a ? 'unterwegs' : a.inCar ? 'im Auto' : a.state === 'hostile' ? 'im Gefecht' : a.state === 'stay' ? 'hält Position' : Math.hypot(a.x - p.x, a.y - p.y) > 12 * K.TILE ? 'kommt' : 'folgt';
+          const st = !a ? tr('en route') : a.inCar ? tr('in a car') : a.state === 'hostile' ? tr('in combat') : a.state === 'stay' ? tr('holding position') : Math.hypot(a.x - p.x, a.y - p.y) > 12 * K.TILE ? tr('catching up') : tr('following');
           const hp = a ? Math.max(0, a.hp / a.maxHp * 100) : 100;
           return `<div class="cm" style="--c:${rar.col}">${U.esc(m.name.split(' ')[0])}<small>${st}</small><i><b style="width:${hp}%;background:${hp < 35 ? '#ff3b4e' : '#3ddc84'}"></b></i></div>`;
         }).join('');
@@ -179,21 +180,21 @@
       const J = P.jail, el = this.el.jail;
       if (!J && !P.surrender && !P.masked) { this.set('jail', '', () => el.classList.add('hidden')); return; }
       let h;
-      if (P.surrender) h = '<b>🙌 ERGEBEN</b><span>Halt still. Die Polizei nimmt dich fest. Bewegen = Widerstand.</span>';
-      else if (J && J.escaped) h = '<b>⛓ AUF DER FLUCHT</b><span>Wechsle die Kleidung und tauch unter.</span>';
-      else if (J) { const left = Math.max(0, J.until - w.time); h = `<b>⛓ HAFT · ${Math.floor(left / 60)}h ${String(Math.floor(left % 60)).padStart(2, '0')}m</b><span><kbd>K</kbd> Kaution ${U.money(J.bail)} · <kbd>E</kbd> an der Zellentür: Ausbruch (wenn kein Wärter hinsieht)</span><i style="width:${(1 - left / J.total) * 100}%"></i>`; }
-      else h = '<b>🎭 VERMUMMT</b><span>Zeugen erkennen dich nicht. Maske ungesehen abnehmen (Hotbar oder Inventar) = Fahndung weg.</span>';
+      if (P.surrender) h = `<b>${tr('🙌 SURRENDERED')}</b><span>${tr('Hold still. The police are taking you in. Moving = resisting.')}</span>`;
+      else if (J && J.escaped) h = `<b>${tr('⛓ ON THE RUN')}</b><span>${tr('Change your clothes and go to ground.')}</span>`;
+      else if (J) { const left = Math.max(0, J.until - w.time); h = `<b>${tr('⛓ JAIL')} · ${Math.floor(left / 60)}h ${String(Math.floor(left % 60)).padStart(2, '0')}m</b><span><kbd>K</kbd> ${tr('Bail {money}', { money: U.money(J.bail) })} · <kbd>E</kbd> ${tr('at the cell door: break out (when no guard is looking)')}</span><i style="width:${(1 - left / J.total) * 100}%"></i>`; }
+      else h = `<b>${tr('🎭 MASKED')}</b><span>${tr("Witnesses can't ID you. Take the mask off unseen (hotbar or inventory) = wanted level gone.")}</span>`;
       this.set('jail', h, (v) => { el.classList.remove('hidden'); el.innerHTML = v; });
     }
     tracker() {
       const w = this.g.world, c = w.contract, el = this.el.tracker;
       if (!c || (c.status !== 'active' && c.status !== 'killed')) { this.set('trk', '', () => el.classList.add('hidden')); return; }
       const left = Math.max(0, c.deadline - w.time);
-      const objs = c.status === 'killed' ? '<div class="ok">Ziel eliminiert</div><div>Verlasse das Gebiet</div>' : `<div>Eliminiere ${U.esc(c.name)}</div>${c.bonuses.map((b) => `<div style="opacity:.75">Bonus: ${U.esc(b.desc)}</div>`).join('')}`;
+      const objs = c.status === 'killed' ? `<div class="ok">${tr('Target eliminated')}</div><div>${tr('Leave the area')}</div>` : `<div>${tr('Eliminate {name}', { name: U.esc(c.name) })}</div>${c.bonuses.map((b) => `<div style="opacity:.75">${tr('Bonus: {desc}', { desc: U.esc(b.desc) })}</div>`).join('')}`;
       const key = c.id + c.status + Math.floor(left / 5) + c.intel;
       this.set('trk', key, () => {
         el.classList.remove('hidden');
-        el.innerHTML = `<div class="tk-h"><canvas width="92" height="92"></canvas><div><div class="tk-p">${U.esc(c.title)} · ${'◆'.repeat(c.diff)}</div><div class="tk-n">${U.esc(c.name)}</div></div></div><div class="tk-o">${objs}</div><div class="tk-t">Frist: ${Math.floor(left / 60)}h ${String(Math.floor(left % 60)).padStart(2, '0')}m · ${U.money(c.reward)}${c.intel ? ' · INTEL ✔' : ''}</div>`;
+        el.innerHTML = `<div class="tk-h"><canvas width="92" height="92"></canvas><div><div class="tk-p">${U.esc(c.title)} · ${'◆'.repeat(c.diff)}</div><div class="tk-n">${U.esc(c.name)}</div></div></div><div class="tk-o">${objs}</div><div class="tk-t">${tr('Deadline: {h}h {m}m', { h: Math.floor(left / 60), m: String(Math.floor(left % 60)).padStart(2, '0') })} · ${U.money(c.reward)}${c.intel ? ' · INTEL ✔' : ''}</div>`;
         K.portrait(el.querySelector('canvas'), c);
       });
     }
@@ -287,7 +288,7 @@
         if (digital != null) { x.fillStyle = '#fff'; x.font = `700 ${r > 60 ? 18 : 13}px Inter, sans-serif`; x.fillText(digital, cx, cy + r * 0.66); if (unit) { x.fillStyle = '#888'; x.font = '600 8px Inter, sans-serif'; x.fillText(unit, cx, cy + r * 0.66 + 12); } }
       };
       gauge(82, 92, 66, kmh, 280, 40, 'KM/H', null, '', String(Math.round(kmh)));
-      { const D = K.driveOf ? K.driveOf(c) : { red: 7000 }, mx = Math.ceil(D.red / 1000 + 0.6); gauge(226, 92, 66, this.rpmS, mx, mx > 9 ? 2 : 1, 'U/MIN ×1000', D.red / 1000, '', null); }
+      { const D = K.driveOf ? K.driveOf(c) : { red: 7000 }, mx = Math.ceil(D.red / 1000 + 0.6); gauge(226, 92, 66, this.rpmS, mx, mx > 9 ? 2 : 1, tr('RPM ×1000'), D.red / 1000, '', null); }
       // centre panel
       panel(306, 14, 178, 148);
       const blinkOn = Math.floor(t / 0.55) % 2 === 0;
@@ -297,24 +298,24 @@
       x.fillStyle = gear === 'N' ? '#9a9a9a' : gear === 'R' ? '#fbbf24' : '#fff'; x.font = '800 40px Inter, sans-serif'; x.fillText(gear, 395, 46);
       x.font = '600 10px Inter, sans-serif'; x.fillStyle = '#9a9a9a'; x.fillText(`ODO ${c.odo.toFixed(1)} km`, 395, 76);
       const fuelCol = c.fuel < 10 ? '#ef4444' : c.fuel < 20 ? '#fbbf24' : '#4ade80';
-      x.fillStyle = K.carModel(c).ev ? '#60a5fa' : fuelCol; x.font = '700 12px Inter, sans-serif'; x.fillText(K.carModel(c).ev ? '⚡ ELEKTRO' : `⛽ ${Math.round(c.fuel)}%`, 395, 92);
+      x.fillStyle = K.carModel(c).ev ? '#60a5fa' : fuelCol; x.font = '700 12px Inter, sans-serif'; x.fillText(K.carModel(c).ev ? tr('⚡ ELECTRIC') : `⛽ ${Math.round(c.fuel)}%`, 395, 92);
       const pill = (px, py, txt, col, on) => { x.fillStyle = on ? col : 'rgba(255,255,255,0.07)'; x.beginPath(); x.roundRect(px - 20, py - 8, 40, 16, 5); x.fill(); x.fillStyle = on ? '#111' : '#666'; x.font = '700 8px Inter, sans-serif'; x.fillText(txt, px, py + 0.5); };
       const engCol = c.engineOn ? '#4ade80' : (Math.floor(t * 3) % 2 ? '#ef4444' : '#5a1a1a');
-      pill(330, 112, c.crankT > 0 ? 'START' : 'MOTOR', engCol, true);
-      pill(374, 112, 'GURT', c.belt ? '#4ade80' : '#ef4444', true);
-      pill(418, 112, 'TEMPO', '#60a5fa', !!c.cruise);
-      pill(462, 112, c.highBeam ? 'FERN' : 'LICHT', c.highBeam ? '#fbbf24' : '#4ade80', !!c.lightsOn);
-      ['VL', 'VR', 'HL', 'HR'].forEach((n, i) => { const h = c.tires[i]; pill(330 + i * 44, 134, n, h < 1 ? (Math.floor(t * 4) % 2 ? '#ef4444' : '#555') : h < 20 ? '#ef4444' : h < 70 ? '#fbbf24' : '#4ade80', true); });
+      pill(330, 112, c.crankT > 0 ? tr('START') : tr('ENGINE'), engCol, true);
+      pill(374, 112, tr('BELT'), c.belt ? '#4ade80' : '#ef4444', true);
+      pill(418, 112, tr('CRUISE'), '#60a5fa', !!c.cruise);
+      pill(462, 112, c.highBeam ? tr('HIGH') : tr('LIGHTS'), c.highBeam ? '#fbbf24' : '#4ade80', !!c.lightsOn);
+      [tr('FL'), tr('FR'), tr('RL'), tr('RR')].forEach((n, i) => { const h = c.tires[i]; pill(330 + i * 44, 134, n, h < 1 ? (Math.floor(t * 4) % 2 ? '#ef4444' : '#555') : h < 20 ? '#ef4444' : h < 70 ? '#fbbf24' : '#4ade80', true); });
       if (c.tune && c.tune.nitro) { x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(318, 150, 154, 5); x.fillStyle = c.boost ? '#a855f7' : '#60a5fa'; x.fillRect(318, 150, 154 * c.nos / 100, 5); }
       if (c.tune && c.tune.turbo) { x.fillStyle = '#9a9a9a'; x.font = '600 8px Inter, sans-serif'; x.fillText(`BOOST ${(Math.abs(c.thr || 0) * Math.min(1, kmh / 60) * 2.5).toFixed(1)} bar`, 395, 8); }
-      gauge(560, 104, 46, K.carModel(c).ev ? 100 : c.fuel, 100, 25, 'TANK', null, '', null);
+      gauge(560, 104, 46, K.carModel(c).ev ? 100 : c.fuel, 100, 25, tr('FUEL'), null, '', null);
       gauge(676, 104, 46, c.temp, 150, 30, '°C', 110, '', String(Math.round(c.temp)));
       // engine / body bars under the small gauges
       const bar = (bx, v, label) => { x.fillStyle = 'rgba(12,12,12,0.92)'; x.fillRect(bx - 46, 156, 92, 10); x.fillStyle = v > 60 ? '#4ade80' : v > 30 ? '#fbbf24' : '#ef4444'; x.fillRect(bx - 45, 157, 90 * v / 100, 8); x.fillStyle = '#ddd'; x.font = '700 7px Inter, sans-serif'; x.fillText(label, bx, 161.5); };
-      bar(560, c.eng, 'MOTOR'); bar(676, c.bodyHP, 'KAROSSERIE');
+      bar(560, c.eng, tr('ENGINE')); bar(676, c.bodyHP, tr('BODY'));
       // warnings
       const warn = this.chWarn || (this.chWarn = document.getElementById('ch-warn'));
-      const wtxt = c.temp >= 110 ? `MOTOR ÜBERHITZT — ${Math.round(c.temp)}°C` : c.eng < 10 ? 'MOTORSCHADEN' : !K.carModel(c).ev && c.fuel < 8 ? (c.fuel <= 0 ? 'TANK LEER' : 'TANK FAST LEER') : c.leak ? 'TANK LECK — SPRIT LÄUFT AUS' : '';
+      const wtxt = c.temp >= 110 ? tr('ENGINE OVERHEATING — {temp}°C', { temp: Math.round(c.temp) }) : c.eng < 10 ? tr('ENGINE FAILURE') : !K.carModel(c).ev && c.fuel < 8 ? (c.fuel <= 0 ? tr('OUT OF FUEL') : tr('LOW FUEL')) : c.leak ? tr('FUEL LEAK — TANK DRAINING') : '';
       if (warn.textContent !== wtxt) warn.textContent = wtxt;
       warn.classList.toggle('on', !!wtxt);
       // windshield crack overlay (5 levels)
@@ -441,25 +442,25 @@
         case 'turf': this.turfTex = null; break;
         case 'banner': this.banner(e.title, e.sub, e.kind); break;
         case 'wanted':
-          if (e.level > e.prev) { this.banner('★'.repeat(e.level), e.why || 'Fahndung', 'wanted', 2.2); this.feed(`Fahndungsstufe ${e.level}: ${e.why}`, 'bad'); }
-          else this.feed(e.level ? `Fahndung gesenkt (${e.why})` : 'Fahndung eingestellt. Du bist sauber.', 'good');
+          if (e.level > e.prev) { this.banner('★'.repeat(e.level), e.why || tr('Wanted'), 'wanted', 2.2); this.feed(tr('Wanted level {level}: {why}', { level: e.level, why: e.why }), 'bad'); }
+          else this.feed(e.level ? tr('Heat dropping ({why})', { why: e.why }) : tr("Search called off. You're clean."), 'good');
           break;
-        case 'radio': this.feed('📻 Polizeifunk: ' + e.text, 'bad'); break;
+        case 'radio': this.feed(tr('📻 Police radio: {text}', { text: e.text }), 'bad'); break;
         case 'phone': this.feed('📱 ' + e.text, 'phone'); g.phoneBadge = (g.phoneBadge || 0) + 1; break;
         case 'xp': break;
-        case 'targetDown': this.banner('ZIEL ELIMINIERT', e.name, 'red', 3); break;
+        case 'targetDown': this.banner(tr('TARGET ELIMINATED'), e.name, 'red', 3); break;
         case 'contractDone': g.menus.showResult(e); break;
         case 'playerDead': setTimeout(() => g.menus.showDead(e), 1800); break;
         case 'arrested': g.menus.showArrest(e); break;
-        case 'respawn': this.feed(`Krankenhausrechnung: −${U.money(e.fee)}${e.lost ? ` · ${e.lost} Waffen beschlagnahmt` : ''}`, 'bad'); break;
+        case 'respawn': this.feed(tr('Hospital bill: −{fee}', { fee: U.money(e.fee) }) + (e.lost ? ' · ' + tr('{n} weapons confiscated', { n: e.lost }) : ''), 'bad'); break;
         case 'ui': g.menus.openFromWorld(e); break;
-        case 'slept': this.feed(`Ausgeschlafen (${e.hours}h). Spiel gespeichert.`, 'good'); break;
-        case 'weather': this.feed({ clear: 'Der Himmel klart auf.', cloudy: 'Wolken ziehen auf.', rain: 'Es beginnt zu regnen. Regen dämpft Geräusche.', storm: 'Unwetter! Der Sturm verschluckt jeden Schuss.', fog: 'Nebel legt sich über die Stadt. Sichtweiten sinken.' }[e.kind], 'info'); break;
-        case 'bodyFound': if (w.contract && w.contract.status === 'active') this.feed('Eine Leiche wurde gefunden.', 'bad'); break;
+        case 'slept': this.feed(tr('Slept it off ({hours}h). Game saved.', { hours: e.hours }), 'good'); break;
+        case 'weather': this.feed({ clear: tr('The sky is clearing.'), cloudy: tr('Clouds are rolling in.'), rain: tr('It starts to rain. Rain muffles sound.'), storm: tr('Storm! The thunder swallows every shot.'), fog: tr('Fog settles over the city. Visibility drops.') }[e.kind], 'info'); break;
+        case 'bodyFound': if (w.contract && w.contract.status === 'active') this.feed(tr('A body has been found.'), 'bad'); break;
         case 'jailed': g.menus.showJail(e); break;
-        case 'released': this.banner(e.how === 'bail' ? 'KAUTION GEZAHLT' : 'ENTLASSEN', 'Deine Schusswaffen und Drogen sind weg. Neue Chance, Krähenburg.', 'gold', 3.5); break;
-        case 'surrender': this.feed('Du ergibst dich. Nicht bewegen!', 'bad'); break;
-        case 'carEnter': this.feed(e.kind === 'police' ? 'Polizeiwagen gekapert. [R] Sirene' : 'Fahrzeug übernommen. [Leertaste] Handbremse · [H] Hupe · [F] aussteigen'); break;
+        case 'released': this.banner(e.how === 'bail' ? tr('BAIL POSTED') : tr('RELEASED'), tr('Your guns and drugs are gone. Second chance, Port Raven.'), 'gold', 3.5); break;
+        case 'surrender': this.feed(tr("You surrender. Don't move!"), 'bad'); break;
+        case 'carEnter': this.feed(e.kind === 'police' ? tr('Police car hijacked. [R] Siren') : tr('Vehicle taken. [Space] Handbrake · [H] Horn · [F] Get out')); break;
       }
     }
   }

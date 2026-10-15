@@ -1,9 +1,11 @@
 /* RDE // KONTRAKT — crime & heat: witnesses, reports, wanted stars, police dispatch, identity changes */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, TILE = K.TILE;
   const SEV = { weapon: 1, trespass: 1, assault: 1, shots: 1, theft: 1, burglary: 1, murder: 2, copkill: 3, explosion: 2, body: 0, robbery: 2, drugs: 1, jailbreak: 3, resist: 2, masked: 1, heist: 3, graffiti: 1 };
-  const WHAT = { weapon: 'Bewaffnete Person', trespass: 'Hausfriedensbruch', assault: 'Körperverletzung', shots: 'Schüsse gemeldet', theft: 'Autodiebstahl', burglary: 'Einbruch', murder: 'Mord', copkill: 'Polizistenmord', explosion: 'Explosion', robbery: 'Raubüberfall', drugs: 'Drogenhandel', jailbreak: 'Gefängnisausbruch', resist: 'Widerstand', masked: 'Vermummte Person', heist: 'Bankraub', graffiti: 'Graffiti-Sprayer' };
+  const WHAT = { weapon: 'Armed person', trespass: 'Trespassing', assault: 'Assault', shots: 'Shots fired', theft: 'Car theft', burglary: 'Burglary', murder: 'Murder', copkill: 'Cop killing', explosion: 'Explosion', robbery: 'Robbery', drugs: 'Drug dealing', jailbreak: 'Jailbreak', resist: 'Resisting', masked: 'Masked person', heist: 'Bank robbery', graffiti: 'Graffiti tagger' };
+  K.i18nStrings(WHAT);
   K.CRIME_SEV = SEV;
 
   K.mixin({
@@ -38,7 +40,7 @@
           if (n.kind !== 'cop' || !n.alive || n.ko > 0 || n.inCar) continue;
           if (att.alive && att.ko <= 0 && this.sees(n, att.x, att.y, this.viewRange(n) * 1.15, 1.35)) { n.foe = att.id; n.knowsPlayer = false; this.alarm(n, att); }
         }
-        if (this.t - (this.selfDefNoteT ?? -99) > 20) { this.selfDefNoteT = this.t; this.notify('Notwehr — du wurdest angegriffen.', 'info'); }
+        if (this.t - (this.selfDefNoteT ?? -99) > 20) { this.selfDefNoteT = this.t; this.notify(tr('Self-defense — you were attacked.'), 'info'); }
         return;
       }
       if (victim && victim.kind !== 'player') victim.provokedT = this.t;   // you started it
@@ -106,12 +108,12 @@
       const type = n.reportType; n.reportT = 0;
       if (n.reportFoe) {
         const f = this.byId.get(n.reportFoe); n.reportFoe = 0;
-        this.bark(n, U.pick(['Polizei? Ich wurde überfallen!', 'Hallo? Hier ist gerade ein Raub passiert!']));
+        this.bark(n, U.pick([tr('Police? I’ve been robbed!'), tr('Hello? There’s just been a robbery here!')]));
         if (f && f.alive) this.dispatch(f.x, f.y, 2, { foe: f.id });
         return;
       }
-      if (type === 'body') { this.policeInvestigate(n.reportX, n.reportY); this.bark(n, 'Polizei?! Hier liegt eine Leiche!'); return; }
-      this.bark(n, U.pick(['Polizei! Schnell!', 'Hallo, Polizei? Hier ist ein Irrer!', 'Kommen Sie sofort!']));
+      if (type === 'body') { this.policeInvestigate(n.reportX, n.reportY); this.bark(n, tr('Police?! There’s a body here!')); return; }
+      this.bark(n, U.pick([tr('Police! Hurry!'), tr('Hello, police? There’s a maniac here!'), tr('Come right now!')]));
       this.raiseWanted(SEV[type] || 1, type, n.reportX, n.reportY);
       n.call = null;
     },
@@ -121,7 +123,7 @@
       if (P.jail && !P.jail.escaped) {
         const add = (K.CRIMES[type] && K.CRIMES[type].jail) || 60;
         P.jail.until += add; this.addCharge(type);
-        this.notify(`${(K.CRIMES[type] || { name: type }).name}: +${Math.round(add / 60 * 10) / 10}h Haft`, 'bad');
+        this.notify(tr('{crime}: +{h}h jail', { crime: (K.CRIMES[type] || { name: type }).name, h: Math.round(add / 60 * 10) / 10 }), 'bad');
         return;
       }
       const prev = this.wanted;
@@ -148,12 +150,12 @@
     identityChanged() {
       if (this.wanted <= 0) return;
       const seen = this.actors.some((c) => (c.kind === 'cop' || c.kind === 'guard') && c.alive && c.seesPlayer);
-      if (seen) { this.notify('Sie haben dich beim Umziehen gesehen!', 'bad'); return; }
+      if (seen) { this.notify(tr('They saw you change clothes!'), 'bad'); return; }
       const before = Math.floor(this.wanted);
       this.wanted = Math.max(0, this.wanted - 2);
       for (const c of this.actors) if (c.kind === 'cop' || c.kind === 'guard') { c.knowsPlayer = false; c.susp = 0; }
       if (this.wanted <= 0) { this.charges = {}; this.heat.anon = false; }
-      if (Math.floor(this.wanted) < before) { this.emit('wanted', { level: Math.floor(this.wanted), prev: before, why: 'Identität gewechselt' }); }
+      if (Math.floor(this.wanted) < before) { this.emit('wanted', { level: Math.floor(this.wanted), prev: before, why: tr('Identity changed') }); }
     },
     updateCrime(dt) {
       const p = this.player;
@@ -164,7 +166,7 @@
         // walk up to a caller and they hang up (intimidated); knock them out or kill them and nobody calls
         if (n.call && this.t - n.call.t0 > n.call.dial && !p.hidden && Math.hypot(n.x - p.x, n.y - p.y) < 2.6 * TILE && K.los(this, n.x, n.y, p.x, p.y)) {
           n.reportT = 0; n.call = null;
-          this.bark(n, U.pick(['Okay, okay! Ich leg auf!', 'Bitte nicht! Ich hab nichts gesagt!', 'Schon gut, kein Anruf!']), 2.2);
+          this.bark(n, U.pick([tr('Okay, okay! I’m hanging up!'), tr('Please! I didn’t say anything!'), tr('Fine, no call!')]), 2.2);
           this.flee(n, p.x, p.y, false); n.reportT = 0;
           continue;
         }
@@ -184,7 +186,7 @@
         const prev = Math.floor(this.wanted);
         this.wanted = Math.max(0, Math.floor(this.wanted) - 1);
         H.decayT = 0;
-        this.emit('wanted', { level: this.wanted, prev, why: this.wanted ? 'Spur verwischt' : 'Fahndung eingestellt' });
+        this.emit('wanted', { level: this.wanted, prev, why: this.wanted ? tr('Trail gone cold') : tr('Search called off') });
         if (!this.wanted) { this.charges = {}; this.heat.anon = false; for (const c of this.actors) if (c.kind === 'cop' && c.state !== 'station' && !c.inCar) this.calmDown(c); }
       }
     },

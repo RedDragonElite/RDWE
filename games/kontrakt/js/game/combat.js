@@ -1,6 +1,7 @@
 /* RDE // KONTRAKT — combat: guns, ballistics, melee, takedowns, throwables, explosions, damage & death */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, T = K.T, TF = K.TF, TILE = K.TILE, W8 = K.WEAPONS;
 
   K.mixin({
@@ -262,9 +263,9 @@
       if (td.t < td.dur) return;
       this.td = null;
       this.P.stats.takedowns++;
-      if (td.kind === 'choke' || td.kind === 'sedate') { this.knockout(b, a, 150); this.addXP(20, 'Takedown'); }
-      else if (td.kind === 'poison') { b.poisoned = 2.8; b.poisonBy = a.id; this.bark(b, U.pick(['Mir… ist schlecht…', 'Mein Herz…', '*hust*'])); this.addXP(25, 'Vergiftet'); }
-      else { this.kill(b, a, { kind: td.kind, w: td.kind === 'wire' ? 'wire' : 'knife', dir: a.angle, silent: true, takedown: true, sharp: td.kind === 'knife' }); this.addXP(30, 'Lautloser Kill'); }
+      if (td.kind === 'choke' || td.kind === 'sedate') { this.knockout(b, a, 150); this.addXP(20, tr('Takedown')); }
+      else if (td.kind === 'poison') { b.poisoned = 2.8; b.poisonBy = a.id; this.bark(b, U.pick([tr('I… feel sick…'), tr('My heart…'), tr('*cough*')])); this.addXP(25, tr('Poisoned')); }
+      else { this.kill(b, a, { kind: td.kind, w: td.kind === 'wire' ? 'wire' : 'knife', dir: a.angle, silent: true, takedown: true, sharp: td.kind === 'knife' }); this.addXP(30, tr('Silent kill')); }
     },
 
     // ------------------------------------------------------------ throwables
@@ -409,9 +410,9 @@
       if (src && src.kind === 'player') {
         const P = this.P;
         P.stats.kills++;
-        if (info.head) { P.stats.headshots++; this.addXP(12, 'Kopfschuss'); }
+        if (info.head) { P.stats.headshots++; this.addXP(12, tr('Headshot')); }
         if (['civ', 'keeper', 'staff'].includes(t.kind)) P.stats.civKills++;
-        if (!info.takedown) this.addXP(t.kind === 'civ' ? 2 : 10, t.kind === 'civ' ? 'Zivilist' : 'Ausgeschaltet');
+        if (!info.takedown) this.addXP(t.kind === 'civ' ? 2 : 10, t.kind === 'civ' ? tr('Civilian') : tr('Neutralized'));
         this.crimeEvent(src, t.kind === 'cop' ? 'copkill' : 'murder', t.x, t.y, t);
       }
       this.onKill(t, src, info);

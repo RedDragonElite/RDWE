@@ -6,26 +6,28 @@
  * Same rules for you: [E] calls the ambulance, [X] gives up (clinic) after 20 s. */
 (function (K) {
   'use strict';
-  const U = K.U, TILE = K.TILE, W8 = K.WEAPONS;
+  const U = K.U, TILE = K.TILE, W8 = K.WEAPONS, tr = K.tr;
 
   K.ZONES = {
-    head:  { name: 'Kopf', mult: 2.6, pmult: 1.5, bleed: 0.8 },
-    torso: { name: 'Oberkörper', mult: 1, pmult: 1, bleed: 0.6, artery: 0.1 },
-    armL:  { name: 'linker Arm', mult: 0.6, pmult: 0.6, bleed: 0.3, artery: 0.08, frac: 0.3, limb: true },
-    armR:  { name: 'rechter Arm', mult: 0.6, pmult: 0.6, bleed: 0.3, artery: 0.08, frac: 0.3, limb: true },
-    legL:  { name: 'linkes Bein', mult: 0.7, pmult: 0.7, bleed: 0.35, artery: 0.12, frac: 0.35, limb: true },
-    legR:  { name: 'rechtes Bein', mult: 0.7, pmult: 0.7, bleed: 0.35, artery: 0.12, frac: 0.35, limb: true },
+    head:  { name: 'head', mult: 2.6, pmult: 1.5, bleed: 0.8 },
+    torso: { name: 'torso', mult: 1, pmult: 1, bleed: 0.6, artery: 0.1 },
+    armL:  { name: 'left arm', mult: 0.6, pmult: 0.6, bleed: 0.3, artery: 0.08, frac: 0.3, limb: true },
+    armR:  { name: 'right arm', mult: 0.6, pmult: 0.6, bleed: 0.3, artery: 0.08, frac: 0.3, limb: true },
+    legL:  { name: 'left leg', mult: 0.7, pmult: 0.7, bleed: 0.35, artery: 0.12, frac: 0.35, limb: true },
+    legR:  { name: 'right leg', mult: 0.7, pmult: 0.7, bleed: 0.35, artery: 0.12, frac: 0.35, limb: true },
   };
+  K.i18nData(K.ZONES);
   K.EMS = { base: 750, perKm: 50, treat: 10, giveUp: 20, bleedRate: [0.5, 1.6] };
 
-  Object.assign(K.ITEMS, {
-    tourniquet: { id: 'tourniquet', name: 'Tourniquet', e: '🩹', price: 90, w: 0.1, desc: 'Stoppt die Blutung an Arm oder Bein sofort — auch eine Arterie.' },
-    splint:     { id: 'splint', name: 'Schiene', e: '🦴', price: 70, w: 0.3, desc: 'Stabilisiert einen Bruch: kein Humpeln, ruhige Hand.' },
-  });
-  K.ITEMS.bandage.desc = 'Stoppt leichte Blutungen, +15 HP. [E halten] an Verletzten: Erste Hilfe.';
+  Object.assign(K.ITEMS, K.i18nData({
+    tourniquet: { id: 'tourniquet', name: 'Tourniquet', e: '🩹', price: 90, w: 0.1, desc: 'Stops the bleeding on an arm or a leg instantly — even an artery.' },
+    splint:     { id: 'splint', name: 'Splint', e: '🦴', price: 70, w: 0.3, desc: 'Stabilizes a fracture: no limping, a steady hand.' },
+  }));
+  K.ITEMS.bandage.desc = 'Stops light bleeding, +15 HP. [Hold E] on the wounded: first aid.';
+  K.i18nData(K.ITEMS.bandage);
   K.SHOPS.pharmacy.items.push('tourniquet', 'splint');
   K.SHOPS.hospital.items.push('tourniquet', 'splint');
-  K.OUTFITS.paramedic = { name: 'Rettungsdienst', body: '#e8452c', trim: '#f2f200', pants: '#c42a1e', role: 'medic', disguise: true };
+  K.OUTFITS.paramedic = K.i18nData({ name: 'Paramedic', body: '#e8452c', trim: '#f2f200', pants: '#c42a1e', role: 'medic', disguise: true });
 
   K.mixin({
     // ============================================================ hit zones
@@ -48,13 +50,13 @@
       const pen = info.kind === 'bullet' || info.sharp || info.kind === 'explosion';
       if (pen) {
         let b = Z.bleed * U.clamp(d / 30, 0.4, 2);
-        if (Z.artery && !I.artery && Math.random() < Z.artery * (d > 40 ? 1.6 : 1)) { I.artery = zone; b += 1.2; if (t.kind === 'player') this.notify(`Arterie getroffen (${Z.name})! Tourniquet oder Medkit — schnell.`, 'bad'); }
+        if (Z.artery && !I.artery && Math.random() < Z.artery * (d > 40 ? 1.6 : 1)) { I.artery = zone; b += 1.2; if (t.kind === 'player') this.notify(tr('Artery hit ({zone})! Tourniquet or medkit — fast.', { zone: Z.name }), 'bad'); }
         t.bleed = Math.min(4, (t.bleed || 0) + b);
       }
       const blunt = info.kind === 'car' || info.blunt || info.kind === 'explosion';
       if (Z.frac && !I.frac[zone] && ((pen && d >= 25) || (blunt && d >= 20)) && Math.random() < Z.frac * (blunt ? 1.4 : 1)) {
         I.frac[zone] = true;
-        if (t.kind === 'player') this.notify(`${Z.name} gebrochen${zone.startsWith('leg') ? ' — du humpelst' : ' — die Hand zittert'}.`, 'bad');
+        if (t.kind === 'player') this.notify(zone.startsWith('leg') ? tr("Your {zone} is broken — you're limping.", { zone: Z.name }) : tr('Your {zone} is broken — your hand is shaking.', { zone: Z.name }), 'bad');
         else if (zone.startsWith('arm')) t.acc = (t.acc || 2.2) * 1.6;
       }
       this.emit('wound', { id: t.id, zone, x: t.x, y: t.y });
@@ -77,7 +79,7 @@
     goDown(t, src, info) {
       const I = t.inj || { wounds: {}, frac: {} };
       const zone = Object.keys(I.wounds).sort((a, b) => (I.wounds[b] || 0) - (I.wounds[a] || 0))[0] || 'torso';
-      const what = info.kind === 'bullet' ? 'Schusswunde' : info.kind === 'car' ? 'Unfalltrauma' : info.kind === 'explosion' ? 'Explosionstrauma' : info.sharp ? 'Stichwunde' : 'Schweres Trauma';
+      const what = info.kind === 'bullet' ? tr('Gunshot wound') : info.kind === 'car' ? tr('Crash trauma') : info.kind === 'explosion' ? tr('Blast trauma') : info.sharp ? tr('Stab wound') : tr('Severe trauma');
       const [r0, r1] = K.EMS.bleedRate;
       t.hp = 1; t.flinch = 0;
       { const i = this.tileIdx(t.x, t.y); if (this.blockedTile(i, t)) { const f = this.nav.nearestFree(i, t, 3); if (f >= 0) { t.x = (f % this.W + 0.5) * TILE; t.y = (((f / this.W) | 0) + 0.5) * TILE; } } }
@@ -106,7 +108,7 @@
       if (t.inj) t.inj.artery = null;
       if (t.kind === 'player') { this.emit('playerRevived', {}); return; }
       t.state = 'wake'; t.brain.t = 0;
-      this.bark(t, U.pick(['Danke… danke…', 'Ich… lebe noch?', 'Holt mich hier raus…']), 2.2);
+      this.bark(t, U.pick([tr('Thank you… thank you…'), tr('I\'m… still alive?'), tr('Get me out of here…')]), 2.2);
     },
 
     // ============================================================ every frame
@@ -116,7 +118,7 @@
       if (this.emsCalls && this.emsCalls.length) this.emsCalls = this.emsCalls.filter((c) => {
         if (this.t < c.at) return true;
         const t = this.byId.get(c.id), by = this.byId.get(c.by);
-        if (t && t.downed && (!by || (by.alive && by.ko <= 0))) { if (by) this.bark(by, U.pick(['112? Hier liegt ein Verletzter!', 'Schnell, einen Krankenwagen!', 'Notruf! Jemand blutet stark!']), 2.2); this.dispatchEMS(t, false); }
+        if (t && t.downed && (!by || (by.alive && by.ko <= 0))) { if (by) this.bark(by, U.pick([tr("911? Somebody's hurt here!"), tr('Quick, get an ambulance!'), tr("Emergency! Someone's bleeding badly!")]), 2.2); this.dispatchEMS(t, false); }
         return false;
       });
       for (const a of this.actors) {
@@ -137,7 +139,7 @@
         for (const m of this.crewActors()) {
           if (!m.alive || m.ko > 0 || Math.hypot(m.x - p.x, m.y - p.y) > 8 * TILE) continue;
           const rec = this.crewMember ? this.crewMember(m.crewId) : null;
-          if (rec && rec.kits > 0) { p.downed.crewT = (p.downed.crewT || 0) + dt; if (p.downed.crewT > 7) { rec.kits--; this.bark(m, 'Halt durch, Boss! Ich hab dich.', 2); this.revive(p, 0.4); } }
+          if (rec && rec.kits > 0) { p.downed.crewT = (p.downed.crewT || 0) + dt; if (p.downed.crewT > 7) { rec.kits--; this.bark(m, tr("Hang in there, boss! I've got you."), 2); this.revive(p, 0.4); } }
           break;
         }
       }
@@ -152,8 +154,8 @@
       if ((mx || my) && D.loss < 80) { const ang = Math.atan2(my, mx); this.moveActor(p, Math.cos(ang) * 16, Math.sin(ang) * 16, 1 / 60, 14); D.loss = Math.min(100, D.loss + 0.02); } else this.moveActor(p, 0, 0, 1 / 60, 14);
       const coming = this.cars.some((c) => c.kind === 'ambulance' && c.unit && c.unit.ems === p.id && !c.dead);
       this.ctx = [];
-      if (!coming) this.ctx.push({ key: 'E', label: `Rettungswagen rufen (${U.money(this.emsCost(p))})` });
-      if (this.t - D.t0 > K.EMS.giveUp) this.ctx.push({ key: 'X', label: 'Aufgeben → Klinik' });
+      if (!coming) this.ctx.push({ key: 'E', label: tr('Call an ambulance ({cost})', { cost: U.money(this.emsCost(p)) }) });
+      if (this.t - D.t0 > K.EMS.giveUp) this.ctx.push({ key: 'X', label: tr('Give up → Clinic') });
       if (pr.e && !coming) this.callEMS();
       if (pr.x && this.t - D.t0 > K.EMS.giveUp) { p.downed = null; p.ko = 0; this.kill(p, null, { kind: 'bleed' }); }
     },
@@ -165,10 +167,10 @@
     callEMS() {
       const p = this.player, cost = this.emsCost(p);
       const P = this.P;
-      if (P.money + (P.bank || 0) < cost) { this.notify('Nicht genug Geld für den Rettungswagen.', 'bad'); return false; }
+      if (P.money + (P.bank || 0) < cost) { this.notify(tr('Not enough money for the ambulance.'), 'bad'); return false; }
       const fromBank = Math.max(0, cost - P.money); P.money -= cost - fromBank; P.bank -= fromBank;
       this.emit('sfx', { s: 'phone' });
-      this.notify(`112 — Rettungswagen unterwegs (${U.money(cost)}).`, 'good');
+      this.notify(tr('911 — ambulance on the way ({cost}).', { cost: U.money(cost) }), 'good');
       this.dispatchEMS(p, true);
       return true;
     },
@@ -243,9 +245,9 @@
         this.revive(pt, pt.kind === 'player' ? 0.5 : 0.35);
         if (pt.kind === 'player') {
           const paid = c && c.unit.paid;
-          if (!paid) { const bill = this.emsCost(pt); this.P.bank = (this.P.bank || 0) - bill; this.notify(`Rechnung Rettungsdienst: ${U.money(bill)} (vom Konto)`, 'bad'); }
-          this.bark(a, 'Sie hatten Glück. Gehen Sie zur Klinik, die Wunde muss genäht werden.', 3);
-        } else this.bark(a, 'Patient stabil. Wir nehmen ihn mit.', 2);
+          if (!paid) { const bill = this.emsCost(pt); this.P.bank = (this.P.bank || 0) - bill; this.notify(tr('Ambulance bill: {bill} (from your account)', { bill: U.money(bill) }), 'bad'); }
+          this.bark(a, tr('You got lucky. Go to the clinic, that wound needs stitches.'), 3);
+        } else this.bark(a, tr("Patient's stable. We're taking him in."), 2);
         for (const id of c ? c.unit.crew : [a.id]) { const m = this.byId.get(id); if (m && m.alive) { m.state = 'emsback'; m.goal = null; m.crouch = false; } }
       }
     },
@@ -270,22 +272,22 @@
       t.downed.stab = true; t.downed.stabT = this.t; t.bleed = 0;
       if (t.inj) t.inj.artery = null;
       this.emit('sfx', { s: 'heal' });
-      this.bark(t, U.pick(['Danke… danke…', 'Bleib bei mir…', 'Ich… spür meine Beine nicht.']), 2.4);
-      this.notify(`${t.name || 'Verletzter'} stabilisiert.`, 'good');
-      if (t.kind !== 'cop' && t.kind !== 'gang') this.addXP(25, 'Lebensretter');
+      this.bark(t, U.pick([tr('Thank you… thank you…'), tr('Stay with me…'), tr("I… can't feel my legs.")]), 2.4);
+      this.notify(tr('{name} stabilized.', { name: t.name || tr('Casualty') }), 'good');
+      if (t.kind !== 'cop' && t.kind !== 'gang') this.addXP(25, tr('Lifesaver'));
     },
     /** treatment items on yourself: bandage = light bleeding, tourniquet = limb/artery, splint = fracture */
     treatSelf(id) {
       const a = this.player, I = a.inj || (a.inj = { wounds: {}, frac: {}, artery: null });
       if (id === 'tourniquet') {
-        if (!a.bleed && !I.artery) return this.notify('Keine Blutung, die ein Tourniquet braucht.', 'bad'), false;
-        if (I.artery && !K.ZONES[I.artery].limb) return this.notify('Am Oberkörper hilft kein Tourniquet — Medkit oder Klinik!', 'bad'), false;
-        this.takeItem(id); I.artery = null; a.bleed = Math.max(0, a.bleed - 2.5); this.emit('sfx', { s: 'cloth' }); this.notify('Abgebunden. Die Blutung steht.', 'good'); return true;
+        if (!a.bleed && !I.artery) return this.notify(tr('No bleeding that needs a tourniquet.'), 'bad'), false;
+        if (I.artery && !K.ZONES[I.artery].limb) return this.notify(tr("A tourniquet won't help on the torso — medkit or clinic!"), 'bad'), false;
+        this.takeItem(id); I.artery = null; a.bleed = Math.max(0, a.bleed - 2.5); this.emit('sfx', { s: 'cloth' }); this.notify(tr('Tied off. The bleeding has stopped.'), 'good'); return true;
       }
       if (id === 'splint') {
         const z = Object.keys(I.frac).find((k) => I.frac[k]);
-        if (!z) return this.notify('Nichts gebrochen.', 'bad'), false;
-        this.takeItem(id); I.frac[z] = false; this.emit('sfx', { s: 'cloth' }); this.notify(`${K.ZONES[z].name} geschient.`, 'good'); return true;
+        if (!z) return this.notify(tr('Nothing broken.'), 'bad'), false;
+        this.takeItem(id); I.frac[z] = false; this.emit('sfx', { s: 'cloth' }); this.notify(tr('Splinted your {zone}.', { zone: K.ZONES[z].name }), 'good'); return true;
       }
       return false;
     },

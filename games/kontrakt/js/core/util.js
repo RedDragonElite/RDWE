@@ -68,17 +68,18 @@
   K.NAMES = {
     first: ['Viktor', 'Elena', 'Marco', 'Svetlana', 'Dieter', 'Lukas', 'Mila', 'Jonas', 'Ines', 'Raffaele', 'Katja', 'Henrik', 'Yusuf', 'Aylin', 'Bruno', 'Greta', 'Dmitri', 'Sofia', 'Klaus', 'Nadia', 'Oskar', 'Lena', 'Pavel', 'Carla', 'Enzo', 'Frieda', 'Ivan', 'Jana', 'Mats', 'Nora', 'Tobias', 'Zoe', 'Hakan', 'Bianca', 'Ruben', 'Tamara', 'Gustav', 'Leonie', 'Anton', 'Vera'],
     last: ['Krause', 'Volkov', 'Moretti', 'Schreiber', 'Kowalski', 'Brandt', 'Petrov', 'Lindqvist', 'Yilmaz', 'Falk', 'Romano', 'Weber', 'Novak', 'Hartmann', 'Sokolov', 'Ricci', 'König', 'Becker', 'Orlov', 'Wolff', 'Castell', 'Dragunov', 'Engel', 'Fischer', 'Graf', 'Haas', 'Ivanova', 'Jäger', 'Kessler', 'Lorenz', 'Marek', 'Nowak', 'Ostrowski', 'Reuter', 'Stark', 'Vogel', 'Winter', 'Zimmer'],
-    nick: ['„der Bankier“', '„die Witwe“', '„Zahnstocher“', '„der Graf“', '„Eisfaust“', '„die Spinne“', '„der Prediger“', '„Goldzahn“', '„der Schatten“', '„die Füchsin“', '„Krawatte“', '„der Doktor“'],
+    nick: ['“the Banker”', '“the Widow”', '“Toothpick”', '“the Count”', '“Icefist”', '“the Spider”', '“the Preacher”', '“Gold Tooth”', '“the Shadow”', '“the Vixen”', '“Necktie”', '“the Doctor”'],
   };
 
-  U.money = (n) => '$' + Math.round(n).toLocaleString('de-DE');
+  U.money = (n) => '$' + Math.round(n).toLocaleString(K.lang === 'de' ? 'de-DE' : 'en-US');
   U.clock = (mins) => {
     const m = Math.floor(mins) % 1440;
     return String((m / 60) | 0).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   };
   U.day = (mins) => 1 + Math.floor(mins / 1440);
   U.hourOf = (mins) => (mins % 1440) / 60;
-  const WD = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  const WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   U.weekday = (mins) => WD[Math.floor(mins / 1440) % 7];
+  if (K.i18nStrings) { K.i18nStrings(WD); K.i18nStrings(K.NAMES.nick); }
   U.esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 })(globalThis.K = globalThis.K || {});

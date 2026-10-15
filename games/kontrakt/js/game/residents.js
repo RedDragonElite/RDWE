@@ -5,7 +5,7 @@
  * Some keep a pistol in the nightstand. Dead tenants stay dead — after a few days new people move in. */
 (function (K) {
   'use strict';
-  const U = K.U, TILE = K.TILE;
+  const U = K.U, TILE = K.TILE, tr = K.tr;
   const tc = (i, W) => [(i % W + 0.5) * TILE, (((i / W) | 0) + 0.5) * TILE];
 
   K.HOME = {
@@ -15,7 +15,7 @@
     armed: 0.14,                     // chance a member keeps a gun at home
     sleepWake: 0.45,                 // chance a quiet noise wakes a sleeper
   };
-  const JOBNAME = { day: 'Büro', shift: 'Schichtdienst', night: 'Nachtschicht', home: 'meist zu Hause', student: 'Student' };
+  const JOBNAME = K.i18nStrings({ day: 'Office job', shift: 'Shift work', night: 'Night shift', home: 'Mostly at home', student: 'Student' });
 
   K.mixin({
     // ============================================================ households
@@ -161,7 +161,7 @@
       const i = this.nav.nearestFree(this.tileIdx(a.x, a.y), a, 3);
       if (i >= 0) [a.x, a.y] = tc(i, this.W);
       a.state = 'home'; a.brain.waitT = startled ? 0 : 2 + Math.random() * 3; a.goal = null; a.path = null; a.brain.toBed = null;
-      if (startled) { a.alertness = 1; this.bark(a, U.pick(['Hm…? Ist da wer?', 'Schatz, hast du das gehört?', 'Was war das?!']), 2.2); if (a.gun) this.residentArm(a); }
+      if (startled) { a.alertness = 1; this.bark(a, U.pick([tr('Hm…? Anyone there?'), tr('Honey, did you hear that?'), tr('What was that?!')]), 2.2); if (a.gun) this.residentArm(a); }
     },
     residentArm(a) { if (a.gun && a.wi.id === 'fists') { a.wi = { id: a.gun.id, mag: a.gun.mag, sup: false }; a.weapon = a.gun.id; } },
 
@@ -211,9 +211,9 @@
     /** what you hear through a front door: tells you whether anybody is home (and awake) */
     householdSounds(b) {
       const hh = this.household(b), home = hh.members.filter((m) => !m.dead && this.residentHome(m));
-      if (!home.length) return U.pick(['Stille. Kein Licht, kein Laut — scheint niemand da zu sein.', 'Nichts. Nur der Kühlschrank brummt.']);
-      if (home.every((m) => this.residentAsleep(m))) return home.length > 1 ? 'Leises Schnarchen… mindestens zwei schlafen.' : 'Leises Schnarchen. Jemand schläft.';
-      return U.pick(home.length > 1 ? ['Stimmen, ein Fernseher — da sind mehrere wach.', 'Geschirrklappern und Gelächter. Mehrere Leute zu Hause.'] : ['Schritte. Ein Radio läuft. Jemand ist zu Hause.', 'Der Fernseher läuft. Jemand ist wach.']);
+      if (!home.length) return U.pick([tr('Silence. No light, no sound — nobody seems to be home.'), tr('Nothing. Just the fridge humming.')]);
+      if (home.every((m) => this.residentAsleep(m))) return home.length > 1 ? tr('Soft snoring… at least two are asleep.') : tr('Soft snoring. Someone is asleep.');
+      return U.pick(home.length > 1 ? [tr('Voices, a TV — several of them are awake.'), tr('Clattering dishes and laughter. Several people home.')] : [tr('Footsteps. A radio is playing. Someone is home.'), tr('The TV is on. Someone is awake.')]);
     },
     /** phone › household info for a home you are standing in or looking at (used by the burglary hint) */
     householdInfo(b) {

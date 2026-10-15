@@ -3,7 +3,8 @@
  * and street furniture you can mow down: lamps, hydrants, benches, bins, bollards. */
 (function (K) {
   'use strict';
-  const U = K.U, TILE = K.TILE, TAU = Math.PI * 2;
+  const tr = K.tr;   // translate (K.T is the tile table)
+  const U = K.U, T = K.T, TILE = K.TILE, TAU = Math.PI * 2;
 
   // ------------------------------------------------------------------ models
   Object.assign(K.CARK, {
@@ -17,19 +18,20 @@
   });
   /** catalogue for the dealership: name, price, class (repair/tuning multiplier, fuel use) */
   K.CARMODELS = {
-    compact: { name: 'Brisa Mini', price: 9000, cls: 'compact', desc: 'Klein, sparsam, passt in jede Lücke.' },
-    sedan: { name: 'Vela Limousine', price: 16000, cls: 'sedan', desc: 'Unauffällig. Genau richtig für Profis.' },
-    van: { name: 'Kastenwagen K3', price: 14000, cls: 'commercial', desc: 'Platz für alles, was niemand sehen soll.' },
-    pickup: { name: 'Hauler 2500', price: 22000, cls: 'suv', desc: 'Robust, ehrlich, laut.' },
-    coupe: { name: 'Corsa GT', price: 32000, cls: 'sport', desc: 'Leicht, wendig, schnell genug.' },
-    suv: { name: 'Ranger XL', price: 38000, cls: 'suv', desc: 'Schwer gepanzert wirkt er schon ab Werk.' },
-    muscle: { name: 'Bulldog V8', price: 45000, cls: 'muscle', desc: 'Hubraum statt Grip. Driftet von selbst.' },
-    ev: { name: 'Volta E', price: 58000, cls: 'ev', ev: true, desc: 'Elektrisch — kein Sprit, leise wie ein Messer.' },
-    sport: { name: 'Furia S', price: 68000, cls: 'sport', desc: 'Italienisches Temperament.' },
-    super: { name: 'Spectre RS', price: 185000, cls: 'super', desc: 'Das Schnellste in Krähenburg.' },
+    compact: { name: 'Brisa Mini', price: 9000, cls: 'compact', desc: 'Small, frugal, fits any gap.' },
+    sedan: { name: 'Vela Sedan', price: 16000, cls: 'sedan', desc: 'Forgettable. Just right for professionals.' },
+    van: { name: 'Box Van K3', price: 14000, cls: 'commercial', desc: 'Room for everything nobody should see.' },
+    pickup: { name: 'Hauler 2500', price: 22000, cls: 'suv', desc: 'Tough, honest, loud.' },
+    coupe: { name: 'Corsa GT', price: 32000, cls: 'sport', desc: 'Light, nimble, fast enough.' },
+    suv: { name: 'Ranger XL', price: 38000, cls: 'suv', desc: 'Looks armored straight off the line.' },
+    muscle: { name: 'Bulldog V8', price: 45000, cls: 'muscle', desc: 'Displacement over grip. Drifts all by itself.' },
+    ev: { name: 'Volta E', price: 58000, cls: 'ev', ev: true, desc: 'Electric — no gas, quiet as a knife.' },
+    sport: { name: 'Furia S', price: 68000, cls: 'sport', desc: 'Italian temper.' },
+    super: { name: 'Spectre RS', price: 185000, cls: 'super', desc: 'The fastest thing in Port Raven.' },
     taxi: { name: 'Taxi', price: 0, cls: 'sedan', hidden: true },
-    police: { name: 'Streifenwagen', price: 0, cls: 'sedan', hidden: true },
+    police: { name: 'Police Cruiser', price: 0, cls: 'sedan', hidden: true },
   };
+  K.i18nData(K.CARMODELS);
   K.CARCLS = {
     compact: { mult: 1, fuel: 0.18 }, sedan: { mult: 1.2, fuel: 0.22 }, sport: { mult: 1.6, fuel: 0.3 }, muscle: { mult: 1.5, fuel: 0.34 },
     suv: { mult: 1.4, fuel: 0.3 }, super: { mult: 2.4, fuel: 0.38 }, commercial: { mult: 1.3, fuel: 0.28 }, ev: { mult: 1.8, fuel: 0 },
@@ -281,7 +283,7 @@
           const rate = K.carCls(c).fuel, th = Math.abs(c.thr || 0), sp = Math.min(1, (c.speed || 0) / d.max);
           c.fuel = Math.max(0, c.fuel - dt * rate * (0.12 + 0.88 * th * (0.3 + 0.7 * sp)) * (c.boost ? 1.6 : 1));
           if (c.fuel < 5 && c.fuel > 0) { c.sputT = (c.sputT || 0) - dt; if (c.sputT <= 0) { c.sputT = 0.25 + Math.random() * 0.5; c.sputter = Math.random() < 0.35 ? 0.25 : 0; if (c.sputter) this.emit('sfx', { s: 'sputter' }); } } else c.sputter = 0;
-          if (c.fuel <= 0 && c.engineOn) { c.engineOn = false; this.notify('Tank leer — der Motor geht aus.', 'bad'); this.emit('sfx', { s: 'stall' }); }
+          if (c.fuel <= 0 && c.engineOn) { c.engineOn = false; this.notify(tr('Out of gas — the engine dies.'), 'bad'); this.emit('sfx', { s: 'stall' }); }
         }
         if (c.sputter > 0) c.sputter -= dt;
         c.odo += (c.speed || 0) * K.KMH * dt / 3600;   // km
@@ -297,11 +299,11 @@
         if (c.boost) dT += 2.2;
         c.temp = U.clamp(c.temp + dT * dt * 6, 20, 150);
         if (c.engineOn && c.temp < 88) c.temp += dt * 4;
-        if (c.temp >= 140 && !c.cooked) { c.cooked = true; c.eng = Math.min(c.eng, 22); this.notify('Motorschaden durch Überhitzung!', 'bad'); }
+        if (c.temp >= 140 && !c.cooked) { c.cooked = true; c.eng = Math.min(c.eng, 22); this.notify(tr('Engine blown from overheating!'), 'bad'); }
         if (c.temp < 120) c.cooked = false;
         if (c.temp >= 110 && Math.random() < dt * 0.8) this.emit('sfx', { s: 'beep' });
         // crank / hot-wire
-        if (c.crankT > 0) { c.crankT -= dt; if (c.crankT <= 0) { if (c.fuel > 0 || mdl.ev) { c.engineOn = true; this.emit('sfx', { s: 'ignite' }); } else this.notify('Kein Sprit.', 'bad'); } }
+        if (c.crankT > 0) { c.crankT -= dt; if (c.crankT <= 0) { if (c.fuel > 0 || mdl.ev) { c.engineOn = true; this.emit('sfx', { s: 'ignite' }); } else this.notify(tr('No gas.'), 'bad'); } }
         // nitro
         c.boost = !!(this.nitroHeld && c.tune.nitro && c.nos > 0 && c.engineOn);
         if (c.boost) { c.nos = Math.max(0, c.nos - dt * 20); if (Math.random() < dt * 30) this.emit('exhaustFlame', { x: c.x - Math.cos(c.a) * c.l / 2, y: c.y - Math.sin(c.a) * c.l / 2, a: c.a }); }
@@ -327,7 +329,7 @@
         p.vx = c.vx * 0.8; p.vy = c.vy * 0.8; p.stun = 2.6; p.slowT = 5;
         c.crack = 100;
         this.emit('glass', { x: p.x, y: p.y });
-        this.emit('banner', { title: 'DURCHS FENSTER', sub: 'Ohne Gurt. [B] im Auto schnallt dich an.', kind: 'red' });
+        this.emit('banner', { title: tr('THROUGH THE WINDSHIELD'), sub: tr('No seatbelt. [B] in the car buckles you up.'), kind: 'red' });
         this.hurt(p, 25 * (1 + sev), null, { kind: 'car', dir: c.a });
       } else if (c.belt && kmh > 120) this.hurt(p, (kmh - 120) * 0.25, null, { kind: 'car', dir: c.a });
       else if (!c.belt && kmh > 50) this.hurt(p, (kmh - 50) * 0.18, null, { kind: 'car', dir: c.a });

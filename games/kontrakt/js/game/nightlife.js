@@ -2,7 +2,8 @@
  * dancers at the poles of the Velvet. Tip them, book a private dance — and dancers hear things. */
 (function (K) {
   'use strict';
-  const U = K.U, TILE = K.TILE;
+  const tr = K.tr;   // translate (K.T is the tile table)
+  const U = K.U, T = K.T, TILE = K.TILE;
   const BEACHWEAR = ['swim', 'hawaii', 'civ3', 'civ7', 'casual'];
 
   K.mixin({
@@ -58,17 +59,17 @@
       const a = this.player; if (a.inCar || this.drag) return false;
       for (const d of this.near(a.x, a.y, 56)) {
         if (!d.dancer || !d.alive || d.ko > 0 || d.state !== 'pole') continue;
-        add('E', `Trinkgeld für ${d.name} ($20)`, () => this.tipDancer(d));
-        add('T', 'Privattanz in der VIP-Lounge ($250)', () => this.privateDance(d));
+        add('E', tr('Tip {name} ($20)', { name: d.name }), () => this.tipDancer(d));
+        add('T', tr('Private dance in the VIP lounge ($250)'), () => this.privateDance(d));
         return true;
       }
       return false;
     },
     tipDancer(d) {
-      if (!this.pay(20)) return this.notify('Kein Geld für Trinkgeld.', 'bad');
+      if (!this.pay(20)) return this.notify(tr('No cash for a tip.'), 'bad');
       d.tips = (d.tips || 0) + 1;
       this.emit('sfx', { s: 'cash' });
-      this.bark(d, U.pick(['Danke, Süßer.', 'Mehr davon!', 'Du weißt, wie man sich beliebt macht.', '♥']), 1.8);
+      this.bark(d, U.pick([tr('Thanks, sugar.'), tr('Keep it coming!'), tr('You know how to make a girl like you.'), '♥']), 1.8);
       this.dancerWhisper(d);
     },
     /** regulars hear things: after a few tips a dancer whispers about your target */
@@ -76,16 +77,16 @@
       const c = this.contract;
       if (d.tips >= 4 && c && c.status === 'active' && !c.intel && !d.told) {
         d.told = true; c.intel = true;
-        this.bark(d, 'Psst… ich weiß, wen du suchst.', 2.6);
-        this.emit('banner', { title: 'GEFLÜSTER', sub: `${d.name} verrät dir, wo sich dein Ziel herumtreibt — Intel freigeschaltet.`, kind: 'gold' });
+        this.bark(d, tr("Psst… I know who you're looking for."), 2.6);
+        this.emit('banner', { title: tr('WHISPERS'), sub: tr('{name} tells you where your target hangs out — intel unlocked.', { name: d.name }), kind: 'gold' });
       }
     },
     privateDance(d) {
-      if (!this.pay(250)) return this.notify('Die VIP-Lounge kostet 250$.', 'bad');
+      if (!this.pay(250)) return this.notify(tr('The VIP lounge costs $250.'), 'bad');
       const P = this.P;
       this.time += 20; P.energy = Math.min(100, P.energy + 8); P.drunk = Math.max(0, P.drunk - 0.1);
       this.emit('fadeBlink', {});
-      this.emit('banner', { title: 'VIP-LOUNGE', sub: `20 Minuten mit ${d.name}. Samt, Neon und kein Wort darüber.`, kind: 'gold' });
+      this.emit('banner', { title: tr('VIP LOUNGE'), sub: tr('20 minutes with {name}. Velvet, neon, and not a word about it.', { name: d.name }), kind: 'gold' });
       this.emit('sfx', { s: 'cash' });
       d.tips = (d.tips || 0) + 3;
       this.dancerWhisper(d);

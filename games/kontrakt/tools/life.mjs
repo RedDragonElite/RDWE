@@ -1,6 +1,6 @@
 // city life: residents in their homes, clean-up crews, context keys: node tools/life.mjs
 import fs from 'fs'; import vm from 'vm';
-const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
+const ctx = { console, Math, Date, JSON, globalThis: null, KONTRAKT_LANG: process.env.KONTRAKT_LANG || 'de' }; ctx.globalThis = ctx; vm.createContext(ctx);
 const files = fs.readFileSync('tools/scenarios.mjs', 'utf8').match(/for \(const f of (\[[^\]]+\])/)[1];
 for (const f of eval(files)) vm.runInContext(fs.readFileSync(f, 'utf8'), ctx, { filename: f });
 const K = ctx.K, TILE = 32, U = K.U;

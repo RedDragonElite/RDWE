@@ -1,487 +1,495 @@
 # RDE // KONTRAKT
 
-**Ein Open-World-Assassinen-RPG in purem HTML, CSS und JavaScript.**
-Kein Framework, keine Bilder, keine Sounddateien: Stadt, Grafik, Musik und Geräusche entstehen prozedural im Browser.
+🇩🇪 Deutsch: [README.de.md](README.de.md)
 
-Du bist Auftragskiller in **Krähenburg**. Du hast eine kleine Bude in der Altstadt, ein Handy, eine Klaviersaite und eine P9. Die Stadt lebt Tag und Nacht. Die Aufträge kommen aufs Handy, und wie du sie erledigst, entscheidest du selbst.
+**An open-world assassin RPG in pure HTML, CSS and JavaScript.**
+No framework, no images, no sound files: the city, the graphics, the music and every sound are generated procedurally in the browser.
 
-▶ **Spielen:** https://reddragonelite.github.io/RDWE/games/kontrakt/ (GitHub Pages)
-oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://localhost:8000` öffnen.
+You are a contract killer in **Port Raven**. You have a small flat in the Old Town, a phone, a piano wire and a P9. The city never sleeps. The contracts come in on your phone, and how you close them is your call.
+
+▶ **Play:** https://reddragonelite.github.io/RDWE/games/kontrakt/ (GitHub Pages)
+or locally: run `python3 -m http.server` in `games/kontrakt/`, then open `http://localhost:8000`.
 
 ---
 
 ## Features
 
-### Die Stadt
-- **Prozedurale Großstadt (264×278 Tiles, 10×10 Blöcke), 8 Viertel:**
-  - Altstadt, eine große Mitte, Sonnenhang (Villen), Stadtparks, Kanalviertel, Industriegebiet, Hafen mit Piers, Booten und Kränen, Ocean Beach.
-- **Rund 230 betretbare Gebäude mit echten Innenräumen.** Wenn du ein Gebäude betrittst, blenden die Dächer aus.
-  - Bäder mit Wanne, WC und Waschbecken; Wohnzimmer mit Sessel, Bücherregal und Stehlampe; Schlafzimmer mit Nachttisch und Kommode; Küchenzeilen.
-  - Büros mit Wasserspender, Drucker und Garderobe; Villen und Chefbüros mit Kamin, Aquarium und Barwagen.
-- **Straßenleben:**
-  - Bushaltestellen, Zeitungsboxen, Fahrradständer, Blumenkübel, Telefonzellen
-  - Café-Tische mit Sonnenschirmen vor Bars und Dinern
-  - Wohnhäuser, Büros, Grand Hotel, Villen mit Pool und Garten, Lagerhallen, Polizeirevier, Klinik, Club, Bar, Diner, Späti, Apotheke, Boutique, Waffenladen und Schwarzmarkt.
-- **Leben in den Straßen:**
-  - Passanten mit Tagesrhythmus
-  - Ladenbesitzer, Köche, Kellner, Ärzte, Türsteher, Wachen, Polizei-Streifen und eine Hafen-Crew
-- **Verkehr, der fahren kann:**
-  - Hält die Spur, fährt Kurven als Bögen und bremst weich hinter dem Vordermann.
-  - Wartet an Kreuzungen, bis die Kreuzung frei ist, und blinkt vor dem Abbiegen.
-  - Überholt Autos, die stehen geblieben oder verlassen sind, wenn der Gegenverkehr frei ist, und hupt dich an, wenn du im Weg stehst.
-- **Bewohner in jeder Wohnung:**
-  - Jedes Haus und jede Wohnung hat einen Haushalt mit 1 bis 4 Leuten mit Beruf und Tagesablauf: Büro, Schichtdienst, Nachtschicht, Rentner, Studenten.
-  - Unter der Woche sind Büroleute tagsüber weg, Studenten feiern freitags und samstags, nachts schlafen alle in ihren Betten.
-  - Sie gehen durch die Haustür zur Arbeit und kommen wieder heim.
-  - **T halten an der Haustür:** lauschen, ob jemand da ist und ob er wach ist.
-  - Schläfer sehen dich nicht, aber Lärm weckt sie. Wer dich erwischt, flieht und ruft die Polizei. Manche haben eine Pistole im Nachttisch.
-  - Tote Mieter bleiben tot; nach drei Tagen zieht jemand Neues ein.
-- **Stadtdienste räumen auf** (1 Sekunde = 1 Spielminute):
-  - Gefundene Leichen holt der Bestatter nach 25–50 Minuten. Ungefundene werden nach 2,5–5 Stunden gefunden.
-  - Danach wischt die Stadtreinigung das Blut weg.
-  - Kaputte Laternen ersetzen die Stadtwerke nach 6–14 Stunden; umgefahrene Hydranten, Bänke und Schilder stehen nach 2,5–7 Stunden wieder.
-  - Ausgebrannte Wracks schleppt der Abschleppdienst nach 1–2,5 Stunden ab.
-  - Ziehst du eine Leiche weg, bleibt die Blutlache, wo sie lag. Mit kommt nur eine Schleifspur, die mit der Zeit dünner wird. An der neuen Stelle bildet sich nur noch eine kleine Lache, und die Reinigung wischt beide Stellen.
-  - Alle anderen Blutflecken, Bremsspuren und Hülsen verblassen in etwa einem Spieltag, Regen wäscht sie in ein paar Stunden weg.
-  - Die Müllabfuhr leert jeden zweiten Morgen um 06:00 die Container, samt der Leichen darin. Manchmal meldet der Polizeifunk den Fund.
-  - In deiner Nähe kommen die Teams mit eigenem Wagen und erledigen den Job zu Fuß. Woanders in der Stadt passiert es einfach.
-- **Tag-Nacht-Zyklus:** 1 Sekunde Echtzeit entspricht 1 Spielminute.
-  - Straßenlaternen, beleuchtete Fenster, Neonschilder und Scheinwerfer: jedes Auto wirft zwei Lichtkegel, einen aus jeder Lampe, und hat zwei Rückleuchten
-  - Sonnenschatten, die mit der Tageszeit wandern
-- **Wetter:** klar, bewölkt, Regen, Gewitter mit Blitz und Donner, Nebel.
-  - Regen dämpft Schüsse und Schritte, Nebel senkt Sichtweiten, nasse Straßen spiegeln das Licht.
-  - Echte Wolkenschatten aus nahtlosem Rauschen: bei aufgelockerter Bewölkung hart und ziehend, bei geschlossener Decke ein gleichmäßiges Grau, Tempo je nach Wind.
-  - Nebel aus zwei Schwaden-Schichten mit Parallaxe, nachts dunkel statt leuchtend; Regen bringt Dunst mit.
+- **Language:** The game is in English by default. German can be chosen under Settings → Sprache/Language, and the choice is saved.
 
-### Assassinen-Gameplay
-- **Aufträge per Handy.** Jeder Auftrag hat:
-  - ein zufälliges Ziel mit Dossierfoto und Biografie
-  - eine Tagesroutine über mehrere Orte und Leibwächter
-  - eine Frist und Bonusziele: Lautloser Assassine, Nur das Ziel, Unfall, Signaturwaffe, Kopfschuss, In Verkleidung
-- **Intel kaufen:** Das Ziel wird live markiert. Ohne Intel kennst du nur das grobe Gebiet.
-- **Wertung am Ende jedes Auftrags:** Phantom, Lautloser Assassine, Profi, Schlächter oder Staatsfeind, mit Auszahlung und XP.
-- **Verkleidungen:**
-  - Nimm bewusstlosen oder toten NPCs die Kleidung ab (**T**).
-  - Wachen, Polizisten, Köche, Kellner und Ärzte haben Zugang zu Sperrgebieten.
-  - „Enforcer“ (in der Instinkt-Sicht orange markiert) durchschauen Verkleidungen aus der Nähe.
-- **Wahrnehmung:** Sichtkegel, Licht und Schatten, Ducken, Geräuschradien.
-  - Verdachtsanzeige über den Köpfen (? → !).
-  - Wachen warnen, suchen, schlagen Alarm und wecken K.O.-gegangene Kollegen.
-- **Takedowns von hinten (F):**
-  - Klaviersaite (lautlos, kein Blut), Messer, Würgegriff (bewusstlos)
-  - Gift- oder Betäubungsspritze (Gift zählt als Unfall)
-- **Leichen** ziehen (**E**) und in Container, Spinde oder Schränke stopfen. Gefundene Leichen lösen Alarm aus.
-- **Münzen werfen** lenkt Wachen ab.
-- **Instinkt (Q halten):**
-  - Wachen, Ziele und Polizei durch Wände sehen
-  - Verstecke hervorheben
-  - die Welt entsättigt sich
-- **Sichtfeld:** Was hinter Wänden liegt, bleibt im Dunkeln.
+### The City
+- **A procedural metropolis (264×278 tiles, 10×10 blocks), 8 districts:**
+  - Old Town, a sprawling Downtown, Sunhill (villas), city parks, the Canal District, the industrial zone, the Harbor with piers, boats and cranes, and Ocean Beach.
+- **Around 230 enterable buildings with real interiors.** Step inside and the roofs fade away.
+  - Bathrooms with tub, toilet and sink; living rooms with armchair, bookshelf and floor lamp; bedrooms with nightstand and dresser; kitchenettes.
+  - Offices with water cooler, printer and coat rack; villas and executive suites with fireplace, aquarium and bar cart.
+- **Street furniture:**
+  - Bus stops, newspaper boxes, bike racks, planters, phone booths
+  - Café tables with parasols outside bars and diners
+  - Apartment blocks, offices, the Grand Hotel, villas with pool and garden, warehouses, police station, clinic, club, bar, diner, corner store, pharmacy, boutique, gun shop and black market.
+- **Life on the streets:**
+  - Pedestrians who follow a daily rhythm
+  - Shopkeepers, cooks, waiters, doctors, bouncers, guards, police patrols and a harbor crew
+- **Traffic that can actually drive:**
+  - Keeps its lane, takes corners in smooth arcs and brakes gently behind the car ahead.
+  - Waits at junctions until they are clear and signals before turning.
+  - Overtakes stalled or abandoned cars when oncoming traffic allows, and honks at you if you're in the way.
+- **Residents in every home:**
+  - Every house and apartment has a household of 1 to 4 people, each with a job and a daily schedule: office workers, shift workers, night shift, retirees, students.
+  - On weekdays the office crowd is gone during the day, students party on Friday and Saturday, and at night everyone sleeps in their own bed.
+  - They leave through the front door for work and come back home again.
+  - **Hold T at a front door:** listen for whether anyone is home, and whether they're awake.
+  - Sleepers can't see you, but noise wakes them. Anyone who catches you runs and calls the police. Some keep a pistol in the nightstand.
+  - Dead tenants stay dead; after three days someone new moves in.
+- **City services clean up** (1 second = 1 game minute):
+  - Found bodies are collected by the undertaker after 25–50 minutes. Unfound ones turn up after 2.5–5 hours.
+  - Then street cleaning mops up the blood.
+  - The utility company replaces broken streetlights after 6–14 hours; flattened hydrants, benches and signs are back up after 2.5–7 hours.
+  - Burned-out wrecks are towed away after 1–2.5 hours.
+  - Drag a body away and the pool of blood stays where it fell. Only a drag trail comes along, fading over time. At the new spot only a small pool forms, and the cleaners mop up both places.
+  - All other blood stains, skid marks and shell casings fade in about one game day; rain washes them away in a few hours.
+  - Garbage collection empties the dumpsters every other morning at 06:00, bodies included. Sometimes the police radio reports the find.
+  - Near you, the crews arrive in their own vehicle and do the job on foot. Elsewhere in the city it simply happens.
+- **Day-night cycle:** 1 second of real time equals 1 game minute.
+  - Streetlights, lit windows, neon signs and headlights: every car throws two light cones, one from each lamp, and has two tail lights
+  - Sun shadows that travel with the time of day
+- **Weather:** clear, overcast, rain, thunderstorms with lightning and thunder, fog.
+  - Rain muffles gunshots and footsteps, fog cuts sight lines, wet streets mirror the lights.
+  - Real cloud shadows from seamless noise: hard-edged and drifting under broken cloud, an even gray under full overcast, moving with the wind.
+  - Fog built from two drifting layers with parallax, dark at night instead of glowing; rain brings haze with it.
 
-### Kampf
-- **Waffen:**
-  - **Pistolen:** P9 Kompakt, Silberbaron .45 SD, Magnum .357
-  - **Maschinenpistole:** MP-K
-  - **Schrotflinte:** Pump-12
-  - **Sturmgewehre:** K-47, Kolibri AR-15 (5.56)
-  - **MG:** Brecher M60 mit 100-Schuss-Gurt; macht dich langsamer
-  - **Präzisionsgewehre:** Falke DMR (halbautomatisch, 4×), Wisper VSS (integrierter Schalldämpfer, 9×39)
-  - **Scharfschützengewehre:**
-    - Jäger 700 (Repetierer, 8×)
-    - Kodiak .50 BMG: Anti-Material, schießt durch Autos, Türen und die Leute dahinter
-- **Zielfernrohr (RMB):**
-  - Die Kamera zoomt weit heraus und schaut voraus.
-  - Ein Scope-Overlay zeigt Absehen mit Mil-Dots, Entfernung, Magazin und Zielerkennung.
-  - Das Gewehr wackelt mit dem Puls, stärker auf Distanz, beim Laufen, betrunken oder außer Puste. Ducken beruhigt.
-  - **Shift** hält den Atem an: Das Absehen steht fast still, bis die Luft ausgeht. Danach keuchst du ein paar Sekunden.
-  - Aus der Hüfte streuen Zielfernrohr-Waffen stark.
-- **Bezugsquellen:** AR-15, DMR und 5.56 gibt es im Waffenladen. VSS, Kodiak, M60, .50 BMG und 9×39 gibt es auf dem Schwarzmarkt. Das SEK rückt jetzt mit AR-15 und DMR-Schützen an.
-- **Nahkampf:** Fäuste mit Kombos, Messer, Baseballschläger, Brecheisen, Machete, Katana.
-- **Wurfwaffen:** Granaten, Münzen und C4 zum Fernzünden.
-- **Munitionstypen und Nachladen (R):**
-  - Magazine, Schrotflinte Schuss für Schuss
-  - Rückstoß, Streuung (Bewegung, Ducken, Zielen mit RMB)
-  - Schalldämpfer zum Nachrüsten
-- **Ballistik:** echte Projektile mit Tracern, Kopfschüssen, Durchschlag beim Scharfschützengewehr und Glas, das zersplittert.
-- **Blut und Gore** (abschaltbar):
-  - Sprühnebel, Spritzer an Boden und Wänden, wachsende Blutlachen, blutige Fußspuren, Schleifspuren beim Ziehen
-  - Körperteile bei Explosionen und Schrotflinten-Kopfschüssen
-- **Polizei und Fahndung (1–5 Sterne), realistisch:**
-  - Keine Fußstreifen mehr: Tagsüber kreuzen zwei Streifenwagen durch die Stadt, nachts einer.
-  - Zeugen rufen an, die Leitstelle schickt eine Einheit **von weit weg**. Sie fährt über das Straßennetz an, parkt, steigt aus, ermittelt und fährt wieder ab.
-  - Einsatzregeln: Erst festnehmen. Geschossen wird nur bei bewaffneten oder schießenden Verdächtigen, ab 3 Sternen mit Waffe oder im Auto und ab 4 Sternen immer.
-  - Flüchtende werden getackelt. Mehr Sterne bringen mehr Einheiten, ab 4 Sternen auch das SEK.
-  - Streifenwagen verfolgen dich mit Sirene. Ein unbeobachteter Outfitwechsel senkt die Fahndung um 2 Sterne.
-- **NPC-Kriminelle:**
-  - Räuber ziehen Passanten ab und überfallen Läden.
-  - Opfer und Zeugen rufen die Polizei, und die rückt gegen den Räuber aus, nicht gegen dich.
-  - Unbewaffnete Räuber werden in Handschellen abgeführt.
-  - Stoppst du selbst einen, bist du der **Held der Straße**. Das gibt XP und keine Anzeige.
+### Assassin Gameplay
+- **Contracts by phone.** Every contract comes with:
+  - a random target with dossier photo and biography
+  - a daily routine across several locations, plus bodyguards
+  - a deadline and bonus objectives: Silent Assassin, Target Only, Accident, Signature Weapon, Headshot, In Disguise
+- **Buy intel:** the target is marked live. Without intel you only know the rough area.
+- **Rating at the end of every contract:** Phantom, Silent Assassin, Professional, Butcher or Public Enemy, with payout and XP.
+- **Disguises:**
+  - Take the clothes off unconscious or dead NPCs (**T**).
+  - Guards, police officers, cooks, waiters and doctors have access to restricted areas.
+  - "Enforcers" (marked orange in Instinct view) see through disguises up close.
+- **Perception:** vision cones, light and shadow, crouching, noise radii.
+  - Suspicion meters above heads (? → !).
+  - Guards warn, search, raise the alarm and wake up colleagues who've been knocked out.
+- **Takedowns from behind (F):**
+  - Piano wire (silent, no blood), knife, chokehold (unconscious)
+  - Poison or sedative syringe (poison counts as an accident)
+- **Bodies** can be dragged (**E**) and stuffed into dumpsters, lockers or closets. Discovered bodies trigger the alarm.
+- **Throwing coins** distracts guards.
+- **Instinct (hold Q):**
+  - See guards, targets and police through walls
+  - Highlight hiding spots
+  - The world drains of color
+- **Field of view:** what lies behind walls stays in the dark.
 
-### Fahndung (nach rde_aipd, plus echte Suche)
-- **Notruf statt Allwissenheit:**
-  - Zeugen rufen die Polizei je nach Viertel, Tageszeit und Schock an: zwischen 20 % am Hafen und 60 % in Mitte, nachts seltener.
-  - Ein Anruf dauert 5–9 s: reagieren, Panik, Handy raus, wählen, reden. Über dem Kopf zeigt ein Ring, wie lange es noch dauert.
-  - Geh zum Anrufer, sobald das Handy draußen ist, und er legt eingeschüchtert auf. Wer bewusstlos oder tot ist, ruft nicht an.
-  - Gemeldet wird der Tatort, nicht deine aktuelle Position.
-- **Polizeifunk:** Jede Sichtung geht mit Position und Richtung an alle Einheiten.
-- **Suche nach Sichtverlust:**
-  - Am vorhergesagten Ort öffnet sich ein Suchgebiet, das mit der Zeit wächst.
-  - Zwei Streifen suchen zu Fuß und verteilen sich. Sie prüfen unabgesuchtes Gelände, Ecken und Verstecke und haken Bereiche ab. Alle anderen Wagen fahren die Straßen ringsum ab.
-  - Eine neue Sichtung zieht alle sofort zusammen.
-  - HUD und Minimap zeigen „SICHTKONTAKT“, „SUCHE LÄUFT“ oder „AUSSER SICHT“ und das Suchgebiet.
-- **Sterne fallen nur ungesehen:** nach 15 s ohne Sichtkontakt, dann ein Stern alle 20 s (rde_aipd).
-- **Einheiten je Stufe:** 2/3/4/5/6, höchstens 8.
-- **Tackles** treffen je nach Stufe mit 15–55 %. Wer daneben greift, stolpert.
-- **Hubschrauber ab 3 Sternen:**
-  - Er folgt dir oder kreist das Suchgebiet ab.
-  - Sein Suchscheinwerfer findet dich nur im Freien, nie unter einem Dach.
-  - Gewehre können ihn abschießen.
-- **Verfolgungsjagden:**
-  - PIT-Manöver, die dein Heck ausbrechen lassen.
-  - Straßensperren vor dir (ab 3 Sternen), Nagelbänder (ab 4).
-  - Ohne Sichtkontakt fährt die Verfolgung zur Funkposition, nicht zu dir.
-- **Verstecken:** in Containern, Schränken und Spinden (**T** halten, **E** zum Rauskommen). Suchende Polizisten schauen in Verstecke direkt neben sich.
+### Combat
+- **Weapons:**
+  - **Pistols:** P9 Compact, Silberbaron .45 SD, Magnum .357
+  - **Submachine gun:** MP-K
+  - **Shotgun:** Pump-12
+  - **Assault rifles:** K-47, Kolibri AR-15 (5.56)
+  - **LMG:** Brecher M60 with a 100-round belt; slows you down
+  - **Marksman rifles:** Falke DMR (semi-auto, 4×), Wisper VSS (integrated suppressor, 9×39)
+  - **Sniper rifles:**
+    - Jäger 700 (bolt action, 8×)
+    - Kodiak .50 BMG: anti-materiel, punches through cars, doors and the people behind them
+- **Scope (RMB):**
+  - The camera pulls far out and looks ahead.
+  - A scope overlay shows a mil-dot reticle, range, magazine and target identification.
+  - The rifle sways with your pulse, more at long range, while moving, drunk or out of breath. Crouching steadies it.
+  - **Shift** holds your breath: the reticle goes almost still until your air runs out. Then you gasp for a few seconds.
+  - Fired from the hip, scoped weapons spray wildly.
+- **Where to get them:** AR-15, DMR and 5.56 are sold at the gun shop. VSS, Kodiak, M60, .50 BMG and 9×39 come from the black market. SWAT now rolls in with AR-15s and DMR marksmen.
+- **Melee:** fists with combos, knife, baseball bat, crowbar, machete, katana.
+- **Throwables:** grenades, coins and remote-detonated C4.
+- **Ammo types and reloading (R):**
+  - Magazines; the shotgun loads shell by shell
+  - Recoil and spread (movement, crouching, aiming with RMB)
+  - Suppressors as an add-on
+- **Ballistics:** real projectiles with tracers, headshots, sniper over-penetration and glass that shatters.
+- **Blood and gore** (can be turned off):
+  - Blood mist, splatter on floors and walls, spreading pools, bloody footprints, drag trails
+  - Body parts from explosions and shotgun headshots
+- **Police and wanted level (1–5 stars), realistic:**
+  - No more foot patrols: two patrol cars cruise the city by day, one at night.
+  - Witnesses call it in, and dispatch sends a unit **from far away**. It drives in over the road network, parks, gets out, investigates and leaves again.
+  - Rules of engagement: arrest first. Officers only open fire on armed or shooting suspects, from 3 stars on anyone armed or in a car, and from 4 stars always.
+  - Runners get tackled. More stars bring more units, and from 4 stars on, SWAT.
+  - Patrol cars chase you with sirens. An unseen change of outfit drops your wanted level by 2 stars.
+- **NPC criminals:**
+  - Muggers rob pedestrians and hold up shops.
+  - Victims and witnesses call the police, who go after the mugger, not you.
+  - Unarmed muggers are cuffed and taken away.
+  - Stop one yourself and you're a **Street Hero**. That earns XP and no charges.
 
-### Verletzungen & Rettungsdienst (nach rde_aimd, erweitert)
-- **Trefferzonen:**
-  - **Kopf:** tödlich, ×2,6 bei NPCs
-  - **Oberkörper:** ×1, die Schutzweste schützt nur hier
-  - **Arme:** ×0,6
-  - **Beine:** ×0,7
-- **Blutungen:** Je nach Zone und Schaden blutet die Wunde. Treffer an Bein, Arm oder Oberkörper können eine Arterie treffen, das blutet stark.
-- **Brüche:** Ein gebrochenes Bein lässt dich humpeln, ohne Sprint. Ein gebrochener Arm zittert und streut stärker. Das gilt auch für NPCs.
-- **Behandlung:**
-  - Verband: nur leichte Blutungen
-  - Tourniquet: Arm oder Bein, auch Arterien
-  - Schiene: richtet einen Bruch
-  - Medkit: stoppt alle Blutungen
-  - Klinik: näht und richtet alles
-- **Kritischer Zustand statt Sofort-Tod** (für dich und NPCs):
-  - Wer liegt, verliert Blut (0–100 %, je nach Wunde 0,5–1,6 %/s).
-  - Ein weiterer Schuss oder 100 % Blutverlust bedeuten das Ende.
-  - Saubere Kopfschüsse, Overkill, Takedowns und Gift töten weiterhin sofort.
-- **Notruf 112:**
-  - Zeugen rufen einen Rettungswagen. Der fährt von außerhalb mit Blaulicht über das Straßennetz an.
-  - Zwei Sanitäter steigen aus und behandeln 10 s vor Ort. Danach steht der Patient wieder auf.
-  - Solange Hilfe unterwegs ist, stirbt niemand (rde_aimd).
-- **Du am Boden:**
-  - Overlay mit Blutverlust, Verletzung und Zeit; Herzschlag, der schneller wird.
-  - **E** ruft den Rettungswagen (750 $ + Entfernung). **X** heißt nach 20 s aufgeben, dann geht es in die Klinik.
-  - Ein Crew-Mitglied mit Verbandszeug holt dich zurück.
-  - Mit Fahndung legt dir die Polizei am Boden Handschellen an.
-- **Erste Hilfe:** **E** halten an Verletzten, mit Verband, Tourniquet oder Medkit. Das stabilisiert sie, bringt XP als Lebensretter, und sie stehen später auf.
-- **HUD:** Ein Körperdiagramm zeigt Wunden, Brüche und Arterien. Über Verletzten steht ein rotes Kreuz mit Blutverlust-Ring, und die Minimap zeigt Rettungswagen.
+### Manhunt (based on rde_aipd, plus a real search)
+- **Emergency calls instead of omniscience:**
+  - Witnesses call the police depending on district, time of day and shock: from 20 % at the Harbor to 60 % Downtown, less often at night.
+  - A call takes 5–9 s: react, panic, phone out, dial, talk. A ring above their head shows how long is left.
+  - Walk up to the caller once the phone is out and they hang up, intimidated. The unconscious and the dead don't make calls.
+  - What gets reported is the crime scene, not where you are now.
+- **Police radio:** every sighting goes out to all units with position and heading.
+- **Search after losing sight:**
+  - A search area opens at the predicted location and grows over time.
+  - Two officers search on foot and fan out. They check unsearched ground, corners and hiding spots and tick off areas. All other cars sweep the surrounding streets.
+  - A fresh sighting pulls everyone in at once.
+  - HUD and minimap show "VISUAL CONTACT", "SEARCHING" or "OUT OF SIGHT" and the search area.
+- **Stars only drop when you're unseen:** after 15 s without visual contact, then one star every 20 s (rde_aipd).
+- **Units per level:** 2/3/4/5/6, at most 8.
+- **Tackles** land 15–55 % of the time depending on level. A miss sends the officer stumbling.
+- **Helicopter from 3 stars:**
+  - It follows you or circles the search area.
+  - Its searchlight only finds you out in the open, never under a roof.
+  - Rifles can bring it down.
+- **Car chases:**
+  - PIT maneuvers that kick your rear end out.
+  - Roadblocks ahead of you (from 3 stars), spike strips (from 4).
+  - Without visual contact the pursuit heads for the radioed position, not for you.
+- **Hiding:** in dumpsters, closets and lockers (hold **T**, **E** to get out). Searching officers check hiding spots right next to them.
 
-### Unterwelt: Verbrechen, Knast, Drogen
-- **Notwehr:** Greift dich jemand zuerst an (Gangster, Schläger, Straßenräuber, ein Passant mit Fäusten), darfst du dich wehren, ohne gesucht zu werden. Zeugen melden es nicht, und Cops, die es sehen, gehen auf den Angreifer los. Das gilt nicht, wenn du angefangen hast, wenn du schon gesucht wirst, und nicht gegen Polizei, Wachen oder Leibwächter.
-- **Strafregister:** Jede gemeldete Tat landet auf der Anklage, mit eigener Haftzeit (Raub 4h, Mord 10h, Polizistenmord 20h …).
-  - Entkommst du der Fahndung, verfallen die Anklagepunkte.
-- **Ergeben (X):** Hände hoch, die Polizei legt Handschellen an. Das bringt 30% Strafnachlass. Wer sich danach bewegt, leistet Widerstand.
-- **Knast mit Timer:**
-  - Schnellverfahren mit Urteil, Häftlingskleidung und einer echten Zelle im Polizeirevier.
-  - Drinnen läuft die Zeit 14× schneller.
-  - Raus kommst du mit **Kaution (K)** oder per **Ausbruch:** Zellentür knacken, wenn kein Wärter hinsieht. Danach wirst du mit 3 Sternen als Ausbrecher gesucht.
-  - Bei der Festnahme werden Schusswaffen, Drogen, Hehlerware und Einbruchswerkzeug beschlagnahmt.
-- **Überfälle:** Zielst du mit der Waffe (RMB) auf jemanden, gehen die Hände hoch.
-  - Passanten ausrauben (E) bringt Brieftasche, Handy und Schmuck.
-  - Ladenkasse ausräumen: Ein stiller Alarm ruft nach 9 s die Polizei.
-- **Taschendiebstahl** von hinten (E halten). Geht er schief, schreit das Opfer.
-- **Einbrüche:** Schränke, Regale, Schreibtische, Kühlschränke, Spinde und Kisten durchwühlen (E). Beute verkaufst du beim Hehler am Schwarzmarkt.
-- **Geldautomaten** hacken (Hack-Gerät vom Schwarzmarkt).
-- **Bankkonto:**
-  - Ein- und Auszahlen am Automaten. Honorare und Einnahmen gehen aufs Konto.
-  - Legale Läden nehmen Karte, Schwarzmarkt und Dealer nur Bargeld.
-  - Beim Tod verlierst du nur Bargeld.
-- **Sturmhaube:** Zeugen erkennen dich nicht. Maske ungesehen absetzen löscht die Fahndung. Vermummt wirkst du aber verdächtig, und Polizisten fordern: „Maske runter!“
-- **Grow-System:**
-  - Samen, Töpfe, Dünger und Gießkanne gibt es bei „Grünes Glück Gartenbedarf“.
-  - Pflanzen wachsen in deinen Immobilien in Echtzeit und brauchen Wasser, sonst vertrocknen sie. Dünger verbessert Tempo und Qualität.
-  - Ernten bringt Gras.
-- **Dealer-System:**
-  - Passanten ansprechen (T). Nachts und in Hafen, Park und Altstadt kaufen mehr Leute.
-  - Dein Dealer-Ruf steigert Preise und Mengen.
-  - Manche Leute verpfeifen dich, und Polizisten, die zusehen, schreiten ein.
-  - Großhandel beim Schwarzmarkt: sicher, aber billig.
+### Injuries & EMS (based on rde_aimd, extended)
+- **Hit zones:**
+  - **Head:** lethal, ×2.6 on NPCs
+  - **Torso:** ×1; body armor only protects here
+  - **Arms:** ×0.6
+  - **Legs:** ×0.7
+- **Bleeding:** depending on zone and damage, wounds bleed. Hits to a leg, arm or torso can nick an artery, and that bleeds hard.
+- **Fractures:** a broken leg makes you limp, no sprinting. A broken arm shakes and spreads your shots. NPCs suffer the same.
+- **Treatment:**
+  - Bandage: light bleeding only
+  - Tourniquet: arm or leg, arteries included
+  - Splint: sets a fracture
+  - Medkit: stops all bleeding
+  - Clinic: stitches and sets everything
+- **Critical condition instead of instant death** (for you and NPCs):
+  - Anyone who goes down keeps losing blood (0–100 %, 0.5–1.6 %/s depending on the wound).
+  - One more shot or 100 % blood loss means the end.
+  - Clean headshots, overkill, takedowns and poison still kill instantly.
+- **Emergency call 112:**
+  - Witnesses call an ambulance. It comes in from out of town with lights flashing, over the road network.
+  - Two paramedics get out and treat the patient on the spot for 10 s. Then the patient gets back up.
+  - As long as help is on the way, nobody dies (rde_aimd).
+- **You, down:**
+  - An overlay with blood loss, injury and time; a heartbeat that keeps getting faster.
+  - **E** calls the ambulance ($750 + distance). **X** lets you give up after 20 s, and it's off to the clinic.
+  - A crew member carrying bandages can bring you back.
+  - If you're wanted, the police cuff you where you lie.
+- **First aid:** hold **E** on the wounded, with a bandage, tourniquet or medkit. It stabilizes them, earns Lifesaver XP, and they get back up later.
+- **HUD:** a body diagram shows wounds, fractures and arteries. The wounded have a red cross with a blood-loss ring above them, and the minimap shows ambulances.
 
-### Bank- und Juwelierüberfälle
-- **Krähenburger Sparkasse:**
-  - Schalter mit Kassierer, Wachmann in der Halle, Wachen im Hinterbereich.
-  - Der **Direktor trägt die Tresor-Keycard**: Taschendiebstahl oder Bewusstlosen durchsuchen.
-- **Tresortür öffnen:**
-  - **Keycard:** leise. Das Zeitschloss meldet die Öffnung nach rund 35 s.
-  - **Thermobohrer** (Schwarzmarkt, T halten, ca. 20 s): laut, lockt Wachen an.
-  - **C4:** sprengt die Tür, die ganze Straße hört es.
-- **Beute:**
-  - Schließfächer aufbrechen bringt Bargeld, Goldbarren, Schmuck und Diamanten.
-  - Der Bankschalter lässt sich auch direkt ausräumen.
-  - Bankraub bedeutet 3 Sterne, Alarmglocke und mehrere Einheiten.
-- **Juwelier Goldmann:** Vitrinen einschlagen (T) bringt Schmuck, Uhren und Diamanten. Der Panikknopf löst nach 5 s aus.
-- **Am nächsten Tag** ist der Tresor wieder versiegelt und gefüllt. Heiße Ware verkaufst du beim Hehler.
+### Underworld: Crime, Jail, Drugs
+- **Self-defense:** if someone attacks you first (gangsters, thugs, street muggers, a passerby swinging fists), you can fight back without becoming wanted. Witnesses don't report it, and cops who see it go after the attacker. That doesn't apply if you started it, if you're already wanted, or against police, guards or bodyguards.
+- **Criminal record:** every reported crime is added to the charge sheet, each with its own sentence (robbery 4h, murder 10h, killing a cop 20h …).
+  - Escape the manhunt and the charges are dropped.
+- **Surrender (X):** hands up, the police cuff you. That earns 30% off your sentence. Move afterwards and you're resisting arrest.
+- **Jail with a timer:**
+  - Fast-track trial with a verdict, prison clothes and a real cell in the police station.
+  - Inside, time runs 14× faster.
+  - You get out with **bail (K)** or by **breaking out:** pick the cell door when no guard is looking. After that you're wanted at 3 stars as an escapee.
+  - On arrest, firearms, drugs, stolen goods and burglary tools are confiscated.
+- **Hold-ups:** aim your gun (RMB) at someone and their hands go up.
+  - Robbing pedestrians (E) gets you wallet, phone and jewelry.
+  - Emptying a shop register: a silent alarm calls the police after 9 s.
+- **Pickpocketing** from behind (hold E). Botch it and the victim screams.
+- **Burglary:** rifle through closets, shelves, desks, fridges, lockers and crates (E). Sell the loot to the fence at the black market.
+- **ATMs** can be hacked (hacking device from the black market).
+- **Bank account:**
+  - Deposit and withdraw at ATMs. Fees and income go straight to your account.
+  - Legal shops take cards; the black market and dealers take cash only.
+  - When you die, you only lose your cash.
+- **Balaclava:** witnesses can't identify you. Taking the mask off unseen wipes your wanted level. But masked up you look suspicious, and cops will order: "Mask off!"
+- **Grow system:**
+  - Seeds, pots, fertilizer and a watering can are sold at "Green Luck Garden Supply".
+  - Plants grow in your properties in real time and need water or they wither. Fertilizer improves speed and quality.
+  - Harvesting yields weed.
+- **Dealer system:**
+  - Approach pedestrians (T). At night, and at the Harbor, in the park and in Old Town, more people buy.
+  - Your dealer reputation pushes prices and quantities up.
+  - Some people snitch, and cops who are watching step in.
+  - Wholesale at the black market: safe, but cheap.
 
-### Crew anheuern (nach RDE Bodyguards)
-- **Vermittler „Kralle“** in der Bar „Blauer Engel“ bietet täglich 3 Kandidaten an:
-  - Seltenheit: Gewöhnlich 60%, Ungewöhnlich 25%, Selten 10%, Episch 4%, Legendär 1%.
-  - Persönlichkeit: Stoisch, Loyal, Aggressiv, Fürsorglich, Profi, jeweils mit eigenen Sprüchen.
-  - Fünf Skills: Schießen, Nahkampf, Ausdauer, Taktik, Medizin.
-- **Größe:** Bis zu 8 Leute im Roster, 3 gleichzeitig im Einsatz.
-- **Einsatz:**
-  - Gerufene Leute kommen von außerhalb des Bildes angelaufen.
-  - Sie folgen in Formation (Folgen, Raute, Keil, Kolonne) und steigen mit in dein Auto.
-  - Sie verteidigen dich und verarzten sich selbst.
-- **Befehle (B):**
-  - Folgen, Position halten, Alles angreifen, Mich verarzten, Waffen weg/ziehen, Heimschicken.
-  - Haltung: Friedlich, Defensiv oder Aggressiv. **V** greift das Ziel unterm Fadenkreuz an.
-  - Du kannst ihnen deine aktuelle Waffe geben.
-- **Fortschritt:**
-  - Stufen mit Skill-Zuwachs, Moral (Motiviert bis Gebrochen) als Kampf-Multiplikator.
-  - Bindungsstufen von Angeheuert über Kamerad, Vertrauter und Blutsbruder bis zur Legendären Bindung. Reden (T) stärkt die Bindung.
-- **Kosten und Risiko:**
-  - Tageslohn. Wer nicht bezahlt wird, verliert die Moral und kündigt.
-  - Wer fällt, liegt 24 Std. in der Klinik oder wird gegen Gebühr sofort entlassen.
-  - Tötet deine Crew Unbeteiligte oder Polizisten, landet das auf deinem Strafregister.
+### Bank and Jewelry Heists
+- **Port Raven Savings Bank:**
+  - Counters with tellers, a security guard in the lobby, guards in the back.
+  - The **manager carries the vault keycard**: pickpocket it or search him once he's out cold.
+- **Opening the vault door:**
+  - **Keycard:** quiet. The time lock reports the opening after about 35 s.
+  - **Thermal drill** (black market, hold T, approx. 20 s): loud, draws guards.
+  - **C4:** blows the door; the whole street hears it.
+- **Loot:**
+  - Cracking safe-deposit boxes yields cash, gold bars, jewelry and diamonds.
+  - The bank counter can also be cleaned out directly.
+  - Robbing the bank means 3 stars, alarm bells and multiple units.
+- **Goldmann Jewelers:** smashing display cases (T) gets you jewelry, watches and diamonds. The panic button goes off after 5 s.
+- **The next day** the vault is sealed and restocked. Fence the hot goods.
 
-### Gangs, Reviere & Gangkrieg (nach RDE Crew)
-- **Drei Straßengangs:** Schwarze Krähen (Hafen/Industrie), Vipern (Altstadt) und Goldfalken (Kanalviertel). Ihre Mitglieder tragen Bandanas in Gangfarbe und hängen in ihren Blöcken ab.
-- **Eigene Gang gründen** beim Vermittler ($5.000):
-  - Name und Gangfarbe wählen.
-  - **Tag freihand mit der Maus zeichnen:** 6 Caps von Skinny bis Ultra Fat (Fat Caps mit Sprühnebel-Kante), 9 Farben, Rückgängig mit Z.
-- **Reviere:**
-  - Jeder Stadtblock hat einen Tag-Spot. Mit einer Sprühdose (E halten) claimst du ihn, es gilt **„last spray wins“**.
-  - Dein Tag erscheint auf dem Pflaster, die Karte färbt den Block in deiner Farbe.
-- **Krieg erklären:**
-  - Feindliche Reviere lassen sich nur im Krieg übersprühen.
-  - Die Gang greift dich und deine Crew auf Sicht an und **überfällt deine Blöcke**: Ein Trupp kommt und sprüht zurück, wenn du ihn nicht stoppst.
-  - Frieden kann man kaufen. Verliert eine Gang ihr letztes Revier, ist sie zerschlagen.
-- **Einnahmen:** Jeder eigene Block bringt $150 pro Tag. Dealen im eigenen Revier bringt +25%.
+### Hire a Crew (based on RDE Bodyguards)
+- **The broker "Claw"** at the "Blue Angel" bar offers 3 candidates every day:
+  - Rarity: Common 60%, Uncommon 25%, Rare 10%, Epic 4%, Legendary 1%.
+  - Personality: Stoic, Loyal, Aggressive, Caring, Professional, each with their own lines.
+  - Five skills: Shooting, Melee, Stamina, Tactics, Medicine.
+- **Size:** up to 8 people on the roster, 3 deployed at once.
+- **Deployment:**
+  - Called-in crew members come running in from off-screen.
+  - They follow in formation (Follow, Diamond, Wedge, Column) and get into your car with you.
+  - They defend you and patch themselves up.
+- **Orders (B):**
+  - Follow, Hold Position, Attack Everything, Heal Me, Holster/Draw Weapons, Send Home.
+  - Stance: Peaceful, Defensive or Aggressive. **V** attacks the target under the crosshair.
+  - You can hand them your current weapon.
+- **Progression:**
+  - Levels with skill gains, and morale (Motivated to Broken) as a combat multiplier.
+  - Bond levels from Hired through Comrade, Confidant and Blood Brother up to Legendary Bond. Talking (T) strengthens the bond.
+- **Cost and risk:**
+  - Daily wages. Anyone who goes unpaid loses morale and quits.
+  - Anyone who falls spends 24 hrs in the clinic, or is discharged immediately for a fee.
+  - If your crew kills bystanders or police, it goes on your record.
 
-### Deine Organisation: Rang, Schutzgeld, Ecken, Geschäfte
-- **Rang in der Unterwelt:** Straßenratte → Kleinkrimineller → Soldat → Capo → Unterboss → Pate. Den Ruf bringen Schutzgeld, Verkäufe, Ausbau und Reviere. Höherer Rang gibt mehr Ecken und mehr Respekt.
-- **Schutzgeld:**
-  - Im Laden beim Inhaber **T** halten: „Schutzgeld fordern“.
-  - Ob er nachgibt, hängt ab von gezogener Waffe, deiner Crew, dem eigenen Revier, Rang und davon, ob du den Laden kürzlich zerschossen hast. Fremdes Revier oder ein bewaffneter Inhaber machen es schwerer.
-  - Sagt er nein, ruft er womöglich die Polizei (Schutzgelderpressung), oder die Gang, der der Block gehört, schickt Leute.
-  - Die erste Rate gibt es sofort. Danach wartet das Geld täglich an der Kasse (**T**: kassieren). Im eigenen Revier kassiert deine Gang automatisch.
-  - Lässt du dich 5 Tage nicht blicken, zahlt der Laden nicht mehr. Übernimmt eine Rivalengang den Block, wechselt der Laden die Seite.
-- **Dealer an Ecken:**
-  - Handy › Organisation › Ecken: „Hier eine Ecke eröffnen“ (600 $, Dealer behält 20 %).
-  - Gib ihm Gras, Kristall oder Koks (**E** am Dealer). Er verkauft je nach Viertel, Tageszeit und Revier, auch wenn du weit weg bist oder schläfst. Käufer laufen sichtbar zu ihm.
-  - Es gibt Razzien, besonders in Mitte, seltener im eigenen Revier: Dealer, Ware und Kasse sind dann weg. In fremdem Revier wird er öfter ausgeraubt.
-- **Legale Geschäfte ausbauen:** Renovierung (+25 %), Personal (+20 %), Werbung und Neon (+15 % Tagesumsatz).
-- **Revierkämpfe ohne dich:** Die drei Gangs nehmen sich gegenseitig Blöcke ab, und die größere Gang gewinnt eher. Deine Blöcke greifen sie nur im Krieg an.
-- **Handy › Organisation:** Rang und Ruf, Tageseinnahmen nach Quelle (Geschäfte, Reviere, Schutzgeld, Dealer), alle Läden mit offenen Beträgen, alle Ecken mit Ware und Kasse, Ausbau der Geschäfte.
+### Gangs, Turf & Gang Wars (based on RDE Crew)
+- **Three street gangs:** the Volkov Bratva (Harbor/Industrial), the Canal Street Vipers (Old Town) and the Golden Lotus Triad (Canal District). Their members wear bandanas in gang colors and hang out on their blocks.
+- **Found your own gang** through the broker ($5,000):
+  - Choose a name and a gang color.
+  - **Draw your tag freehand with the mouse:** 6 caps from Skinny to Ultra Fat (fat caps with an overspray edge), 9 colors, undo with Z.
+- **Turf:**
+  - Every city block has a tag spot. Claim it with a spray can (hold E): **last spray wins**.
+  - Your tag appears on the pavement, and the map paints the block in your color.
+- **Declare war:**
+  - Enemy turf can only be sprayed over during a war.
+  - The gang attacks you and your crew on sight and **raids your blocks**: a squad shows up and sprays back unless you stop them.
+  - Peace can be bought. When a gang loses its last block, it's finished.
+- **Income:** every block you own brings in $150 a day. Dealing on your own turf pays +25%.
 
-### Vice-Look, Ocean Beach & Nachtleben
-- **Vice-Grading** (abschaltbar in den Optionen): lila Schatten, Türkis in den Mitten, Pink und Orange in den Lichtern, zur goldenen Stunde am stärksten.
-- **Palmen-Boulevards** in Mitte, Sonnenhang und am Strand, mit pinken und cyanfarbenen Laternen am Ocean Drive.
-- **Ocean Beach:** Sand bis ans Wasser, ein Holzsteg, Liegen, Sonnenschirme, Surfbretter, ein Rettungsturm und tagsüber Badegäste.
-- **Beachclub „Flamingo“ und Beachclub „Sunset“:** Pooldeck, Cocktailbar, DJ-Pult und Neon. Nachts wird getanzt.
-- **Stripclub „Velvet“:** Neonbühne mit zwei Stangen, Tänzerinnen, Türsteher, Champagner-Bar und VIP-Bereich.
-  - Trinkgeld geben (E) oder einen Privattanz buchen (T).
-  - Stammgäste hören Dinge: Nach ein paar Trinkgeldern verrät dir eine Tänzerin, wo dein Auftragsziel ist (Intel gratis).
-- **Taktische Stadtkarte (M):**
-  - Graphit-Dossier-Look mit Vermessungsraster, Viertelnamen in Oswald, Reviere in Gangfarben.
-  - Mausrad zoomt bis 12× auf den Mauszeiger, mit gedrückter Maus verschiebst du die Karte, Klick setzt einen Wegpunkt.
-  - Nah herangezoomt stehen die Namen aller Gebäude und Läden auf der Karte, dazu eine Maßstabsleiste.
-  - Die Legende ist eine eigene Spalte neben der Karte, nach Gruppen sortiert, und lässt sich mit L ausblenden.
-- **14 Immobilien**, davon 7 Geschäfte mit Tageseinnahmen:
-  - Bar ($1.500 pro Tag), Tankstelle ($900), Diner ($700), Werkstatt ($1.200)
-  - Beachclub „Sunset“ ($2.000), Beachclub „Flamingo“ ($2.600), Stripclub „Velvet“ ($3.400)
-  - Neue Wohnungen: Wohnung Kanalviertel und Strandhaus Ocean Drive.
+### Your Organization: Rank, Protection, Corners, Businesses
+- **Underworld rank:** Street Rat → Small-Timer → Soldier → Capo → Underboss → Godfather. Reputation comes from protection money, sales, upgrades and turf. Higher rank means more corners and more respect.
+- **Protection racket:**
+  - Inside a shop, hold **T** at the owner: "Demand protection money".
+  - Whether he caves depends on a drawn weapon, your crew, whether it's your turf, your rank, and whether you've recently shot up the place. Rival turf or an armed owner makes it harder.
+  - If he says no, he may call the police (extortion), or the gang that owns the block sends people.
+  - The first payment is immediate. After that the money waits at the register every day (**T**: collect). On your own turf your gang collects automatically.
+  - Don't show your face for 5 days and the shop stops paying. If a rival gang takes over the block, the shop switches sides.
+- **Corner dealers:**
+  - Phone › Organization › Corners: "Open a corner here" ($600, the dealer keeps 20 %).
+  - Supply him with weed, crystal or coke (**E** on the dealer). He sells depending on district, time of day and turf, even when you're far away or asleep. Buyers visibly walk up to him.
+  - There are raids, especially Downtown, less often on your own turf: dealer, product and cash are gone. On rival turf he gets robbed more often.
+- **Upgrade legal businesses:** renovation (+25 %), staff (+20 %), advertising and neon (+15 % daily revenue).
+- **Turf wars without you:** the three gangs take blocks off each other, and the bigger gang tends to win. They only hit your blocks during a war.
+- **Phone › Organization:** rank and reputation, daily income by source (businesses, turf, protection, dealers), every shop with outstanding amounts, every corner with product and cash, business upgrades.
 
-### Autos: Autohaus, Tanken, Werkstatt, Car Service (nach rde_fuel, rde_mechanic, rde_carservice, rde_carhud)
-- **12 Modelle mit eigener Silhouette:** Brisa Mini, Vela Limousine, Kastenwagen, Hauler-Pickup, Corsa GT, Ranger-SUV, Bulldog V8, Volta E (elektrisch), Furia S und Spectre RS (234 km/h). Im Verkehr fahren alle Modelle mit.
-- **Autohaus Krähenburg** (Mitte):
-  - Showroom mit Verkäufer und Ausstellungswagen auf dem Hof.
-  - Katalog mit Werten (Spitze, Beschleunigung, Handling, Bremsen, Verbrauch) und Werksfarbe.
-  - Gekaufte Autos gehören dir und werden mit Zustand und Tuning gespeichert.
-- **Realistischer Schaden:**
-  - Die Karosserie verbeult genau dort, wo du einschlägst (28-Punkt-Verformung), dazu Kratzer, kaputte Scheinwerfer und Rückleuchten und eine gesprungene Scheibe.
-  - Motor, Karosserie, Tank und alle 4 Reifen haben eigene Werte.
-  - Reifen lassen sich zerschießen und schleifen dann Funken auf der Felge. Ein Tankleck lässt Sprit auslaufen.
-  - Ein sterbender Motor qualmt erst hell, dann dunkel, dann brennt er.
-- **Umfahren:** Laternen (das Licht geht aus), Hydranten (Wasserfontäne), Bänke, Mülleimer, Poller, Automaten und Schilder fallen um. Bäume und Wände halten.
-- **Tanken wie bei rde_fuel:**
-  - Zapfpistole nehmen (E). Der Schlauch spannt sich, wer zu weit läuft, verliert die Pistole.
-  - Am Tank einstecken (E) und das Zapfsäulen-Display mit 7-Segment-Anzeige beobachten.
-  - Bezahlt wird am Ende, bei „NICHT GENUG GELD“ stoppt die Säule.
-  - Benzinkanister, Ersatzreifen und Reparaturset gibt es im Kiosk.
-  - Leerer Tank: Der Motor stottert und geht aus. Der Volta E fährt elektrisch.
-- **Werkstatt „Schraubstock“ wie rde_mechanic:**
-  - In eine Bühne fahren, dann T drücken.
-  - Reparatur mit Preis und Dauer: Ein Mechaniker läuft zur Haube, Funken fliegen, alles wird Stück für Stück wieder heil.
-  - Tuning mit Vorschau, erst „✅ Kaufen“ oder „❌ Abbrechen“ macht es fest. Preise skalieren mit der Fahrzeugklasse.
-    - Leistung: Motor 1–4, Getriebe, Bremsen, Fahrwerk, Panzerung 1–4, Turbo (mit Blow-off-Ventil oder flatternd), Auspuff (Sport oder Straight Pipe, mit sichtbaren Endrohren), Sport-, Drift- oder kugelsichere Reifen, Nitro.
-    - Tunst du ein Auto, das dir noch nicht gehört (zum Beispiel ein geklautes), kommt es in deinen Fuhrpark. Das Tuning wird mit dem Spielstand gespeichert.
-    - Lack: 22 Farben in Klassik, Matt, Metallic, Spezial und Chrom, dazu Streifen und Felgen.
-    - Licht: Xenon und 14 Neon-Unterbodenfarben.
-    - Karosserie: Spoiler, Haube, Tönung, Hupen.
-    - Bordwaffen: MG und Raketen.
-- **Car Service (Handy-App):**
-  - Ein Fahrer liefert dein eingelagertes Auto an deinen Standort ($750), mit ETA, Tracking auf der Minimap, Hupe bei Ankunft und Schlüsselübergabe.
-  - Oder er holt ein geparktes Auto ab und bringt es in die Garage ($500).
-  - Totalschaden? Die Versicherung ersetzt ihn für 15% des Neupreises.
-- **Cockpit (rde_carhud):**
-  - Tacho bis 280 km/h, Drehzahl mit rotem Bereich, Gang (N/R/1–6), Kilometerzähler, Tank und Motortemperatur.
-  - Warnleuchten für Motor, Gurt, Tempomat und Licht, Reifenstatus VL/VR/HL/HR sowie NOS- und Boost-Anzeige.
-  - Banner bei Überhitzung und leerem Tank, Riss-Overlay für die Frontscheibe.
-- **Fahren:**
-  - Motor anlassen. Geklaute Autos musst du erst kurzschließen.
-  - Gurt (B): Ohne Gurt fliegst du ab ca. 75 km/h durch die Frontscheibe.
-  - Motortemperatur: Hitze kostet Leistung, über 140 °C gibt es einen Motorschaden.
-  - Außerdem Tempomat (X), Blinker (Q/E), Abblend- und Fernlicht (L) und Nitro (Shift).
-- **Fäuste wegstecken (H):** Hände unten, kein versehentlicher Schlag. Der erste Klick hebt die Fäuste.
+### Vice Look, Ocean Beach & Nightlife
+- **Vice grading** (can be turned off in the options): purple shadows, teal midtones, pink and orange highlights, strongest at golden hour.
+- **Palm boulevards** Downtown, in Sunhill and along the beach, with pink and cyan streetlights on Ocean Drive.
+- **Ocean Beach:** sand down to the water, a boardwalk, loungers, parasols, surfboards, a lifeguard tower and beachgoers by day.
+- **Beach Club "Flamingo" and Beach Club "Sunset":** pool deck, cocktail bar, DJ booth and neon. At night, people dance.
+- **Strip club "Velvet":** neon stage with two poles, dancers, bouncers, a champagne bar and a VIP area.
+  - Tip (E) or book a private dance (T).
+  - Regulars hear things: after a few tips, a dancer tells you where your contract target is (free intel).
+- **Tactical city map (M):**
+  - Graphite dossier look with a survey grid, district names in Oswald, turf in gang colors.
+  - The mouse wheel zooms up to 12× toward the cursor, drag to pan, click to set a waypoint.
+  - Zoomed in close, the map shows the names of every building and shop, plus a scale bar.
+  - The legend is its own column beside the map, sorted by group, and can be hidden with L.
+- **14 properties**, 7 of them businesses with daily income:
+  - Bar ($1,500 a day), gas station ($900), diner ($700), auto shop ($1,200)
+  - Beach Club "Sunset" ($2,000), Beach Club "Flamingo" ($2,600), strip club "Velvet" ($3,400)
+  - New homes: Canal District apartment and Ocean Drive beach house.
 
-### Inventar & Hotbar
-- **Drag-&-Drop-Inventar (TAB):**
-  - Waffen und Gegenstände liegen als Kacheln im Inventar und lassen sich in die 9 Hotbar-Slots ziehen.
-  - Slots kannst du untereinander tauschen. Zieh einen Slot aus der Leiste oder klick ihn rechts an, dann ist er wieder leer.
-  - Zieh eine Kachel auf „Benutzen“, „Alles wegstecken“ oder „Wegwerfen“. Ein Doppelklick benutzt sie direkt.
-  - Maus über eine Kachel halten und 1–9 drücken belegt den Slot sofort. Das klappt mit Maus und Touch.
+### Cars: Dealership, Fuel, Garage, Car Service (based on rde_fuel, rde_mechanic, rde_carservice, rde_carhud)
+- **12 models, each with its own silhouette:** Brisa Mini, Vela sedan, panel van, Hauler pickup, Corsa GT, Ranger SUV, Bulldog V8, Volta E (electric), Furia S and Spectre RS (234 km/h). Every model also shows up in traffic.
+- **Port Raven Motors** (Downtown):
+  - Showroom with a salesman and display cars on the lot.
+  - Catalog with stats (top speed, acceleration, handling, brakes, consumption) and factory color.
+  - Cars you buy are yours and are saved with their condition and tuning.
+- **Realistic damage:**
+  - The body dents exactly where you hit (28-point deformation), plus scratches, broken headlights and tail lights and a cracked windshield.
+  - Engine, body, tank and all 4 tires each have their own health.
+  - Tires can be shot out and then grind sparks off the rim. A leaking tank spills fuel.
+  - A dying engine smokes light, then dark, then catches fire.
+- **Knock things down:** streetlights (the light goes out), hydrants (water fountain), benches, trash cans, bollards, vending machines and signs topple. Trees and walls hold.
+- **Refueling like rde_fuel:**
+  - Take the nozzle (E). The hose stretches taut; walk too far and you drop the nozzle.
+  - Plug it into the tank (E) and watch the pump's 7-segment display.
+  - You pay at the end; at "NOT ENOUGH MONEY" the pump stops.
+  - Jerry cans, spare tires and repair kits are sold at the kiosk.
+  - Empty tank: the engine sputters and dies. The Volta E runs on electricity.
+- **The "Vise" garage, like rde_mechanic:**
+  - Drive onto a lift, then press T.
+  - Repairs with price and duration: a mechanic walks to the hood, sparks fly, and everything gets fixed piece by piece.
+  - Tuning with a preview; only "✅ Buy" or "❌ Cancel" makes it final. Prices scale with the vehicle class.
+    - Performance: engine 1–4, transmission, brakes, suspension, armor 1–4, turbo (with blow-off valve or flutter), exhaust (sport or straight pipe, with visible tailpipes), sport, drift or bulletproof tires, nitro.
+    - Tune a car that isn't yours yet (a stolen one, for example) and it joins your fleet. The tuning is saved with your game.
+    - Paint: 22 colors in Classic, Matte, Metallic, Special and Chrome, plus stripes and rims.
+    - Lights: xenon and 14 neon underglow colors.
+    - Body: spoilers, hood, window tint, horns.
+    - Vehicle weapons: machine gun and rockets.
+- **Car Service (phone app):**
+  - A driver delivers your stored car to your location ($750), with ETA, minimap tracking, a honk on arrival and a key handover.
+  - Or he picks up a parked car and takes it to the garage ($500).
+  - Totaled? Insurance replaces it for 15% of the list price.
+- **Dashboard (rde_carhud):**
+  - Speedometer up to 280 km/h, tachometer with redline, gear (N/R/1–6), odometer, fuel and engine temperature.
+  - Warning lights for engine, seatbelt, cruise control and lights, tire status FL/FR/RL/RR, plus NOS and boost gauges.
+  - Banners for overheating and an empty tank, and a crack overlay for the windshield.
+- **Driving:**
+  - Start the engine. Stolen cars have to be hotwired first.
+  - Seatbelt (B): without it, you fly through the windshield from about 75 km/h.
+  - Engine temperature: heat costs power, and above 140 °C the engine is damaged.
+  - Plus cruise control (X), turn signals (Q/E), low and high beams (L) and nitro (Shift).
+- **Put your fists away (H):** hands down, no accidental punches. The first click raises your fists.
+
+### Inventory & Hotbar
+- **Drag-and-drop inventory (TAB):**
+  - Weapons and items sit as tiles in the inventory and can be dragged into the 9 hotbar slots.
+  - Slots can be swapped with each other. Drag a slot off the bar or right-click it to clear it.
+  - Drop a tile on "Use", "Holster All" or "Discard". Double-click uses it directly.
+  - Hover over a tile and press 1–9 to assign it to that slot instantly. Works with mouse and touch.
 - **Hotbar (1–9):**
-  - Waffen werden gezogen, ein zweiter Druck steckt sie wieder weg.
-  - Items wie Sturmhaube, Medkit, Essen oder Kanister werden direkt benutzt.
-  - **0** nimmt die Fäuste, **H** steckt alles weg, das Mausrad wechselt zwischen den Waffen der Leiste.
-  - Neue Waffen landen automatisch im nächsten freien Slot. Insgesamt passen jetzt 15 Waffen ins Inventar.
-- **Flüssigere Steuerung:** Auf 120- und 144-Hz-Monitoren gingen Tastendrücke und Klicks verloren, wenn ein Bild keinen Logik-Schritt hatte. Behoben.
+  - Weapons are drawn; a second press holsters them.
+  - Items like the balaclava, medkit, food or jerry can are used directly.
+  - **0** switches to fists, **H** holsters everything, the mouse wheel cycles through the weapons on the bar.
+  - New weapons automatically land in the next free slot. The inventory now holds up to 15 weapons.
+- **Smoother controls:** on 120 and 144 Hz monitors, key presses and clicks used to get lost when a frame had no logic step. Fixed.
 
-### Prop-System (nach rde_props, rde_placeable_items, rde_props_interact)
-- **28 platzierbare Props** in vier Gruppen:
-  - **Straße & Baustelle** (Werkstatt): Leitkegel, Absperrgitter, Warnschild, Baustrahler mit echtem Licht, Klapptisch, Klappstuhl, Pavillon
-  - **Einrichtung** (Handy-App „Einrichtung“, Kurier liefert sofort): Ledersofa, Clubsessel, Couchtisch, Monstera, Stehlampe, OLED-TV, Perserteppich, Boxspringbett (Schlafen & Speichern), Jukebox, Billardtisch, Alarmanlage
-  - **Lager & Tresore:** Holzkiste, Alukoffer, Lagerregal, Tresor, Waffentresor XL, Waffenständer (zeigt die eingelagerten Waffen)
-  - **Stationen** (Schwarzmarkt): Verpackungstisch, Chemielabor, Koks-Station, Waffen-Werkbank
-- **Platzieren:** Item benutzen (Inventar, Hotbar oder Doppelklick).
-  - Ein Ghost folgt der Maus: violett heißt „passt“, rot heißt „passt nicht“, mit Grund (zu weit weg, Platz belegt, Wand, versperrt eine Tür, nur in deiner Immobilie …).
-  - **R** oder Mausrad dreht, **LMB** platziert, **RMB** oder **ESC** bricht ab. Die Leiste unten zeigt Tasten und Status.
-  - Möbel, Tresore und Stationen gehen nur in eigene Immobilien. Baustellenzeug, Kisten und Koffer gehen auch auf die Straße.
-  - Bis zu 60 Props, 30 pro Immobilie. Props blockieren Wege, Kugeln und die KI-Wegfindung.
-- **Wieder abbauen:** **T** gedrückt halten neben dem Prop packt es zurück ins Inventar. Container müssen leer sein, Stationen dürfen nicht laufen.
-- **Container:**
-  - Fächer und Gewichtslimit (Koffer 5 Fächer/20 kg … Waffentresor 20 Fächer/200 kg). Der Waffenständer nimmt nur Waffen.
-  - Zahlenschloss mit änderbarem 4-stelligem Code.
-- **Einbrecher** kommen nachts um 03:00:
-  - Unverschlossene Kisten werden geplündert, auf der Straße noch viel öfter.
-  - Ein einfaches Schloss hält manchmal, ein Tresor meistens. Den Waffentresor XL knackt niemand.
-  - Mit Alarmanlage kommt keiner rein.
-- **Stationen** laufen nach Spielzeit weiter, auch wenn du weg bist oder schläfst. Ein Fortschrittsring schwebt über der Station.
-  - Verpackungstisch: 25 g Gras → vakuumiertes Gras-Paket (Schwarzmarkt zahlt 480 $)
-  - Chemielabor: Chemikalien → 8 Kristall (Straße ca. 55 $/Stück). Es stinkt, Nachbarn rufen die Streife, und es kann explodieren.
-  - Koks-Station: Koka-Paste + Streckmittel → 14 Koks (Straße ca. 110 $)
-  - Waffen-Werkbank: Waffenteile → 9mm, 5.56, 7.62, .308, .50 BMG, Schalldämpfer, Dietriche
-- **Straßenverkauf** nimmt automatisch das Wertvollste: Koks, dann Kristall, dann Gras.
-- **Autos** fahren Kegel, Gitter und Schilder um. Was zerstört wird, ist weg.
-- Alles wird mit dem Spielstand gespeichert, inklusive Inhalt, Codes und laufender Produktion.
+### Prop System (based on rde_props, rde_placeable_items, rde_props_interact)
+- **28 placeable props** in four groups:
+  - **Street & construction** (auto shop): traffic cone, barrier, warning sign, work light with real lighting, folding table, folding chair, gazebo
+  - **Furnishings** ("Furnishings" phone app, a courier delivers instantly): leather sofa, club chair, coffee table, monstera, floor lamp, OLED TV, Persian rug, box-spring bed (sleep & save), jukebox, pool table, alarm system
+  - **Storage & safes:** wooden crate, aluminum case, storage rack, safe, XL gun safe, weapon rack (displays the stored weapons)
+  - **Stations** (black market): packing table, chem lab, coke station, weapons workbench
+- **Placing:** use the item (inventory, hotbar or double-click).
+  - A ghost follows the mouse: purple means "fits", red means "doesn't fit", with a reason (too far away, spot taken, wall, blocks a door, only in your property …).
+  - **R** or the mouse wheel rotates, **LMB** places, **RMB** or **ESC** cancels. The bar at the bottom shows keys and status.
+  - Furniture, safes and stations only go in your own properties. Construction gear, crates and cases can also go on the street.
+  - Up to 60 props, 30 per property. Props block paths, bullets and AI pathfinding.
+- **Packing up:** hold **T** next to a prop to put it back in your inventory. Containers must be empty, stations must not be running.
+- **Containers:**
+  - Slots and weight limits (case 5 slots/20 kg … gun safe 20 slots/200 kg). The weapon rack only takes weapons.
+  - Combination lock with a changeable 4-digit code.
+- **Burglars** come at night at 03:00:
+  - Unlocked crates get looted, far more often out on the street.
+  - A simple lock sometimes holds, a safe usually does. Nobody cracks the XL gun safe.
+  - With an alarm system, nobody gets in.
+- **Stations** keep running on game time, even while you're away or asleep. A progress ring floats above the station.
+  - Packing table: 25 g weed → vacuum-sealed weed brick (black market pays $480)
+  - Chem lab: chemicals → 8 crystal (street price approx. $55 each). It reeks, neighbors call the cops, and it can blow up.
+  - Coke station: coca paste + cutting agent → 14 coke (street price approx. $110)
+  - Weapons workbench: weapon parts → 9mm, 5.56, 7.62, .308, .50 BMG, suppressors, lockpicks
+- **Street sales** automatically take the most valuable product first: coke, then crystal, then weed.
+- **Cars** knock over cones, barriers and signs. Whatever gets destroyed is gone.
+- Everything is saved with your game, including contents, codes and running production.
 
-### Leben, Wirtschaft, RPG
-- **Hunger, Durst, Energie, Ausdauer, Blutungen, Trunkenheit und Schmerzmittel.**
-- **Essen und Trinken** im Diner, in der Bar, im Späti und an Getränkeautomaten.
-- **Schlafen** im eigenen Bett überspringt die Zeit und speichert.
-- **Immobilien kaufen:** Bude, Altbau, Penthouse-Loft, Lagerhalle, die Bar „Blauer Engel“ und eine Villa.
-  - Jede Immobilie hat Bett, Kleiderschrank und eine Waffenkammer.
-  - Geschäfte werfen täglich Geld ab.
+### Life, Economy, RPG
+- **Hunger, thirst, energy, stamina, bleeding, drunkenness and painkillers.**
+- **Eat and drink** at the diner, the bar, the corner store and vending machines.
+- **Sleeping** in your own bed skips time and saves the game.
+- **Buy property:** the flat, an old-town apartment, the penthouse loft, a warehouse, the "Blue Angel" bar and a villa.
+  - Every property has a bed, a wardrobe and an armory.
+  - Businesses pay out daily.
 - **Shops:**
-  - Waffenladen und Schwarzmarkt (Ankauf und Verkauf)
-  - Apotheke, Boutique (Outfits) und Klinik (Behandlung)
-- **Einbrüche:** Schlösser knacken mit Dietrich oder Brecheisen, Tresore ausräumen, Taschen von Bewusstlosen leeren.
-- **Fahrzeuge:**
-  - Autos klauen (F), Fahrer werfen dich raus oder fliehen, Polizeiwagen mit Sirene (R).
-  - Arcade-Physik mit Drift (Leertaste), Crashs, brennenden Wracks und Drive-by mit Pistole oder MP.
-- **XP und 6 Fähigkeiten** mit je 5 Stufen: Schleichen, Schütze, Nahkampf, Kondition, Tarnung, Überleben.
+  - Gun shop and black market (buy and sell)
+  - Pharmacy, boutique (outfits) and clinic (treatment)
+- **Burglary:** pick locks with a lockpick or crowbar, empty safes, go through the pockets of the unconscious.
+- **Vehicles:**
+  - Steal cars (F); drivers throw you out or flee; police cars with sirens (R).
+  - Arcade physics with drifting (Space), crashes, burning wrecks and drive-bys with a pistol or SMG.
+- **XP and 6 skills** with 5 levels each: Stealth, Marksman, Melee, Stamina, Disguise, Survival.
 
-### Grafik und Sound (2026er-Tech, aber nur Canvas und WebAudio)
-- **Gebackene Boden-Chunks** mit prozeduralen Texturen: Asphalt, Pflaster, Parkett, Marmor, Teppich, Gras.
-- **Ambient Occlusion** an Wänden.
-- **Lightmap** mit Multiply-Compositing. Licht von Raumlampen fällt nicht durch Wände.
-- **Wolkenschatten** (nahtlos, sie dunkeln die Lightmap ab) und sichtbare Lichtkegel.
-- **WebGL2-Post-FX:**
-  - Bloom, Chromatic Aberration bei Treffern, Color Grading
-  - Instinkt-Entsättigung (Rot bleibt), Trunkenheits-Wabern, Film-Grain
-- **Dynamische Auflösung** hält die Framerate.
-- **Prozeduraler 3D-Sound:**
-  - **Echte Motor-Aufnahmen:** Boxer-Vierzylinder, Reihensechser, verschiedene V8 (auch Crossplane im Pickup), V12, Diesel und Elektro.
-    - Aufgenommen bei festen Drehzahlen, als nahtlose 2,4-Sekunden-Loops in voller Qualität (44,1 kHz), live nach Drehzahl überblendet.
-    - Dahinter läuft ein echtes Getriebe-Modell: Gangstufen je Motor (5 bis 7 Gänge), frühes Schalten beim Cruisen und spätes bei Vollgas, Kick-down, Schleifkupplung beim Anfahren, Drehzahl-Trägheit beim Gasgeben im Stand und ein stotternder Drehzahlbegrenzer.
-    - Unter Last bellt der Motor mit Bass und Auspuff-Rasp, im Schub klingt er hohl und leise. Beim Hochschalten fällt die Drehzahl, die Zugkraft setzt kurz aus und das Getriebe klackt.
-    - Sportmotoren und Sportauspuffe knallen beim Gaswegnehmen (mit Flammen aus dem Auspuff) und beim Schalten unter Vollgas.
-    - **Turbo:** Der Lader pfeift mit dem Ladedruck hoch, der mit Verzögerung aufgebaut wird. Beim Schalten und Gaswegnehmen zischt das Blow-off-Ventil, oder der Lader flattert („stu-tu-tu“), wenn du die Variante ohne Ventil einbaust.
-    - Dazu echte Metall-Crashes. Quellen siehe `sfx/CREDITS.md` (CC BY 4.0 / CC0).
-  - **Schüsse als physikalisches Modell** statt Synthesizer-Tönen: Friedlander-Druckwelle, Bodenreflexion, Fassaden-Echos, Stadt-Nachhall und übersteuertes Mikrofon. Je Waffe werden drei Varianten nah und eine aus der Ferne vorberechnet.
-  - **Schüsse in Schichten** je Waffe:
-    - Verschlussklick, Überschallknall, gesättigter Mündungsknall, tiefer Wumms und Körper
-    - Bei Repetierern hörst du den Kammerstängel.
-  - Ferne Schüsse kommen mit Schallverzögerung an, dumpfer, mit Echo von den Fassaden; drinnen mit Raumhall.
-  - **Martinshorn:** Zweiton (A–D) mit Doppler-Effekt und Entfernungsfilter statt Dauerjaulen; im eigenen Streifenwagen leise.
-  - Ohne geladene Aufnahmen (z. B. über `file://`) springt eine Motor-Synthese ein.
-  - Das nächste Auto im Verkehr hat eine eigene Motorstimme mit eigenem Getriebe.
-  - Atem anhalten und Keuchen beim Zielen
-  - Schritte je nach Untergrund, Hülsen, Glas, Explosionen mit Ohrenklingeln
-  - Sirenen, Motor, Regen, Wind, Grillen nachts im Park, Möwen am Hafen, Club-Bass
-- **Generative Noir-Musik:** Rhodes, Kontrabass, Besen und eine Nacht-Trompete. Spannung und Kampf werden dynamisch überblendet.
-- **NPC-Stimmen** per Sprachausgabe (abschaltbar).
+### Graphics and Sound (2026-grade tech, but only Canvas and WebAudio)
+- **Baked ground chunks** with procedural textures: asphalt, cobblestone, parquet, marble, carpet, grass.
+- **Ambient occlusion** along walls.
+- **Lightmap** with multiply compositing. Light from room lamps doesn't bleed through walls.
+- **Cloud shadows** (seamless, darkening the lightmap) and visible light cones.
+- **WebGL2 post-FX:**
+  - Bloom, chromatic aberration on hits, color grading
+  - Instinct desaturation (red stays), drunken wobble, film grain
+- **Dynamic resolution** holds the frame rate.
+- **Procedural 3D sound:**
+  - **Real engine recordings:** boxer four, inline six, several V8s (including a crossplane in the pickup), V12, diesel and electric.
+    - Recorded at fixed RPMs as seamless 2.4-second loops at full quality (44.1 kHz) and crossfaded live by RPM.
+    - Underneath runs a real transmission model: gear ratios per engine (5 to 7 gears), early shifts when cruising and late ones at full throttle, kick-down, a slipping clutch when pulling away, RPM inertia when revving in place and a stuttering rev limiter.
+    - Under load the engine barks with bass and exhaust rasp; on overrun it sounds hollow and quiet. On upshifts the revs drop, drive cuts out for a moment and the gearbox clunks.
+    - Sport engines and sport exhausts crackle when you lift off (with flames from the exhaust) and on full-throttle shifts.
+    - **Turbo:** the charger whistles up with boost pressure, which builds with a delay. On shifts and lift-off the blow-off valve hisses, or the turbo flutters ("stu-tu-tu") if you fit the version without a valve.
+    - Plus real metal crash recordings. Sources in `sfx/CREDITS.md` (CC BY 4.0 / CC0).
+  - **Gunshots as a physical model** instead of synth tones: Friedlander blast wave, ground reflection, facade echoes, city reverb and an overdriven microphone. Each weapon gets three close variants and one distant variant pre-rendered.
+  - **Layered gunshots** per weapon:
+    - Action click, supersonic crack, saturated muzzle blast, deep thump and body
+    - On bolt-action rifles you hear the bolt being worked.
+  - Distant shots arrive with the delay of sound, duller, echoing off the facades; indoors with room reverb.
+  - **Sirens:** two-tone (A–D) with Doppler effect and distance filtering instead of an endless wail; quiet inside your own patrol car.
+  - Without loaded recordings (e.g. over `file://`), an engine synth takes over.
+  - The nearest car in traffic gets its own engine voice with its own transmission.
+  - Holding your breath and gasping while aiming
+  - Footsteps by surface, shell casings, glass, explosions with ear ringing
+  - Sirens, engines, rain, wind, crickets in the park at night, gulls at the harbor, club bass
+- **Generative noir music:** Rhodes, upright bass, brushes and a late-night trumpet. Tension and combat are crossfaded dynamically.
+- **NPC voices** via speech synthesis (can be turned off).
 
 ---
 
-## Steuerung
+## Controls
 
-| Taste | Aktion | Taste | Aktion |
+| Key | Action | Key | Action |
 |---|---|---|---|
-| **W A S D** | Bewegen | **Maus** | Zielen |
-| **Shift** | Sprinten | **LMB** | Angriff / Schießen / Werfen |
-| **C** | Ducken | **RMB** | Präzise zielen / Zielfernrohr |
-| **E tippen** | Aufheben · Durchsuchen · Benutzen (das, was du anschaust) | **E halten** | Leiche / Bewusstlosen ziehen |
-| **R** | Nachladen | **T halten an Haustür** | Lauschen |
-| **F** | Takedown / Auto | **T** | Verkleidung nehmen |
-| **Q** (halten) | Instinkt | **G** | C4 zünden |
-| **1–9 / Mausrad** | Waffe wählen | **H** | Holstern |
-| **TAB** | Inventar | **P** | Handy |
-| **M** | Karte: Mausrad/+− Zoom, Ziehen/Pfeile verschieben, Leertaste auf dich, 0 ganze Stadt, L Legende | **L** | Taschenlampe |
-| **Z** | Zoomstufe | **ESC** | Pause |
-| **Leertaste** | Handbremse | **F11** | Vollbild |
-| **X** | Ergeben | **K** | Kaution zahlen |
-| **RMB auf Person** | Überfall | **T bei Passanten** | Gras anbieten |
-| **B** | Crew-Menü & Gang | **V** | Crew: Ziel angreifen |
-| **E/T an Tresortür** | Keycard / Bohrer | **T an Vitrine** | Einschlagen |
-| **E am Tag-Spot** | Revier sprühen | **Z (Tag-Editor)** | Rückgängig |
-| **1–9 / 0 / H** | Hotbar · Fäuste · alles wegstecken | **E an Zapfsäule** | Zapfpistole / Tanken |
-| **Im Auto B / N** | Gurt · Motor | **Im Auto X / L** | Tempomat · Licht |
-| **Im Auto Q / E** | Blinker | **Im Auto Shift / T** | Nitro · Werkstatt |
-| **Im Auto LMB / RMB** | Drive-by bzw. MG · Raketen | **Im Auto F** | Aussteigen |
-| **RMB mit Zielfernrohr** | Scope | **Shift im Scope** | Atem anhalten |
-| **Prop platzieren: R / Mausrad** | Drehen | **LMB / RMB / ESC** | Platzieren · Abbrechen |
-| **E am Prop** | Öffnen · Station · Schlafen | **T halten am Prop** | Abbauen |
+| **W A S D** | Move | **Mouse** | Aim |
+| **Shift** | Sprint | **LMB** | Attack / Shoot / Throw |
+| **C** | Crouch | **RMB** | Precision aim / Scope |
+| **Tap E** | Pick up · Search · Use (whatever you're looking at) | **Hold E** | Drag body / unconscious |
+| **R** | Reload | **Hold T at front door** | Listen |
+| **F** | Takedown / Car | **T** | Take disguise |
+| **Q** (hold) | Instinct | **G** | Detonate C4 |
+| **1–9 / Mouse wheel** | Select weapon | **H** | Holster |
+| **TAB** | Inventory | **P** | Phone |
+| **M** | Map: mouse wheel/+− zoom, drag/arrows pan, Space centers on you, 0 whole city, L legend | **L** | Flashlight |
+| **Z** | Zoom level | **ESC** | Pause |
+| **Space** | Handbrake | **F11** | Fullscreen |
+| **X** | Surrender | **K** | Pay bail |
+| **RMB on a person** | Hold-up | **T at pedestrians** | Offer weed |
+| **B** | Crew menu & gang | **V** | Crew: attack target |
+| **E/T at vault door** | Keycard / Drill | **T at display case** | Smash |
+| **E at tag spot** | Spray turf | **Z (tag editor)** | Undo |
+| **1–9 / 0 / H** | Hotbar · Fists · Holster all | **E at fuel pump** | Nozzle / Refuel |
+| **In car B / N** | Seatbelt · Engine | **In car X / L** | Cruise control · Lights |
+| **In car Q / E** | Turn signals | **In car Shift / T** | Nitro · Garage |
+| **In car LMB / RMB** | Drive-by or MG · Rockets | **In car F** | Get out |
+| **RMB with scoped rifle** | Scope | **Shift while scoped** | Hold breath |
+| **Placing a prop: R / Mouse wheel** | Rotate | **LMB / RMB / ESC** | Place · Cancel |
+| **E at prop** | Open · Station · Sleep | **Hold T at prop** | Pack up |
 
 ---
 
-## Architektur
+## Architecture
 
 ```
 games/kontrakt/
-├── index.html            HUD-, Handy-, Panel- und Menü-Markup
-├── css/style.css         Noir-HUD, Handy, Panels
-├── js/core/              util (RNG, Noise, Namen), data (Waffen, Items, Outfits, Shops, Gebäude, Skills)
-├── js/world/             citygen (Viertel, Gebäude, Räume, Möbel, Licht, Zonen), nav (A*, Sichtlinie, Raycasts)
-├── js/game/              world (Physik, Türen, Zeit, Wetter, Licht, Lärm) + Mixins:
+├── index.html            HUD, phone, panel and menu markup
+├── css/style.css         noir HUD, phone, panels
+├── js/core/              util (RNG, noise, names), data (weapons, items, outfits, shops, buildings, skills)
+├── js/world/             citygen (districts, buildings, rooms, furniture, lights, zones), nav (A*, line of sight, raycasts)
+├── js/game/              world (physics, doors, time, weather, light, noise) + mixins:
 │                         economy, combat, crime, ai, contracts, vehicles, player, underworld,
-│                         police (Einheiten, Einsatzregeln), criminals, heists, crew, gangs,
-│                         autos (Modelle, Schaden, Sprit, Cockpit), carservice (Autohaus, Tanken, Werkstatt, App)
-│                         nightlife, hotbar, props (Platzieren, Container, Schlösser, Stationen, Einbrecher),
-│                         manhunt, medical, org, residents (Haushalte, Tagesablauf, Schlaf),
-│                         services (Bestatter, Stadtreinigung, Stadtwerke, Abschleppdienst, Müllabfuhr)
-├── js/render/            textures, sprites (Menschen, Autos, Möbel), fx (Partikel, Decals),
-│                         renderer (Chunks, Dächer, Schatten, Sichtfeld, Lightmap, Wetter, Overlay), post (WebGL2)
-├── js/audio/audio.js     prozedurale SFX, Ambience und generative Musik
-├── js/ui/                ui (HUD, Minimap), menus (Handy, Inventar, Shops, Karte, Titel), input
-├── js/main.js            Spielschleife, Speichern, Einstellungen, Titel-Drohnenflug, Stimmen
-└── tools/                sim.mjs (Headless-Spieltest), scenarios.mjs (KI-Verhalten), crime.mjs (Knast, Raub, Grow, Bank), gen.mjs (Stadt-Dump)
+│                         police (units, rules of engagement), criminals, heists, crew, gangs,
+│                         autos (models, damage, fuel, dashboard), carservice (dealership, fuel, garage, app)
+│                         nightlife, hotbar, props (placing, containers, locks, stations, burglars),
+│                         manhunt, medical, org, residents (households, daily routines, sleep),
+│                         services (undertaker, street cleaning, utilities, towing, garbage collection)
+├── js/render/            textures, sprites (people, cars, furniture), fx (particles, decals),
+│                         renderer (chunks, roofs, shadows, field of view, lightmap, weather, overlay), post (WebGL2)
+├── js/audio/audio.js     procedural SFX, ambience and generative music
+├── js/ui/                ui (HUD, minimap), menus (phone, inventory, shops, map, title), input
+├── js/lang/de.js         German translation (generated from tools/i18n-parts/*.json)
+├── js/main.js            game loop, saving, settings, title drone flight, voices
+└── tools/                sim.mjs (headless playtest), scenarios.mjs (AI behavior), crime.mjs (jail, robbery, grow, bank), gen.mjs (city dump),
+                          i18n.mjs (translation check), i18n-merge.mjs + i18n-parts/ (German texts)
 ```
 
-- **Getrennte Simulation:** `K.World` läuft komplett ohne DOM, auch in Node.
-  - `node tools/sim.mjs` spielt Laufen, Schießen, Auftrag, Takedown, Fahren, 5 Spielstunden und Speichern headless durch.
-  - `node tools/scenarios.mjs` prüft die KI: Hausfriedensbruch, Verkleidung, Münzen-Ablenkung, Leichenfund, Zeugen mit Polizei, Klaviersaite.
-  - `node tools/crime.mjs` prüft Unterwelt, Überfälle, Gangs und Reviere; `node tools/city.mjs` prüft Strand, Clubs, Tänzerinnen und Immobilien; `node tools/cars.mjs` prüft Sprit, Crashs, Verformung, Gurt, Laternen, Reifen, Tuning, Autohaus, Zapfsäule, Werkstatt und Car Service.
-  - `node tools/arms.mjs` prüft Scharfschützengewehre, Scope-Wackeln, Atem anhalten und .50-Durchschlag; `node tools/props.mjs` prüft Platzieren, Container, Schlösser, Stationen, Einbrecher und Speichern der Props; `node tools/hunt.mjs` prüft Notrufe, Funk, Suche, Sternabbau, Verstecke, Hubschrauber, Straßensperren und PIT; `node tools/medical.mjs` prüft Trefferzonen, Blutungen, Brüche, kritischen Zustand, Erste Hilfe und Rettungswagen; `node tools/org.mjs` prüft Rang, Schutzgeld, Dealer, Geschäfte und Gang-Revierkämpfe.
-  - `node tools/life.mjs` prüft Haushalte, Tagesabläufe, Schläfer, Einbruch-Reaktionen, neue Mieter, die E-Tasten-Aufteilung, alle Stadtdienste und den Verkehr (Unfälle, Staus, Spur, Blinker).
-- **Speichern** in `localStorage`. Die Stadt wird aus dem Seed neu erzeugt, deshalb bleibt der Spielstand klein.
+- **Translation:** source texts in the code are English and go through `K.tr('…')`. The German texts live in `js/lang/de.js`, which is generated from `tools/i18n-parts/*.json` by `node tools/i18n-merge.mjs`.
+- **Decoupled simulation:** `K.World` runs entirely without the DOM, in Node too.
+  - `node tools/sim.mjs` plays through walking, shooting, a contract, a takedown, driving, 5 game hours and saving, all headless.
+  - `node tools/scenarios.mjs` tests the AI: trespassing, disguises, coin distraction, body discovery, witnesses calling the police, piano wire.
+  - `node tools/crime.mjs` tests the underworld, hold-ups, gangs and turf; `node tools/city.mjs` tests the beach, clubs, dancers and properties; `node tools/cars.mjs` tests fuel, crashes, deformation, seatbelt, streetlights, tires, tuning, dealership, fuel pump, garage and Car Service.
+  - `node tools/arms.mjs` tests sniper rifles, scope sway, breath holding and .50 penetration; `node tools/props.mjs` tests placing, containers, locks, stations, burglars and prop saving; `node tools/hunt.mjs` tests emergency calls, radio, search, star decay, hiding spots, helicopter, roadblocks and PIT; `node tools/medical.mjs` tests hit zones, bleeding, fractures, critical condition, first aid and ambulances; `node tools/org.mjs` tests rank, protection money, dealers, businesses and gang turf wars.
+  - `node tools/life.mjs` tests households, daily routines, sleepers, burglary reactions, new tenants, the E-key split, all city services and traffic (accidents, jams, lanes, turn signals).
+  - `node tools/i18n.mjs` checks that every translation key has a German entry with matching placeholders, and that no German is left in the English build.
+- **Saves** go to `localStorage`. The city is regenerated from its seed, so save files stay small.
 
 *Red Dragon Elite · pure HTML · CSS · JavaScript*

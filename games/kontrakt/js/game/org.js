@@ -4,16 +4,18 @@
  * gangs fighting each other for blocks. Phone › Organisation shows the whole empire. */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, TILE = K.TILE;
 
   K.ORG = {
-    ranks: [[0, 'Straßenratte'], [60, 'Kleinkrimineller'], [180, 'Soldat'], [450, 'Capo'], [1000, 'Unterboss'], [2200, 'Pate']],
+    ranks: [[0, 'Street Rat'], [60, 'Small-Timer'], [180, 'Soldier'], [450, 'Capo'], [1000, 'Underboss'], [2200, 'Godfather']],
     dealerFee: 600, dealerCut: 0.2,
     noRacket: ['hospital', 'bank', 'black'],
     demand: { down: 1.3, old: 1.2, beach: 1.4, docks: 0.9, res: 0.8, hill: 0.7, ind: 0.6, park: 1 },
-    bizUp: [{ name: 'Renovierung', mult: 0.25 }, { name: 'Mehr Personal', mult: 0.2 }, { name: 'Werbung & Neon', mult: 0.15 }],
+    bizUp: [{ name: 'Renovation', mult: 0.25 }, { name: 'More staff', mult: 0.2 }, { name: 'Ads & neon', mult: 0.15 }],
   };
-  K.CRIMES.extortion = K.CRIMES.extortion || { name: 'Schutzgelderpressung', jail: 120 };
+  K.i18nStrings(K.ORG.ranks); K.i18nData(K.ORG.bizUp);
+  K.CRIMES.extortion = K.CRIMES.extortion || { name: 'Extortion', jail: 120 };
   if (K.CRIME_SEV) K.CRIME_SEV.extortion = 1;
 
   K.mixin({
@@ -24,7 +26,7 @@
       const O = this.org(), r0 = this.orgRank();
       O.rep = Math.max(0, O.rep + n);
       const r1 = this.orgRank();
-      if (r1 > r0) this.emit('banner', { title: K.ORG.ranks[r1][1].toUpperCase(), sub: `Neuer Rang in der Unterwelt${why ? ' — ' + why : ''}. Mehr Ecken, mehr Respekt.`, kind: 'gold' });
+      if (r1 > r0) this.emit('banner', { title: K.ORG.ranks[r1][1].toUpperCase(), sub: tr('New underworld rank{why}. More corners, more respect.', { why: why ? ' — ' + why : '' }), kind: 'gold' });
     },
     maxDealers() { return 1 + this.orgRank(); },
 
@@ -38,12 +40,12 @@
         const k = this.shopKeeper(b);
         if (k && Math.hypot(k.x - p.x, k.y - p.y) < 3.5 * TILE) {
           const R = this.org().racket[b.id];
-          if (!R) { if (b.racketNo !== this.today()) add('T', `Schutzgeld fordern (${U.money(this.racketRate(b))}/Tag)`, () => this.demandProtection(b, k), 1.4); }
-          else if (R.owed > 0) add('T', `Schutzgeld kassieren (+${U.money(R.owed)})`, () => this.collectProtection(b, k));
+          if (!R) { if (b.racketNo !== this.today()) add('T', tr('Demand protection money ({rate}/day)', { rate: U.money(this.racketRate(b)) }), () => this.demandProtection(b, k), 1.4); }
+          else if (R.owed > 0) add('T', tr('Collect protection money (+{cash})', { cash: U.money(R.owed) }), () => this.collectProtection(b, k));
         }
       }
       const d = this.dealerNear();
-      if (d) { add('E', `Dealer ${d.rec.name}: Ware & Kasse (${U.money(d.rec.cash)})`, () => this.emit('ui', { open: 'corner', uid: d.rec.uid })); return true; }
+      if (d) { add('E', tr('Dealer {name}: stock & cash ({cash})', { name: d.rec.name, cash: U.money(d.rec.cash) }), () => this.emit('ui', { open: 'corner', uid: d.rec.uid })); return true; }
       return false;
     },
     /** how likely a shopkeeper gives in */
@@ -64,27 +66,27 @@
       if (Math.random() < this.racketChance(b, k) || this.forceRacket) {
         O.racket[b.id] = { name: b.name, rate, owed: 0, since: this.today(), unpaid: 0 };
         this.P.money += rate;
-        this.bark(k, U.pick(['Schon gut… schon gut. Ich zahle.', 'Nehmen Sie. Und lassen Sie mich in Ruhe.', 'Jede Woche? …Na gut.']), 2.6);
-        this.emit('sfx', { s: 'cash' }); this.notify(`${b.name} zahlt dir jetzt ${U.money(rate)}/Tag. Erste Rate: +${U.money(rate)}`, 'money');
-        this.addRep(8, 'Schutzgeld'); this.addXP(20, 'Schutzgeld');
+        this.bark(k, U.pick([tr('Alright… alright. I’ll pay.'), tr('Take it. And leave me alone.'), tr('Every week? …Fine.')]), 2.6);
+        this.emit('sfx', { s: 'cash' }); this.notify(tr('{shop} now pays you {rate}/day. First payment: +{rate}', { shop: b.name, rate: U.money(rate) }), 'money');
+        this.addRep(8, tr('Protection money')); this.addXP(20, tr('Protection money'));
         return true;
       }
       b.racketNo = this.today();
-      this.bark(k, U.pick(['Raus aus meinem Laden!', 'Ich zahle niemandem was!', 'Ich ruf die Polizei!']), 2.4);
+      this.bark(k, U.pick([tr('Get out of my store!'), tr('I don’t pay anybody!'), tr('I’m calling the police!')]), 2.4);
       if (Math.random() < 0.6) { k.reportT = 4 + Math.random() * 3; k.reportType = 'extortion'; k.reportX = p.x; k.reportY = p.y; }
       const owner = this.turfOwner ? this.turfOwner(this.turfKeyAt(b.x * TILE, b.y * TILE)) : null;
       if (owner && owner !== 'player' && K.GANGS[owner] && Math.random() < 0.5) {
         // the shop is under someone else's protection
         const pos = this.blockWalkTile ? this.blockWalkTile(this.turfKeyAt(b.x * TILE, b.y * TILE), 6) : null;
-        if (pos) { for (let i = 0; i < 2; i++) { const g = this.spawnGangster(owner, pos[0] + U.rnd(-30, 30), pos[1] + U.rnd(-30, 30)); this.alarm(g, p); } this.notify(`${K.GANGS[owner].name}: „Das ist UNSER Laden.“`, 'bad'); }
+        if (pos) { for (let i = 0; i < 2; i++) { const g = this.spawnGangster(owner, pos[0] + U.rnd(-30, 30), pos[1] + U.rnd(-30, 30)); this.alarm(g, p); } this.notify(tr('{gang}: “This is OUR store.”', { gang: K.GANGS[owner].name }), 'bad'); }
       }
       return false;
     },
     collectProtection(b, k) {
       const R = this.org().racket[b.id]; if (!R || R.owed <= 0) return;
       this.P.money += R.owed; this.org().today.racket += R.owed;
-      this.notify(`Schutzgeld ${b.name}: +${U.money(R.owed)}`, 'money'); this.emit('sfx', { s: 'cash' });
-      if (k) this.bark(k, U.pick(['Hier. Alles da.', 'Pünktlich wie immer.', 'Bitte… es läuft gerade schlecht.']), 2);
+      this.notify(tr('Protection money {shop}: +{cash}', { shop: b.name, cash: U.money(R.owed) }), 'money'); this.emit('sfx', { s: 'cash' });
+      if (k) this.bark(k, U.pick([tr('Here. It’s all there.'), tr('On time, as always.'), tr('Please… business is bad right now.')]), 2);
       R.owed = 0; R.unpaid = 0;
       this.addRep(1);
     },
@@ -98,15 +100,15 @@
     /** open a corner where you stand */
     openCorner() {
       const O = this.org(), p = this.player, P = this.P;
-      if (O.dealers.filter((d) => !d.gone).length >= this.maxDealers()) { this.notify(`Mehr Ecken gibt dein Rang nicht her (${this.maxDealers()}).`, 'bad'); return null; }
-      if (this.bldAt(p.x, p.y) >= 0 || p.inCar) { this.notify('Eine Ecke ist draußen auf der Straße.', 'bad'); return null; }
-      if (O.dealers.some((d) => !d.gone && Math.hypot(d.x - p.x, d.y - p.y) < 12 * TILE)) { this.notify('Hier steht schon einer von dir.', 'bad'); return null; }
-      if (!this.pay(K.ORG.dealerFee)) { this.notify(`Ein Dealer will ${U.money(K.ORG.dealerFee)} Startgeld.`, 'bad'); return null; }
+      if (O.dealers.filter((d) => !d.gone).length >= this.maxDealers()) { this.notify(tr('Your rank doesn’t allow more corners ({n}).', { n: this.maxDealers() }), 'bad'); return null; }
+      if (this.bldAt(p.x, p.y) >= 0 || p.inCar) { this.notify(tr('A corner is out on the street.'), 'bad'); return null; }
+      if (O.dealers.some((d) => !d.gone && Math.hypot(d.x - p.x, d.y - p.y) < 12 * TILE)) { this.notify(tr('One of yours already works here.'), 'bad'); return null; }
+      if (!this.pay(K.ORG.dealerFee)) { this.notify(tr('A dealer wants {fee} up front.', { fee: U.money(K.ORG.dealerFee) }), 'bad'); return null; }
       O.seq = (O.seq || 0) + 1;
       const rec = { uid: O.seq, name: U.pick(['Tico', 'Mo', 'Kurze', 'Dima', 'Jojo', 'Sami', 'Lenny', 'Kemal', 'Rico', 'Zoe']), x: p.x + 20, y: p.y, stock: {}, cash: 0, sold: 0, outfit: U.pick(['hoodie', 'civ5', 'leather', 'gang']), key: this.turfKeyAt ? this.turfKeyAt(p.x, p.y) : '', hired: this.today() };
       O.dealers.push(rec);
       this.spawnDealer(rec);
-      this.notify(`${rec.name} übernimmt diese Ecke. Gib ihm Ware [E].`, 'good');
+      this.notify(tr('{name} takes this corner. Give him product [E].', { name: rec.name }), 'good');
       return rec;
     },
     spawnDealer(rec) {
@@ -157,13 +159,13 @@
       const bust = 0.03 * (d === 'down' ? 1.5 : 1) * (own ? 0.5 : 1) * (this.wanted > 0 ? 1.5 : 1) / 60;
       const rob = (rival ? (this.P.wars && this.P.wars[owner] ? 0.05 : 0.015) : 0.004) / 60;
       if (this.dealerUnits(rec) + rec.cash > 0 && Math.random() < bust * min) this.dealerLost(rec, 'bust');
-      else if (rec.cash > 50 && Math.random() < rob * min) { const lost = rec.cash; rec.cash = 0; this.notify(`${rec.name} wurde ${rival ? 'von ' + K.GANGS[owner].name : ''} ausgeraubt: −${U.money(lost)}`, 'bad'); }
+      else if (rec.cash > 50 && Math.random() < rob * min) { const lost = rec.cash; rec.cash = 0; this.notify(rival ? tr('{name} was robbed by the {gang}: −{cash}', { name: rec.name, gang: K.GANGS[owner].name, cash: U.money(lost) }) : tr('{name} was robbed: −{cash}', { name: rec.name, cash: U.money(lost) }), 'bad'); }
     },
     dealerLost(rec, why) {
       rec.gone = true; rec.stock = {}; rec.cash = 0;
       const a = this.byId.get(rec.actor); if (a && a.alive) { if (why === 'bust' && a.state !== 'cuffed') { a.state = 'cuffed'; a.dealer = 0; } }
       this.org().dealers = this.org().dealers.filter((d) => d !== rec);
-      this.notify(why === 'bust' ? `Razzia! ${rec.name} wurde festgenommen — Ware und Kasse sind weg.` : `${rec.name} ist raus.`, 'bad');
+      this.notify(why === 'bust' ? tr('Raid! {name} was arrested — product and cash are gone.', { name: rec.name }) : tr('{name} is out.', { name: rec.name }), 'bad');
       this.addRep(-6);
     },
 
@@ -174,7 +176,7 @@
     bizUpgrade(id) {
       const lv = this.bizLevel(id); if (lv >= K.ORG.bizUp.length) return false;
       const cost = this.bizUpgradeCost(id);
-      if (!this.pay(cost)) { this.notify('Nicht genug Geld.', 'bad'); return false; }
+      if (!this.pay(cost)) { this.notify(tr('Not enough money.'), 'bad'); return false; }
       (this.P.bizUp || (this.P.bizUp = {}))[id] = lv + 1;
       this.emit('sfx', { s: 'purchase' }); this.notify(`${this.propertyDef(id).name}: ${K.ORG.bizUp[lv].name} (+${Math.round(K.ORG.bizUp[lv].mult * 100)}% Umsatz)`, 'good');
       this.addRep(3);
@@ -196,9 +198,9 @@
         if (Math.random() < pa / (pa + pd)) {
           T[q] = att; this.emit('turf', {});
           const s = this.turfSpots[q], near = Math.hypot((s.x + 0.5) * TILE - this.player.x, (s.y + 0.5) * TILE - this.player.y) < 60 * TILE;
-          if (near) this.notify(`${K.GANGS[att].name} haben ${def ? 'den ' + K.GANGS[def].name + ' ' : ''}einen Block abgenommen (${K.DISTRICTS[s.d] || ''}).`, 'bad');
+          if (near) this.notify(def ? tr('The {gang} took a block from the {other} ({district}).', { gang: K.GANGS[att].name, other: K.GANGS[def].name, district: K.DISTRICTS[s.d] || '' }) : tr('The {gang} took a block ({district}).', { gang: K.GANGS[att].name, district: K.DISTRICTS[s.d] || '' }), 'bad');
           // shops under your protection in that block may switch sides
-          for (const bid in this.org().racket) { const b = this.buildings[bid]; if (b && this.turfKeyAt(b.x * TILE, b.y * TILE) === q && Math.random() < 0.5) { delete this.org().racket[bid]; this.notify(`${b.name} zahlt jetzt an ${K.GANGS[att].name}.`, 'bad'); } }
+          for (const bid in this.org().racket) { const b = this.buildings[bid]; if (b && this.turfKeyAt(b.x * TILE, b.y * TILE) === q && Math.random() < 0.5) { delete this.org().racket[bid]; this.notify(tr('{shop} now pays the {gang}.', { shop: b.name, gang: K.GANGS[att].name }), 'bad'); } }
           return { from: def, to: att, key: q };
         }
       }
@@ -237,7 +239,7 @@
           const own = this.ownTurfAt && this.ownTurfAt(b.x * TILE, b.y * TILE);
           if (own && this.P.gang) { const v = Math.round(R.rate * 0.9); this.P.bank = (this.P.bank || 0) + v; O.today.racket += v; continue; }   // your gang collects on your turf
           R.owed += R.rate; R.unpaid++;
-          if (R.unpaid > 5) { delete O.racket[bid]; this.notify(`${b.name} zahlt nicht mehr — du hast dich zu lange nicht blicken lassen.`, 'bad'); this.addRep(-4); }
+          if (R.unpaid > 5) { delete O.racket[bid]; this.notify(tr('{shop} stopped paying — you haven’t shown your face in too long.', { shop: b.name }), 'bad'); this.addRep(-4); }
         }
         if (Math.random() < 0.6) this.gangSkirmish();
       }

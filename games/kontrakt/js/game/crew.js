@@ -4,42 +4,44 @@
  * and if they go down, the clinic keeps them for a day. */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, TILE = K.TILE;
 
   const C = K.CREW = {
     maxOwned: 8, maxActive: 3,
     rarities: [
-      { key: 'common', name: 'Gewöhnlich', w: 60, bonus: 0, price: 0, col: '#9ca3af' },
-      { key: 'uncommon', name: 'Ungewöhnlich', w: 25, bonus: 10, price: 1500, col: '#4ade80' },
-      { key: 'rare', name: 'Selten', w: 10, bonus: 25, price: 4000, col: '#60a5fa' },
-      { key: 'epic', name: 'Episch', w: 4, bonus: 45, price: 9000, col: '#a78bfa' },
-      { key: 'legendary', name: 'Legendär', w: 1, bonus: 70, price: 20000, col: '#fbbf24' },
+      { key: 'common', name: 'Common', w: 60, bonus: 0, price: 0, col: '#9ca3af' },
+      { key: 'uncommon', name: 'Uncommon', w: 25, bonus: 10, price: 1500, col: '#4ade80' },
+      { key: 'rare', name: 'Rare', w: 10, bonus: 25, price: 4000, col: '#60a5fa' },
+      { key: 'epic', name: 'Epic', w: 4, bonus: 45, price: 9000, col: '#a78bfa' },
+      { key: 'legendary', name: 'Legendary', w: 1, bonus: 70, price: 20000, col: '#fbbf24' },
     ],
-    skills: { shoot: 'Schießen', melee: 'Nahkampf', stamina: 'Ausdauer', tactics: 'Taktik', medic: 'Medizin' },
+    skills: { shoot: 'Shooting', melee: 'Melee', stamina: 'Stamina', tactics: 'Tactics', medic: 'Medicine' },
     pers: {
-      stoic: { name: 'Stoisch', idle: ['…', 'Ruhig hier.', 'Alles sauber.'], combat: ['Ziel erfasst.', 'Bin dran.', 'Feuer.'], protect: ['Ich hab dich.', 'Bleib zurück.', 'Deckung!'], level: ['Werde besser.', 'Schärfer.'], bond: ['…Respekt.', 'Bist selbst nicht schlecht.'] },
-      loyal: { name: 'Loyal', idle: ['Ich pass auf dich auf.', 'Ich steh hinter dir, Boss.', 'Bei mir bist du sicher.'], combat: ['Keiner fasst den Boss an!', 'Ich regel das!', 'Bleib hinter mir!'], protect: ['Für dich fang ich jede Kugel.', 'Ich bin da!'], level: ['Werde stärker — für dich, Boss.'], bond: ['Du bedeutest mir was.', 'Durch dick und dünn.'] },
-      aggressive: { name: 'Aggressiv', idle: ['Komm doch.', 'Soll’s einer versuchen.', 'Gib mir nur einen Grund.'], combat: ['LOS GEHT’S!', 'Na komm schon!', 'Ich leg euch alle um!'], protect: ['Bleib bloß weg!', 'Willst du was?!'], level: ['Unaufhaltsam.', 'Mehr. MEHR.'], bond: ['Du bist der Einzige, den ich respektiere.'] },
-      caring: { name: 'Fürsorglich', idle: ['Alles okay bei dir?', 'Wie hältst du dich?', 'Ich bin da.'], combat: ['Ich beschütz dich!', 'Hinter mich!', 'Die rühren dich nicht an!'], protect: ['Bist du verletzt?', 'Ich hab dich!'], level: ['Wir werden zusammen stärker.'], bond: ['Für dich würd ich alles tun.', 'Du bist mehr als nur ein Auftraggeber.'] },
-      pro: { name: 'Profi', idle: ['Alles klar.', 'Sektor gesichert.', 'Keine Bedrohung.'], combat: ['Bekämpfe Ziel.', 'Bedrohung neutralisiert.', 'Bereich sauber.'], protect: ['Bleiben Sie dicht bei mir.', 'Ich sichere die Umgebung.'], level: ['Fähigkeiten verbessert. Einsatzbereit.'], bond: ['Sie haben meine volle Loyalität.'] },
+      stoic: { name: 'Stoic', idle: ['…', 'Quiet here.', 'All clear.'], combat: ['Target acquired.', 'On it.', 'Firing.'], protect: ['I’ve got you.', 'Stay back.', 'Cover!'], level: ['Getting better.', 'Sharper.'], bond: ['…Respect.', 'You’re not bad yourself.'] },
+      loyal: { name: 'Loyal', idle: ['I’ve got your back.', 'I’m right behind you, boss.', 'You’re safe with me.'], combat: ['Nobody touches the boss!', 'I’ll handle it!', 'Stay behind me!'], protect: ['I’d take any bullet for you.', 'I’m here!'], level: ['Getting stronger — for you, boss.'], bond: ['You mean something to me.', 'Through thick and thin.'] },
+      aggressive: { name: 'Aggressive', idle: ['Come on then.', 'Let someone try.', 'Just give me a reason.'], combat: ['LET’S GO!', 'Bring it!', 'I’ll take you all out!'], protect: ['Stay away!', 'You want something?!'], level: ['Unstoppable.', 'More. MORE.'], bond: ['You’re the only one I respect.'] },
+      caring: { name: 'Caring', idle: ['You doing okay?', 'How are you holding up?', 'I’m here.'], combat: ['I’ll protect you!', 'Get behind me!', 'They won’t touch you!'], protect: ['Are you hurt?', 'Got you!'], level: ['We’re getting stronger together.'], bond: ['I’d do anything for you.', 'You’re more than just a client.'] },
+      pro: { name: 'Pro', idle: ['Understood.', 'Sector secure.', 'No threat.'], combat: ['Engaging target.', 'Threat neutralized.', 'Area clear.'], protect: ['Stay close to me.', 'Securing the area.'], level: ['Skills improved. Ready for duty.'], bond: ['You have my full loyalty.'] },
     },
     tiers: [
-      { name: 'Angeheuert', req: 0, col: '#9ca3af' }, { name: 'Kamerad', req: 300, col: '#60a5fa' }, { name: 'Vertrauter', req: 1200, col: '#34d399' },
-      { name: 'Blutsbruder', req: 3500, col: '#fbbf24' }, { name: 'Legendäre Bindung', req: 8000, col: '#a855f7' },
+      { name: 'Hired', req: 0, col: '#9ca3af' }, { name: 'Comrade', req: 300, col: '#60a5fa' }, { name: 'Confidant', req: 1200, col: '#34d399' },
+      { name: 'Blood Brother', req: 3500, col: '#fbbf24' }, { name: 'Legendary Bond', req: 8000, col: '#a855f7' },
     ],
     morale: [
-      { min: 80, name: 'Motiviert', mult: 1.2, col: '#10b981' }, { min: 50, name: 'Stabil', mult: 1, col: '#3b82f6' },
-      { min: 25, name: 'Erschüttert', mult: 0.8, col: '#f59e0b' }, { min: 0, name: 'Gebrochen', mult: 0.55, col: '#ef4444' },
+      { min: 80, name: 'Motivated', mult: 1.2, col: '#10b981' }, { min: 50, name: 'Steady', mult: 1, col: '#3b82f6' },
+      { min: 25, name: 'Shaken', mult: 0.8, col: '#f59e0b' }, { min: 0, name: 'Broken', mult: 0.55, col: '#ef4444' },
     ],
     formations: {
-      follow: { name: 'Folgen', slots: [[180, 1.9], [145, 2.6], [215, 2.6]] },
-      diamond: { name: 'Raute', slots: [[180, 2], [90, 2], [270, 2]] },
-      wedge: { name: 'Keil', slots: [[150, 2.4], [210, 2.4], [180, 3.8]] },
-      stack: { name: 'Kolonne', slots: [[180, 1.7], [180, 3], [180, 4.3]] },
+      follow: { name: 'Follow', slots: [[180, 1.9], [145, 2.6], [215, 2.6]] },
+      diamond: { name: 'Diamond formation', slots: [[180, 2], [90, 2], [270, 2]] },
+      wedge: { name: 'Wedge', slots: [[150, 2.4], [210, 2.4], [180, 3.8]] },
+      stack: { name: 'Column', slots: [[180, 1.7], [180, 3], [180, 4.3]] },
     },
-    stances: { peaceful: 'Friedlich', defensive: 'Defensiv', aggressive: 'Aggressiv' },
+    stances: { peaceful: 'Peaceful', defensive: 'Defensive', aggressive: 'Aggressive' },
     outfits: ['leather', 'bouncer', 'casual', 'hoodie', 'suitgrey', 'gang', 'suit'],
   };
+  K.i18nData(C.rarities); K.i18nData(C.tiers); K.i18nData(C.morale); K.i18nData(C.formations); K.i18nStrings(C.skills); K.i18nStrings(C.stances); K.i18nStrings(C.pers);
   const tierOf = (m) => { let t = 0; C.tiers.forEach((x, i) => { if (m.bond >= x.req) t = i; }); return t; };
   const moraleOf = (m) => C.morale.find((x) => m.morale >= x.min) || C.morale[3];
   const xpNeed = (l) => Math.round(200 * Math.pow(1.15, l - 1));
@@ -73,15 +75,15 @@
     hireCrew(i) {
       const P = this.P, list = this.crewOffers(), c = list[i];
       if (!c || c.hired) return false;
-      if (this.crewRoster().length >= C.maxOwned) { this.notify(`Mehr als ${C.maxOwned} Leute kannst du nicht bezahlen.`, 'bad'); return false; }
-      if (!this.pay(c.price)) { this.notify('Nicht genug Geld.', 'bad'); return false; }
+      if (this.crewRoster().length >= C.maxOwned) { this.notify(tr('You can’t pay more than {n} people.', { n: C.maxOwned }), 'bad'); return false; }
+      if (!this.pay(c.price)) { this.notify(tr('Not enough money.'), 'bad'); return false; }
       P.crewSeq = (P.crewSeq || 0) + 1;
       const m = { ...c, id: P.crewSeq, level: 1, xp: 0, bond: 0, morale: 75, kills: 0, state: 'idle', kits: 2, hp: null, talkT: -999, since: this.today() };
       delete m.hired; delete m.price;
       c.hired = true;
       this.crewRoster().push(m);
       this.emit('sfx', { s: 'accept' });
-      this.emit('banner', { title: m.name.toUpperCase(), sub: `${C.rarities.find((x) => x.key === m.rarity).name} · ${C.pers[m.pers].name} — gehört jetzt zu deiner Crew`, kind: 'gold' });
+      this.emit('banner', { title: m.name.toUpperCase(), sub: tr('{rarity} · {pers} — now part of your crew', { rarity: C.rarities.find((x) => x.key === m.rarity).name, pers: C.pers[m.pers].name }), kind: 'gold' });
       return true;
     },
     crewMaxHp(m) { return Math.round(100 + m.skills.stamina * 0.6 + (m.level - 1) * 3); },
@@ -94,13 +96,13 @@
     },
     callCrew(id) {
       const m = this.crewMember(id); if (!m) return false;
-      if (m.state === 'down') { this.notify(`${m.name} liegt noch in der Klinik.`, 'bad'); return false; }
+      if (m.state === 'down') { this.notify(tr('{name} is still in the hospital.', { name: m.name }), 'bad'); return false; }
       if (m.state === 'active') return true;
-      if (this.crewRoster().filter((x) => x.state === 'active').length >= C.maxActive) { this.notify(`Maximal ${C.maxActive} Leute gleichzeitig unterwegs.`, 'bad'); return false; }
+      if (this.crewRoster().filter((x) => x.state === 'active').length >= C.maxActive) { this.notify(tr('At most {n} people out at the same time.', { n: C.maxActive }), 'bad'); return false; }
       if (this.P.jail) return false;
       m.state = 'active';
       this.spawnCrewActor(m, false);
-      this.notify(`${m.name} ist unterwegs zu dir.`, 'good');
+      this.notify(tr('{name} is on the way to you.', { name: m.name }), 'good');
       this.emit('sfx', { s: 'phone' });
       return true;
     },
@@ -131,20 +133,20 @@
       const m = this.crewMember(id); if (!m || m.state !== 'active') return;
       m.state = 'idle';
       const a = this.crewActor(m);
-      if (a) { m.hp = a.hp; if (a.inCar) { const c = this.cars.find((q) => q.id === a.inCar); if (c) this.ejectFrom(c, a, false); } a.state = 'crewleave'; a.brain.ex = null; a.foe = 0; this.bark(a, U.pick(['Bis später, Boss.', 'Ruf an, wenn du mich brauchst.', 'Feierabend.']), 2); }
+      if (a) { m.hp = a.hp; if (a.inCar) { const c = this.cars.find((q) => q.id === a.inCar); if (c) this.ejectFrom(c, a, false); } a.state = 'crewleave'; a.brain.ex = null; a.foe = 0; this.bark(a, U.pick([tr('Later, boss.'), tr('Call if you need me.'), tr('Clocking out.')]), 2); }
     },
     fireCrew(id) {
       const R = this.crewRoster(), i = R.findIndex((m) => m.id === id); if (i < 0) return;
       const m = R[i];
       if (m.state === 'active') this.sendHome(id);
       R.splice(i, 1);
-      this.notify(`${m.name} ist raus aus der Crew.`);
+      this.notify(tr('{name} is out of the crew.', { name: m.name }));
     },
     crewHospitalFee(m) { return 800 + m.level * 100; },
     crewRevive(id) {
       const m = this.crewMember(id); if (!m || m.state !== 'down') return false;
-      if (!this.pay(this.crewHospitalFee(m))) { this.notify('Nicht genug Geld für die Klinik.', 'bad'); return false; }
-      m.state = 'idle'; m.hp = null; this.notify(`${m.name} ist entlassen und wieder einsatzbereit.`, 'good');
+      if (!this.pay(this.crewHospitalFee(m))) { this.notify(tr('Not enough money for the hospital.'), 'bad'); return false; }
+      m.state = 'idle'; m.hp = null; this.notify(tr('{name} is discharged and ready for duty.', { name: m.name }), 'good');
       return true;
     },
     talkCrew(m) {
@@ -159,7 +161,7 @@
     },
     crewTierUp(m) {
       const t = C.tiers[tierOf(m)];
-      this.emit('banner', { title: t.name.toUpperCase(), sub: `Deine Bindung zu ${m.name} wächst`, kind: 'gold' });
+      this.emit('banner', { title: t.name.toUpperCase(), sub: tr('Your bond with {name} grows', { name: m.name }), kind: 'gold' });
       const a = this.crewActor(m); if (a) this.applyCrewStats(a, m);
     },
     crewGain(m, xp, bond) {
@@ -173,7 +175,7 @@
         m.skills[k1] = Math.min(100, m.skills[k1] + 3); m.skills[k2] = Math.min(100, m.skills[k2] + 2);
         const a = this.crewActor(m);
         if (a) { this.applyCrewStats(a, m); this.bark(a, U.pick(C.pers[m.pers].level), 2.2); }
-        this.notify(`${m.name} erreicht Stufe ${m.level} (+${C.skills[k1]}, +${C.skills[k2]})`, 'good');
+        this.notify(tr('{name} reaches level {lvl} (+{a}, +{b})', { name: m.name, lvl: m.level, a: C.skills[k1], b: C.skills[k2] }), 'good');
       }
     },
 
@@ -183,16 +185,16 @@
       const say = (lines) => { const a = U.pick(crew); if (a) { const m = this.crewMember(a.crewId); this.bark(a, U.pick(m ? C.pers[m.pers][lines] || lines : lines), 1.8); } };
       switch (cmd) {
         case 'follow': P.crewMode = 'follow'; for (const a of crew) if (a.state !== 'hostile') { a.state = 'follow'; a.goal = null; } say('idle'); break;
-        case 'stay': P.crewMode = 'stay'; for (const a of crew) { a.brain.hold = { x: a.x, y: a.y }; if (a.state !== 'hostile') { a.state = 'stay'; a.goal = null; } } this.notify('Crew hält die Position.'); break;
-        case 'formation': { const ks = Object.keys(C.formations); P.crewForm = ks[(ks.indexOf(P.crewForm || 'follow') + 1) % ks.length]; this.notify(`Formation: ${C.formations[P.crewForm].name}`); break; }
-        case 'stance': P.crewStance = arg; this.notify(`Crew-Haltung: ${C.stances[arg]}`); if (arg === 'peaceful') for (const a of crew) if (a.state === 'hostile') this.calmDown(a); break;
+        case 'stay': P.crewMode = 'stay'; for (const a of crew) { a.brain.hold = { x: a.x, y: a.y }; if (a.state !== 'hostile') { a.state = 'stay'; a.goal = null; } } this.notify(tr('Crew is holding position.')); break;
+        case 'formation': { const ks = Object.keys(C.formations); P.crewForm = ks[(ks.indexOf(P.crewForm || 'follow') + 1) % ks.length]; this.notify(tr('Formation: {f}', { f: C.formations[P.crewForm].name })); break; }
+        case 'stance': P.crewStance = arg; this.notify(tr('Crew stance: {s}', { s: C.stances[arg] })); if (arg === 'peaceful') for (const a of crew) if (a.state === 'hostile') this.calmDown(a); break;
         case 'attack': {
           let t = null, bd = 4 * TILE;
           for (const q of this.near(this.aimX, this.aimY, 4 * TILE)) {
             if (!q.alive || q.removed || q.kind === 'crew' || q === p || q.inCar) continue;
             const d = Math.hypot(q.x - this.aimX, q.y - this.aimY); if (d < bd) { bd = d; t = q; }
           }
-          if (!t) { this.notify('Kein Ziel im Visier.', 'bad'); return false; }
+          if (!t) { this.notify(tr('No target in your sights.'), 'bad'); return false; }
           for (const a of crew) { this.alarm(a, t); a.brain.react = 0.2; }
           say('combat'); this.emit('sfx', { s: 'beep' });
           if (!t.crim && t.state !== 'hostile') this.crimeEvent(p, 'assault', t.x, t.y, t);
@@ -203,25 +205,25 @@
           for (const a of crew) this.scan_crew(a, 16 * TILE, true);
           say('combat'); break;
         }
-        case 'holster': P.crewHolster = !P.crewHolster; for (const a of crew) { const m = this.crewMember(a.crewId); a.wi = { id: P.crewHolster ? 'fists' : m.weapon, mag: K.WEAPONS[m.weapon].mag || 0 }; } this.notify(P.crewHolster ? 'Crew: Waffen weg.' : 'Crew: Waffen ziehen.'); break;
+        case 'holster': P.crewHolster = !P.crewHolster; for (const a of crew) { const m = this.crewMember(a.crewId); a.wi = { id: P.crewHolster ? 'fists' : m.weapon, mag: K.WEAPONS[m.weapon].mag || 0 }; } this.notify(P.crewHolster ? tr('Crew: weapons away.') : tr('Crew: weapons out.')); break;
         case 'heal': {
           let best = null;
           for (const a of crew) { const m = this.crewMember(a.crewId); if (Math.hypot(a.x - p.x, a.y - p.y) < 5 * TILE && m.kits > 0 && (!best || m.skills.medic > best.m.skills.medic)) best = { a, m }; }
-          if (!best) { this.notify('Niemand mit Verbandszeug in der Nähe.', 'bad'); return false; }
-          if (p.hp >= p.maxHp) { this.notify('Du bist nicht verletzt.'); return false; }
+          if (!best) { this.notify(tr('Nobody with bandages nearby.'), 'bad'); return false; }
+          if (p.hp >= p.maxHp) { this.notify(tr('You’re not hurt.')); return false; }
           best.m.kits--; p.hp = Math.min(p.maxHp, p.hp + 25 + best.m.skills.medic * 0.4); p.bleed = 0;
-          this.bark(best.a, U.pick(['Halt still.', 'Das wird wieder.', 'Zähne zusammenbeißen.']), 2);
+          this.bark(best.a, U.pick([tr('Hold still.'), tr('You’ll be fine.'), tr('Grit your teeth.')]), 2);
           this.emit('sfx', { s: 'heal' }); this.crewGain(best.m, 25, 30);
           break;
         }
         case 'give': {
           const m = this.crewMember(arg), w = P.weapons[P.slot];
-          if (!m || !w || w.id === 'fists' || !['gun', 'melee'].includes(K.WEAPONS[w.id].type)) { this.notify('Nimm erst die Waffe in die Hand, die du abgeben willst.', 'bad'); return false; }
+          if (!m || !w || w.id === 'fists' || !['gun', 'melee'].includes(K.WEAPONS[w.id].type)) { this.notify(tr('First draw the weapon you want to hand over.'), 'bad'); return false; }
           P.weapons.splice(P.slot, 1); P.slot = 0;
           if (m.weapon !== 'fists' && m.weapon !== 'p9') this.addWeapon(m.weapon, {});
           m.weapon = w.id;
           const a = this.crewActor(m); if (a && !P.crewHolster) a.wi = { id: w.id, mag: K.WEAPONS[w.id].mag || 0, sup: !!w.sup };
-          this.notify(`${m.name} trägt jetzt: ${K.WEAPONS[w.id].name}`, 'good');
+          this.notify(tr('{name} now carries: {weapon}', { name: m.name, weapon: K.WEAPONS[w.id].name }), 'good');
           break;
         }
         case 'dismissAll': for (const m of this.crewRoster()) if (m.state === 'active') this.sendHome(m.id); break;
@@ -318,16 +320,16 @@
       if (P.crewDay !== day) {
         P.crewDay = day;
         const total = R.reduce((s, m) => s + m.wage, 0);
-        if (total > 0 && this.pay(total)) this.notify(`Crew-Löhne bezahlt: −${U.money(total)}`, 'money');
+        if (total > 0 && this.pay(total)) this.notify(tr('Crew wages paid: −{cash}', { cash: U.money(total) }), 'money');
         else if (total > 0) {
           for (const m of R) { m.morale = Math.max(0, m.morale - 25); m.bond = Math.max(0, m.bond - 100); }
-          this.notify('Du konntest deine Crew nicht bezahlen. Die Stimmung kippt.', 'bad');
-          for (const m of R.slice()) if (m.morale <= 0) { this.fireCrew(m.id); this.notify(`${m.name} hat gekündigt.`, 'bad'); }
+          this.notify(tr('You couldn’t pay your crew. Morale is turning.'), 'bad');
+          for (const m of R.slice()) if (m.morale <= 0) { this.fireCrew(m.id); this.notify(tr('{name} quit.', { name: m.name }), 'bad'); }
         }
       }
       const actives = this.crewActors();
       for (const m of R) {
-        if (m.state === 'down' && this.time >= m.downUntil) { m.state = 'idle'; m.hp = null; this.notify(`${m.name} ist aus der Klinik entlassen.`, 'good'); }
+        if (m.state === 'down' && this.time >= m.downUntil) { m.state = 'idle'; m.hp = null; this.notify(tr('{name} has been discharged from the hospital.', { name: m.name }), 'good'); }
         if (m.state === 'idle') m.morale = Math.min(75, m.morale + dt / 60 * 3);
         if (m.state !== 'active') continue;
         let a = actives.find((x) => x.crewId === m.id);
@@ -348,7 +350,7 @@
         // self-heal when out of the fight
         if (a.hp < a.maxHp * 0.45 && a.state !== 'hostile' && m.kits > 0 && this.t > (a.healCd || 0)) {
           a.healCd = this.t + 20; m.kits--; a.hp = Math.min(a.maxHp, a.hp + 35 + m.skills.medic * 0.3); a.bleed = 0;
-          this.bark(a, 'Verbinde mich kurz…', 1.6); this.emit('sfx', { s: 'heal' }); this.crewGain(m, 8, 0);
+          this.bark(a, tr('Patching myself up…'), 1.6); this.emit('sfx', { s: 'heal' }); this.crewGain(m, 8, 0);
         }
         if (P.crewHolster && a.state === 'hostile' && a.wi.id === 'fists' && m.weapon !== 'fists') a.wi = { id: m.weapon, mag: K.WEAPONS[m.weapon].mag || 0 };
       }
@@ -358,7 +360,7 @@
       m.state = 'down'; m.downUntil = this.time + 24 * 60; m.hp = null;
       m.morale = Math.max(0, m.morale - 30); m.bond = Math.max(0, m.bond - 150);
       for (const o of this.crewRoster()) if (o !== m && o.state === 'active') o.morale = Math.max(0, o.morale - 10);
-      this.emit('banner', { title: `${m.name.toUpperCase()} IST DOWN`, sub: `St. Marien Klinik · 24 Std. oder ${U.money(this.crewHospitalFee(m))} für sofort`, kind: 'red' });
+      this.emit('banner', { title: tr('{name} IS DOWN', { name: m.name.toUpperCase() }), sub: tr('{clinic} · 24 h or {fee} to get out now', { clinic: K.SHOPS.hospital.name, fee: U.money(this.crewHospitalFee(m)) }), kind: 'red' });
     },
     crewKill(src, t) {
       const m = this.crewMember(src.crewId); if (!m) return;
@@ -375,8 +377,8 @@
       const a = this.player;
       if (a.inCar || this.drag) return false;
       for (const b of this.near(a.x, a.y, 44)) {
-        if (b.broker && b.alive && b.ko <= 0 && Math.hypot(b.x - a.x, b.y - a.y) < 44) { add('E', `${b.name}: Crew anheuern`, () => { this.bark(b, U.pick(['Ich hab da ein paar Leute für dich.', 'Gute Leute kosten. Die besten noch mehr.']), 2); this.emit('ui', { open: 'recruit' }); }); return true; }
-        if (b.kind === 'crew' && b.alive && b.state !== 'hostile' && Math.hypot(b.x - a.x, b.y - a.y) < 40) { const m = this.crewMember(b.crewId); if (m) add('T', `Mit ${m.name.split(' ')[0]} reden`, () => this.talkCrew(m)); }
+        if (b.broker && b.alive && b.ko <= 0 && Math.hypot(b.x - a.x, b.y - a.y) < 44) { add('E', tr('{name}: hire a crew', { name: b.name }), () => { this.bark(b, U.pick([tr('I’ve got a few people for you.'), tr('Good people cost. The best cost more.')]), 2); this.emit('ui', { open: 'recruit' }); }); return true; }
+        if (b.kind === 'crew' && b.alive && b.state !== 'hostile' && Math.hypot(b.x - a.x, b.y - a.y) < 40) { const m = this.crewMember(b.crewId); if (m) add('T', tr('Talk to {name}', { name: m.name.split(' ')[0] }), () => this.talkCrew(m)); }
       }
       return false;
     },

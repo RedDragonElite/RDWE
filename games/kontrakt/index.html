@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>RDE // KONTRAKT</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101114'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23e0182d' stroke-width='3'/%3E%3Cpath d='M16 3v8M16 21v8M3 16h8M21 16h8' stroke='%23ece9e2' stroke-width='2'/%3E%3C/svg%3E">
-<meta name="description" content="Ein Open-World-Assassinen-RPG in purem HTML, CSS und JavaScript. Red Dragon Elite.">
+<meta name="description" content="An open-world assassin RPG in pure HTML, CSS and JavaScript. Red Dragon Elite.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Share+Tech+Mono&family=Kaushan+Script&display=swap" rel="stylesheet">
@@ -18,51 +18,51 @@
 
 <div id="hud" class="hidden">
   <div id="tl">
-    <div id="clock"><b id="c-time">08:00</b><span id="c-day">Mo · Tag 1</span><span id="c-weather"></span></div>
-    <div id="district">Altstadt</div>
+    <div id="clock"><b id="c-time">08:00</b><span id="c-day">Mon · Day 1</span><span id="c-weather"></span></div>
+    <div id="district">Old Town</div>
     <div id="money">$0</div>
-    <div id="bank">Konto $0</div>
+    <div id="bank">Bank $0</div>
   </div>
   <div id="wanted"><div id="stars"></div><div id="heat"><i></i></div><div id="hunt"></div></div>
   <div id="jailbox" class="hidden"></div>
   <div id="tracker" class="hidden"></div>
   <div id="minimap"><canvas id="mm" width="440" height="440"></canvas><div id="mm-n">N</div></div>
   <div id="vitals">
-    <svg id="bodyfig" viewBox="0 0 40 72" title="Verletzungen"><circle data-z="head" cx="20" cy="8" r="6"/><rect data-z="torso" x="12" y="16" width="16" height="22" rx="3"/><rect data-z="armL" x="4" y="17" width="6" height="20" rx="3"/><rect data-z="armR" x="30" y="17" width="6" height="20" rx="3"/><rect data-z="legL" x="12.5" y="40" width="7" height="28" rx="3"/><rect data-z="legR" x="20.5" y="40" width="7" height="28" rx="3"/></svg>
+    <svg id="bodyfig" viewBox="0 0 40 72" title="Injuries" data-i18n-title><circle data-z="head" cx="20" cy="8" r="6"/><rect data-z="torso" x="12" y="16" width="16" height="22" rx="3"/><rect data-z="armL" x="4" y="17" width="6" height="20" rx="3"/><rect data-z="armR" x="30" y="17" width="6" height="20" rx="3"/><rect data-z="legL" x="12.5" y="40" width="7" height="28" rx="3"/><rect data-z="legR" x="20.5" y="40" width="7" height="28" rx="3"/></svg>
     <div class="bar hp"><i></i><span id="hp-t">100</span></div>
     <div class="bar armor"><i></i></div>
     <div class="bar stam"><i></i></div>
     <div id="needs">
-      <div class="need" id="n-food" title="Hunger"><em>🍔</em><i></i></div>
-      <div class="need" id="n-water" title="Durst"><em>💧</em><i></i></div>
-      <div class="need" id="n-energy" title="Energie"><em>⚡</em><i></i></div>
-      <div class="need status" id="n-bleed" title="Blutung">🔻</div>
-      <div class="need status" id="n-drunk" title="Betrunken">🍺</div>
+      <div class="need" id="n-food" title="Hunger" data-i18n-title><em>🍔</em><i></i></div>
+      <div class="need" id="n-water" title="Thirst" data-i18n-title><em>💧</em><i></i></div>
+      <div class="need" id="n-energy" title="Energy" data-i18n-title><em>⚡</em><i></i></div>
+      <div class="need status" id="n-bleed" title="Bleeding" data-i18n-title>🔻</div>
+      <div class="need status" id="n-drunk" title="Drunk" data-i18n-title>🍺</div>
     </div>
   </div>
   <div id="crewhud"></div>
   <div id="carhud" class="hidden"><canvas id="ch-cv" width="760" height="170"></canvas><div id="ch-warn"></div></div>
   <div id="crack" class="hidden"></div>
   <div id="pumppanel" class="hidden"><div class="pp-head"><b>NORDLICHT</b> <span>GASOLINE</span><em>№ 01</em></div>
-    <div class="pp-screen"><label>BETRAG</label><div class="seg"><s>888.88</s><span id="pp-amt">000.00</span></div><label>TANKFÜLLUNG</label><div class="seg"><s>888.88</s><span id="pp-pct">000.00</span></div>
-      <div class="pp-bar"><i id="pp-fill"></i></div><div class="pp-foot"><span>PREIS/% $1.60</span><span class="leds"><u></u><u></u><u></u></span></div></div>
-    <div class="pp-hose" id="pp-hose">SCHLAUCH AUSGEZOGEN</div><div class="pp-err" id="pp-err">NICHT GENUG GELD</div></div>
+    <div class="pp-screen"><label data-i18n>AMOUNT</label><div class="seg"><s>888.88</s><span id="pp-amt">000.00</span></div><label data-i18n>TANK LEVEL</label><div class="seg"><s>888.88</s><span id="pp-pct">000.00</span></div>
+      <div class="pp-bar"><i id="pp-fill"></i></div><div class="pp-foot"><span data-i18n>PRICE/% $1.60</span><span class="leds"><u></u><u></u><u></u></span></div></div>
+    <div class="pp-hose" id="pp-hose" data-i18n>NOZZLE OUT</div><div class="pp-err" id="pp-err" data-i18n>NOT ENOUGH CASH</div></div>
   <div id="weapon">
     <div id="w-slots"></div>
-    <div id="w-main"><img id="w-icon" alt=""><div><div id="w-name">Fäuste</div><div id="w-ammo"></div></div></div>
+    <div id="w-main"><img id="w-icon" alt=""><div><div id="w-name">Fists</div><div id="w-ammo"></div></div></div>
   </div>
   <div id="stance"></div>
   <div id="prompt"></div>
-  <div id="downed" class="hidden"><b>KRITISCHER ZUSTAND</b><div class="dn-row"><span>Blutverlust</span><em id="dn-loss">0%</em></div><div class="dn-bar"><i id="dn-bar"></i></div><div class="dn-row"><span id="dn-label"></span><em id="dn-time"></em></div><div id="dn-ems"></div></div>
-  <div id="placebar" class="hidden"><div class="pb-top"><i></i><b></b><span></span></div><div class="pb-keys"><kbd>LMB</kbd> Platzieren <kbd>R</kbd>/<kbd>Mausrad</kbd> Drehen <kbd>RMB</kbd>/<kbd>ESC</kbd> Abbrechen</div></div>
+  <div id="downed" class="hidden"><b data-i18n>CRITICAL CONDITION</b><div class="dn-row"><span data-i18n>Blood loss</span><em id="dn-loss">0%</em></div><div class="dn-bar"><i id="dn-bar"></i></div><div class="dn-row"><span id="dn-label"></span><em id="dn-time"></em></div><div id="dn-ems"></div></div>
+  <div id="placebar" class="hidden"><div class="pb-top"><i></i><b></b><span></span></div><div class="pb-keys" data-i18n><kbd>LMB</kbd> Place <kbd>R</kbd>/<kbd>Wheel</kbd> Rotate <kbd>RMB</kbd>/<kbd>ESC</kbd> Cancel</div></div>
   <div id="feed"></div>
   <div id="banner"><b></b><span></span></div>
-  <div id="phone-hint">📱 <b>P</b> Handy · <b>TAB</b> Inventar · <b>M</b> Karte · <b>Q</b> Instinkt · <b>X</b> Ergeben</div>
+  <div id="phone-hint" data-i18n>📱 <b>P</b> Phone · <b>TAB</b> Inventory · <b>M</b> Map · <b>Q</b> Instinct · <b>X</b> Surrender</div>
 </div>
 
 <div id="phone" class="hidden">
   <div class="ph-frame">
-    <div class="ph-top"><span id="ph-time">08:00</span><span>KRÄHENBURG·NET</span><span>▮▮▮ 87%</span></div>
+    <div class="ph-top"><span id="ph-time">08:00</span><span>PORT RAVEN·NET</span><span>▮▮▮ 87%</span></div>
     <div id="ph-body"></div>
     <div class="ph-home"><button id="ph-back">◀</button><button id="ph-homebtn">●</button><button id="ph-close">✕</button></div>
   </div>
@@ -72,11 +72,11 @@
 
 <div id="mapview" class="hidden">
   <div class="mv-box">
-    <header><h2>Krähenburg</h2><span>Mausrad = Zoom · Ziehen = Verschieben · Klick = Wegpunkt · Rechtsklick = löschen · M/ESC = schließen</span></header>
+    <header><h2>Port Raven</h2><span data-i18n>Wheel = zoom · Drag = pan · Click = waypoint · Right-click = clear · M/ESC = close</span></header>
     <div class="mv-main">
       <div class="mv-stage">
         <canvas id="bigmap"></canvas>
-        <div class="mv-ctl"><button data-mv="in" title="Hineinzoomen (+)">+</button><button data-mv="out" title="Herauszoomen (−)">−</button><button data-mv="me" title="Auf mich zentrieren (Leertaste)">◎</button><button data-mv="fit" title="Ganze Stadt (0)">⤢</button><button data-mv="leg" title="Legende ein/aus (L)">☰</button></div>
+        <div class="mv-ctl"><button data-mv="in" title="Zoom in (+)" data-i18n-title>+</button><button data-mv="out" title="Zoom out (−)" data-i18n-title>−</button><button data-mv="me" title="Center on me (Space)" data-i18n-title>◎</button><button data-mv="fit" title="Whole city (0)" data-i18n-title>⤢</button><button data-mv="leg" title="Toggle legend (L)" data-i18n-title>☰</button></div>
         <div class="mv-scale" id="mv-scale"></div>
       </div>
       <aside id="mv-legend"></aside>
@@ -86,27 +86,27 @@
 
 <div id="title">
   <div class="t-inner">
-    <div class="t-brand">RED DRAGON ELITE PRÄSENTIERT</div>
+    <div class="t-brand" data-i18n>RED DRAGON ELITE PRESENTS</div>
     <h1>KONTRAKT</h1>
-    <div class="t-sub">Krähenburg · Ein Leben zwischen Aufträgen</div>
+    <div class="t-sub" data-i18n>Port Raven · A life between contracts</div>
     <div class="t-menu">
-      <button id="t-continue" class="hidden">Fortsetzen</button>
-      <button id="t-new">Neues Spiel</button>
-      <button id="t-controls">Steuerung</button>
-      <button id="t-settings">Einstellungen</button>
+      <button id="t-continue" class="hidden" data-i18n>Continue</button>
+      <button id="t-new" data-i18n>New Game</button>
+      <button id="t-controls" data-i18n>Controls</button>
+      <button id="t-settings" data-i18n>Settings</button>
     </div>
-    <div class="t-foot">pure HTML · CSS · JavaScript — kein Framework, keine Assets. Alles prozedural.</div>
+    <div class="t-foot" data-i18n>pure HTML · CSS · JavaScript — no framework, no assets. Everything procedural.</div>
   </div>
 </div>
 
 <div id="pause" class="hidden">
   <div class="p-box">
     <h2>PAUSE</h2>
-    <button data-p="resume">Weiter</button>
-    <button data-p="save">Spiel speichern</button>
-    <button data-p="settings">Einstellungen</button>
-    <button data-p="controls">Steuerung</button>
-    <button data-p="title">Zum Hauptmenü</button>
+    <button data-p="resume" data-i18n>Resume</button>
+    <button data-p="save" data-i18n>Save Game</button>
+    <button data-p="settings" data-i18n>Settings</button>
+    <button data-p="controls" data-i18n>Controls</button>
+    <button data-p="title" data-i18n>Quit to Main Menu</button>
   </div>
 </div>
 
@@ -115,6 +115,8 @@
 <div id="fade"></div>
 <div id="toast"></div>
 
+<script src="js/core/i18n.js"></script>
+<script src="js/lang/de.js"></script>
 <script src="js/core/util.js"></script>
 <script src="js/core/data.js"></script>
 <script src="js/world/citygen.js"></script>

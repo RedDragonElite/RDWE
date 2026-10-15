@@ -1,15 +1,18 @@
 /* RDE // KONTRAKT — boot, game loop, saves, settings, title backdrop, intro, NPC voices */
 (function (K) {
   'use strict';
-  const U = K.U;
+  const tr = K.tr;   // translate (K.T is the tile table)
+  const U = K.U, T = K.T;
   const $ = (s) => document.querySelector(s);
   const SAVE = 'kontrakt.save.v1', SET = 'kontrakt.settings.v1';
-  const DEF = { post: true, fov: true, gore: true, music: true, voice: true, barks: true, vice: true, weather: true, clouds: true, shake: true, volume: 0.8, musicVol: 0.5, res: 1, difficulty: 1 };
+  const DEF = { lang: 'en', post: true, fov: true, gore: true, music: true, voice: true, barks: true, vice: true, weather: true, clouds: true, shake: true, volume: 0.8, musicVol: 0.5, res: 1, difficulty: 1 };
 
   class Game {
     constructor() {
       let s = {}; try { s = JSON.parse(localStorage.getItem(SET) || '{}'); } catch (e) { /* private mode */ }
       this.settings = { ...DEF, ...s };
+      K.lang = this.settings.lang || 'en';
+      K.localizeData(); K.localizeDOM();
       this.view = $('#view'); this.postCv = $('#post'); this.over = $('#over');
       this.audio = new K.Audio();
       this.ui = new K.UI(this);
@@ -54,18 +57,18 @@
       this.setupWorld();
       this.waypoint = null;
       this.startPlay();
-      setTimeout(() => this.ui.banner('KRÄHENBURG', `${U.weekday(this.world.time)} · Tag 1 · ${U.clock(this.world.time)}`, 'gold', 4), 600);
-      const tips = ['WASD bewegen · Maus zielen · Shift sprinten · C ducken', 'E interagieren · F Takedown / Auto · T Verkleidung nehmen', 'P öffnet dein Handy — dort kommen die Aufträge rein.', 'Q halten: Instinkt — sieh Wachen, Ziele und Verstecke durch Wände.'];
+      setTimeout(() => this.ui.banner(tr('PORT RAVEN'), tr('{weekday} · Day {day} · {time}', { weekday: U.weekday(this.world.time), day: 1, time: U.clock(this.world.time) }), 'gold', 4), 600);
+      const tips = [tr('WASD move · Mouse aim · Shift sprint · C crouch'), tr('E interact · F takedown / car · T take disguise'), tr("P opens your phone — that's where the contracts come in."), tr('Hold Q: Instinct — see guards, targets and hiding spots through walls.')];
       tips.forEach((t, i) => setTimeout(() => this.world && this.ui.feed(t), 4500 + i * 4200));
-      setTimeout(() => this.world && this.ui.feed('Vesna: „Willkommen zurück, Agent. Halt dein Handy bereit.“', 'phone'), 3000);
+      setTimeout(() => this.world && this.ui.feed(tr('Vesna: “Welcome back, Agent. Keep your phone close.”'), 'phone'), 3000);
     }
     continueGame() {
       const s = this.loadSave(); if (!s) return this.newGame();
       try { this.world = new K.World({ seed: s.seed, save: s }); }
-      catch (e) { console.error(e); this.ui.toast('Spielstand defekt — neues Spiel'); return this.newGame(); }
+      catch (e) { console.error(e); this.ui.toast(tr('Save file corrupted — new game')); return this.newGame(); }
       this.setupWorld();
       this.startPlay();
-      this.ui.banner('WILLKOMMEN ZURÜCK', `${U.weekday(this.world.time)} · Tag ${U.day(this.world.time)} · ${U.clock(this.world.time)}`, 'gold', 3);
+      this.ui.banner(tr('WELCOME BACK'), tr('{weekday} · Day {day} · {time}', { weekday: U.weekday(this.world.time), day: U.day(this.world.time), time: U.clock(this.world.time) }), 'gold', 3);
     }
     toTitle() {
       if (!this.world.wanted) this.save(true);
@@ -77,9 +80,9 @@
     save(silent) {
       const w = this.world; if (!w || this.title) return false;
       if (!w.player.alive) return false;
-      if (w.wanted > 0 && !silent) { this.ui.feed('Speichern nicht möglich, solange du gesucht wirst.', 'bad'); return false; }
-      try { localStorage.setItem(SAVE, JSON.stringify(w.serialize())); } catch (e) { this.ui.feed('Speichern fehlgeschlagen.', 'bad'); return false; }
-      if (!silent) this.ui.feed('Spiel gespeichert.', 'good');
+      if (w.wanted > 0 && !silent) { this.ui.feed(tr("Can't save while you're wanted."), 'bad'); return false; }
+      try { localStorage.setItem(SAVE, JSON.stringify(w.serialize())); } catch (e) { this.ui.feed(tr('Save failed.'), 'bad'); return false; }
+      if (!silent) this.ui.feed(tr('Game saved.'), 'good');
       return true;
     }
     doSleep(h, prop) {
@@ -94,6 +97,12 @@
       }, 1300);
     }
     fadeIn() { const f = $('#fade'); f.classList.add('on'); setTimeout(() => f.classList.remove('on'), 350); }
+    /** a new language: save the game (if one is running), then reload so every name is regenerated */
+    switchLanguage() {
+      if (this.world && !this.title && this.world.player.alive) this.save(true);
+      try { localStorage.setItem(SET, JSON.stringify(this.settings)); } catch (e) { /* private mode */ }
+      location.reload();
+    }
     applySettings() {
       const s = this.settings;
       try { localStorage.setItem(SET, JSON.stringify(s)); } catch (e) { /* ignore */ }
@@ -152,7 +161,7 @@
         }
       } catch (err) {
         console.error(err);
-        if (!this.errShown) { this.errShown = true; this.ui.feed('Fehler: ' + err.message, 'bad'); }
+        if (!this.errShown) { this.errShown = true; this.ui.feed(tr('Error: {msg}', { msg: err.message }), 'bad'); }
       }
     }
     titleTick(dt) {
@@ -178,9 +187,9 @@
       this.voiceT = now;
       try {
         const u = new SpeechSynthesisUtterance(e.text.replace(/[„“*]/g, ''));
-        const vs = speechSynthesis.getVoices().filter((v) => v.lang && v.lang.startsWith('de'));
+        const vs = speechSynthesis.getVoices().filter((v) => v.lang && v.lang.startsWith(K.lang));
         if (vs.length) u.voice = vs[(e.id || 0) % vs.length];
-        u.lang = 'de-DE'; u.rate = 1.12; u.pitch = e.female ? 1.35 : e.kind === 'cop' ? 0.85 : 0.75;
+        u.lang = K.langTag(); u.rate = 1.12; u.pitch = e.female ? 1.35 : e.kind === 'cop' ? 0.85 : 0.75;
         u.volume = U.clamp(1 - d / 700, 0.2, 1) * this.settings.volume;
         speechSynthesis.cancel(); speechSynthesis.speak(u);
       } catch (err) { /* TTS unavailable */ }

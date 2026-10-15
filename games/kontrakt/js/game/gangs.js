@@ -4,13 +4,15 @@
  * and a gang at war hunts you on sight and raids your blocks. Turf pays daily and boosts dealing. */
 (function (K) {
   'use strict';
-  const U = K.U, TILE = K.TILE, PITCH = 26;
+  const tr = K.tr;   // translate (K.T is the tile table)
+  const U = K.U, T = K.T, TILE = K.TILE, PITCH = 26;
 
   const G = K.GANGS = {
-    kraehen: { name: 'Schwarze Krähen', short: 'KRÄHEN', col: '#e0283c', outfits: ['gang', 'leather'], home: ['docks', 'ind'], weapons: ['p9', 'knife', 'bat', 'mpk'] },
-    vipern: { name: 'Vipern', short: 'VIPERN', col: '#3ddc84', outfits: ['hoodie', 'civ5'], home: ['old'], weapons: ['knife', 'bat', 'p9'] },
-    falken: { name: 'Goldfalken', short: 'FALKEN', col: '#f2c14e', outfits: ['leather', 'casual'], home: ['res'], weapons: ['p9', 'bat', 'pump'] },
+    kraehen: { name: 'Volkov Bratva', short: 'BRATVA', col: '#e0283c', outfits: ['gang', 'leather'], home: ['docks', 'ind'], weapons: ['p9', 'knife', 'bat', 'mpk'] },
+    vipern: { name: 'Canal Street Vipers', short: 'VIPERS', col: '#3ddc84', outfits: ['hoodie', 'civ5'], home: ['old'], weapons: ['knife', 'bat', 'p9'] },
+    falken: { name: 'Golden Lotus Triad', short: 'LOTUS', col: '#f2c14e', outfits: ['leather', 'casual'], home: ['res'], weapons: ['p9', 'bat', 'pump'] },
   };
+  K.i18nData(G);
   K.GANG_FOUND_FEE = 5000;
   K.TURF_INCOME = 150;
 
@@ -53,7 +55,7 @@
     turfOwner(k) { return this.P.turf ? this.P.turf[k] || null : null; },
     ownTurfAt(x, y) { return this.turfOwner(this.turfKeyAt(x, y)) === 'player'; },
     turfColor(o) { return o === 'player' ? (this.P.gang && this.P.gang.col) || '#a855f7' : o && G[o] ? G[o].col : null; },
-    turfName(o) { return o === 'player' ? (this.P.gang && this.P.gang.name) || 'Deine Crew' : o && G[o] ? G[o].name : 'Niemand'; },
+    turfName(o) { return o === 'player' ? (this.P.gang && this.P.gang.name) || tr('Your crew') : o && G[o] ? G[o].name : tr('Nobody'); },
     playerBlocks() { return Object.values(this.P.turf || {}).filter((o) => o === 'player').length; },
     gangBlocks(g) { return Object.values(this.P.turf || {}).filter((o) => o === g).length; },
     gangHostile(t) { return !!(t.gang && this.P.wars && this.P.wars[t.gang]); },
@@ -62,10 +64,10 @@
     foundGang(name, col, tag) {
       const P = this.P;
       if (P.gang) { P.gang.name = name || P.gang.name; P.gang.col = col || P.gang.col; if (tag) P.gang.tag = tag; this.emit('turf', {}); return true; }
-      if (!this.pay(K.GANG_FOUND_FEE)) { this.notify('Eine Gang zu gründen kostet ' + U.money(K.GANG_FOUND_FEE) + '.', 'bad'); return false; }
-      P.gang = { name: (name || 'Rote Drachen').slice(0, 24), col: col || '#c8102e', tag: tag || null, since: this.today() };
+      if (!this.pay(K.GANG_FOUND_FEE)) { this.notify(tr('Starting a gang costs {fee}.', { fee: U.money(K.GANG_FOUND_FEE) }), 'bad'); return false; }
+      P.gang = { name: (name || 'Red Dragon Elite').slice(0, 24), col: col || '#c8102e', tag: tag || null, since: this.today() };
       this.addItem('spray', 3);
-      this.emit('banner', { title: P.gang.name.toUpperCase(), sub: 'Deine Gang ist gegründet. Sprüh dein Tag auf einen Tag-Spot, um ein Revier zu claimen.', kind: 'gold' });
+      this.emit('banner', { title: P.gang.name.toUpperCase(), sub: tr('Your gang is born. Spray your tag on a tag spot to claim a block.'), kind: 'gold' });
       this.emit('turf', {});
       return true;
     },
@@ -74,7 +76,7 @@
       if (!P.gang || !G[g] || P.wars[g]) return false;
       P.wars[g] = { since: this.time };
       G[g].raidT = 120 + Math.random() * 120;
-      this.emit('banner', { title: 'KRIEG', sub: `${G[g].name} jagen dich ab jetzt — und ihre Reviere sind zum Übersprühen frei.`, kind: 'red' });
+      this.emit('banner', { title: tr('WAR'), sub: tr('The {gang} hunt you on sight from now on — and their turf is open to spray over.', { gang: G[g].name }), kind: 'red' });
       this.emit('sfx', { s: 'stinger' });
       for (const a of this.actors) if (a.gang === g && a.alive && a.seesPlayer) this.alarm(a, this.player);
       return true;
@@ -82,10 +84,10 @@
     peacePrice(g) { return 2000 + this.gangBlocks(g) * 1500; },
     makePeace(g) {
       const P = this.P; if (!P.wars[g]) return false;
-      if (!this.pay(this.peacePrice(g))) { this.notify('Nicht genug Geld für den Frieden.', 'bad'); return false; }
+      if (!this.pay(this.peacePrice(g))) { this.notify(tr('Not enough cash to buy peace.'), 'bad'); return false; }
       delete P.wars[g];
       for (const a of this.actors) if (a.gang === g && a.alive && a.state === 'hostile') this.calmDown(a);
-      this.notify(`Frieden mit ${G[g].name}. Teuer, aber ruhig.`, 'good');
+      this.notify(tr('Peace with the {gang}. Expensive, but quiet.', { gang: G[g].name }), 'good');
       return true;
     },
 
@@ -101,11 +103,11 @@
       if (a.inCar || this.drag) return false;
       const s = this.tagSpotNear(); if (!s) return false;
       const o = this.turfOwner(s.key);
-      if (!P.gang) { add('E', `Tag-Spot · Revier: ${this.turfName(o)} — gründe erst eine Gang (Vermittler „Kralle“)`, null); return true; }
-      if (o === 'player') { add('E', `Dein Revier · +${U.money(K.TURF_INCOME)}/Tag`, null); return true; }
-      if (o && !P.wars[o]) { add('E', `Revier der ${G[o].name} — nur im Krieg übersprühbar`, null); return true; }
-      if (!P.inv.spray) { add('E', 'Tag-Spot — Sprühdose nötig (Späti, Schwarzmarkt)', null); return true; }
-      add('E', o ? `${G[o].name}-Tag übersprühen` : 'Revier markieren (sprühen)', () => this.sprayTurf(s), 4.5, { tick: (dt) => { if (Math.random() < dt * 3) this.emit('sfx', { s: 'spray' }); if (Math.random() < dt * 8) this.emit('spraymist', { x: (s.x + 0.5) * TILE, y: (s.y + 0.5) * TILE, col: P.gang.col }); } });
+      if (!P.gang) { add('E', tr('Tag spot · Turf: {owner} — start a gang first (Fixer “Claw”)', { owner: this.turfName(o) }), null); return true; }
+      if (o === 'player') { add('E', tr('Your turf · +{cash}/day', { cash: U.money(K.TURF_INCOME) }), null); return true; }
+      if (o && !P.wars[o]) { add('E', tr('{gang} turf — can only be sprayed over at war', { gang: G[o].name }), null); return true; }
+      if (!P.inv.spray) { add('E', tr('Tag spot — needs a spray can (corner shop, black market)'), null); return true; }
+      add('E', o ? tr('Spray over the {gang} tag', { gang: G[o].name }) : tr('Claim the turf (spray)'), () => this.sprayTurf(s), 4.5, { tick: (dt) => { if (Math.random() < dt * 3) this.emit('sfx', { s: 'spray' }); if (Math.random() < dt * 8) this.emit('spraymist', { x: (s.x + 0.5) * TILE, y: (s.y + 0.5) * TILE, col: P.gang.col }); } });
       return true;
     },
     sprayTurf(s, by) {
@@ -114,16 +116,17 @@
       else {
         this.takeItem('spray');
         P.turf[s.key] = 'player';
-        this.addXP(20, 'Revier markiert');
+        this.addXP(20, tr('Turf claimed'));
         this.crimeEvent(this.player, 'graffiti', this.player.x, this.player.y, null);
       }
       this.emit('turf', { key: s.key });
       const who = by ? G[by].name : P.gang.name;
-      if (!by) this.emit('banner', { title: 'REVIER ÜBERNOMMEN', sub: `${K.DISTRICTS[s.d] || ''} · Block ${s.key} gehört jetzt ${who}${prev ? ` (vorher ${this.turfName(prev)})` : ''}`, kind: 'gold' });
-      else this.notify(`${who} haben dein Revier ${K.DISTRICTS[s.d] || ''} (${s.key}) übersprüht!`, 'bad');
+      const dn = K.DISTRICTS[s.d] || '';
+      if (!by) this.emit('banner', { title: tr('TURF TAKEN'), sub: prev ? tr('{district} · Block {key} now belongs to {who} (previously {prev})', { district: dn, key: s.key, who, prev: this.turfName(prev) }) : tr('{district} · Block {key} now belongs to {who}', { district: dn, key: s.key, who }), kind: 'gold' });
+      else this.notify(tr('The {who} sprayed over your block in {district} ({key})!', { who, district: dn, key: s.key }), 'bad');
       if (prev && G[prev] && !by && this.gangBlocks(prev) === 0) {
         delete P.wars[prev];
-        this.emit('banner', { title: `${G[prev].short} ZERSCHLAGEN`, sub: 'Kein einziges Revier mehr. Der Krieg ist vorbei.', kind: 'gold' });
+        this.emit('banner', { title: tr('{gang} CRUSHED', { gang: G[prev].short }), sub: tr('Not a single block left. The war is over.'), kind: 'gold' });
       }
     },
 
@@ -149,7 +152,7 @@
     scan_gang(a, range) {
       if (!a.gang || a.state === 'hostile' || a.ko > 0 || !this.P.wars[a.gang]) return;
       const p = this.player, close = p.alive && !p.hidden && !p.inCar && Math.hypot(p.x - a.x, p.y - a.y) < 5 * TILE && K.los(this, a.x, a.y, p.x, p.y);
-      if (a.seesPlayer || close) { this.bark(a, U.pick(['Da ist er! Macht ihn kalt!', `Für die ${G[a.gang].name}!`, 'Du bist tot, Mann!']), 2); this.alarm(a, this.player); return; }
+      if (a.seesPlayer || close) { this.bark(a, U.pick([tr('There he is! Take him out!'), tr('For the {gang}!', { gang: G[a.gang].name }), tr('You’re dead, man!')]), 2); this.alarm(a, this.player); return; }
       for (const c of this.crewActors()) if (Math.hypot(c.x - a.x, c.y - a.y) < range && this.sees(a, c.x, c.y, range, 1.3)) { this.alarm(a, c); return; }
     },
     updateGangs(dt) {
@@ -181,7 +184,7 @@
         const k = mine[0], s = this.turfSpots[k], pos = this.blockWalkTile(k, 10) || this.blockWalkTile(k, 4);
         if (!pos) continue;
         for (let i = 0; i < 3; i++) { const a = this.spawnGangster(g, pos[0] + U.rnd(-30, 30), pos[1] + U.rnd(-30, 30), 'raid'); a.brain.spot = k; a.brain.sprayT = 0; }
-        this.emit('banner', { title: 'ÜBERFALL', sub: `${D.name} greifen dein Revier an — ${K.DISTRICTS[s.d] || ''} (${k})`, kind: 'red' });
+        this.emit('banner', { title: tr('RAID'), sub: tr('The {gang} are hitting your turf — {district} ({key})', { gang: D.name, district: K.DISTRICTS[s.d] || '', key: k }), kind: 'red' });
         this.g_waypoint = { x: (s.x + 0.5) * TILE, y: (s.y + 0.5) * TILE };
         this.emit('waypoint', this.g_waypoint);
       }
@@ -191,7 +194,7 @@
       if (P.turfDay !== day) {
         P.turfDay = day;
         const n = this.playerBlocks();
-        if (n) { const v = n * K.TURF_INCOME; P.bank = (P.bank || 0) + v; this.notify(`Revier-Einnahmen: +${U.money(v)} (${n} Blöcke)`, 'money'); }
+        if (n) { const v = n * K.TURF_INCOME; P.bank = (P.bank || 0) + v; this.notify(tr('Turf income: +{cash} ({n} blocks)', { cash: U.money(v), n }), 'money'); }
       }
     },
     ai_raid(a, dt) {

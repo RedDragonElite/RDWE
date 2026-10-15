@@ -7,6 +7,7 @@
  * wardrobes and lockers — searchers do check them. */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, T = K.T, TILE = K.TILE;
   const P_ = 26, NB = K.CITY.NB, LANE = 32;
   const nodeXY = (i, j) => [(i * P_ + 2) * TILE, (j * P_ + 2) * TILE];
@@ -15,10 +16,11 @@
     units: [0, 2, 3, 4, 5, 6], cap: 8,
     tackle: [0, 0.15, 0.25, 0.35, 0.45, 0.55],
     unseenGrace: 15, starEvery: 20,
-    radio: ['Zentrale, Sichtkontakt verloren!', 'Verdächtiger flüchtig, Suchgebiet wird eingerichtet.', 'Alle Einheiten: Umgebung absuchen!', 'Wir haben ihn verloren. Ausschwärmen!'],
-    spotted: ['Da ist er!', 'Sichtkontakt! Verdächtiger gesichtet!', 'Zielperson gesichtet, ich bleib dran!', 'Hab ihn! Hier drüben!'],
-    hideOut: ['Raus da! Hände wo ich sie sehen kann!', 'Hab ich dich! Raus da!'],
+    radio: ['Dispatch, we lost visual!', 'Suspect fled, setting up a search area.', 'All units: search the area!', 'We lost him. Fan out!'],
+    spotted: ['There he is!', 'Visual! Suspect spotted!', 'Suspect sighted, staying on him!', 'Got him! Over here!'],
+    hideOut: ['Out of there! Hands where I can see them!', 'Gotcha! Come on out!'],
   };
+  K.i18nStrings({ radio: K.HUNT.radio, spotted: K.HUNT.spotted, hideOut: K.HUNT.hideOut });
 
   K.mixin({
     // ============================================================ the radio picture
@@ -41,7 +43,7 @@
           h.lastSpotBark = this.t;
           const c = this.actors.find((a) => a.kind === 'cop' && a.alive && a.seesPlayer);
           if (c) this.bark(c, U.pick(K.HUNT.spotted), 2);
-          this.emit('radio', { text: 'Verdächtiger gesichtet!' });
+          this.emit('radio', { text: tr('Suspect spotted!') });
         }
         h.search = null;
       } else if (!h.search && h.seenT > 2.5) {
@@ -51,7 +53,7 @@
         h.search.bld = b >= 0 ? b : -1;
         const c = this.actors.find((a) => a.kind === 'cop' && a.alive && !a.inCar && Math.hypot(a.x - p.x, a.y - p.y) < 30 * TILE);
         if (c) this.bark(c, U.pick(K.HUNT.radio), 2.4);
-        this.emit('radio', { text: 'Sichtkontakt verloren — Suchgebiet eingerichtet.' });
+        this.emit('radio', { text: tr('Visual lost — search area set up.') });
       }
       if (h.search) h.search.r = Math.min(30, 5 + (this.t - h.search.t0) * 0.45) * TILE;
       this.updateHeli(dt);
@@ -111,7 +113,7 @@
         return;
       }
       if (!a.goal || a.arrived) {
-        if (a.goal && a.arrived) { this.markSearched(a); b.waitT = 1.2 + Math.random() * 1.8; b.look = a.angle; a.goal = null; if (Math.random() < 0.15) this.bark(a, U.pick(K.LINES ? K.LINES.search || ['Sauber.'] : ['Sauber.']), 1.6); return; }
+        if (a.goal && a.arrived) { this.markSearched(a); b.waitT = 1.2 + Math.random() * 1.8; b.look = a.angle; a.goal = null; if (Math.random() < 0.15) this.bark(a, U.pick(K.LINES ? K.LINES.search || [tr('Clear.')] : [tr('Clear.')]), 1.6); return; }
         const sp = this.pickSearchSpot(a);
         if (!sp) { b.waitT = 1; return; }
         this.goTo(a, sp.x, sp.y, { force: true, tol: 20 });
@@ -142,13 +144,13 @@
     },
     hideIn(prop) {
       const p = this.player;
-      if (prop.k === 'dumpster' && prop.bodies && prop.bodies >= 2) { this.notify('Da drin ist kein Platz mehr.', 'bad'); return; }
+      if (prop.k === 'dumpster' && prop.bodies && prop.bodies >= 2) { this.notify(tr('No room left in there.'), 'bad'); return; }
       const seen = this.actors.some((a) => a.alive && a.ko <= 0 && a.seesPlayer && (a.kind === 'cop' || a.kind === 'guard'));
       p.hidden = true; p.hiddenIn = prop.id; p.hideFrom = { x: p.x, y: p.y };
       p.x = (prop.x + prop.w / 2) * TILE; p.y = (prop.y + prop.h / 2) * TILE; p.vx = p.vy = 0;
       this.emit('sfx', { s: prop.k === 'dumpster' ? 'dumpster' : 'cloth' });
-      if (seen) { this.notify('Sie haben gesehen, wo du hin bist!', 'bad'); this.heat.x = p.x; this.heat.y = p.y; this.heat.seenT = 0; }
-      else this.notify('Versteckt. [E] zum Rauskommen.', 'good');
+      if (seen) { this.notify(tr('They saw where you went!'), 'bad'); this.heat.x = p.x; this.heat.y = p.y; this.heat.seenT = 0; }
+      else this.notify(tr('Hidden. [E] to come out.'), 'good');
     },
     unhide(forced) {
       const p = this.player; if (!p.hidden) return;
@@ -163,7 +165,7 @@
       if (!this.heli && this.wanted >= 3 && p.alive && !(this.P.jail && !this.P.jail.escaped)) {
         const side = Math.random() < 0.5 ? -1 : 1;
         this.heli = { x: p.x + side * 50 * TILE, y: p.y - 30 * TILE, a: 0, sx: p.x, sy: p.y, sweep: 0, hp: 600, sees: false, leaving: false };
-        this.emit('radio', { text: 'Polizeihubschrauber „Adler 1“ ist in der Luft.' });
+        this.emit('radio', { text: tr('Police helicopter “Eagle 1” is airborne.') });
       }
       const H = this.heli; if (!H) return;
       if (H.dead) { H.fallT -= dt; if (H.fallT <= 0) { this.explode(H.x, H.y, 140, 200, null); this.heli = null; } return; }
@@ -190,7 +192,7 @@
       const d = K.WEAPONS[w]; if (!d || !['rifle', 'sniper', 'dmr', 'lmg'].includes(d.cls)) return false;
       if (Math.hypot(x - H.x, y - H.y) > 22) return false;
       H.hp -= dmg; this.emit('impact', { x, y, a: 0, mat: 'metal' });
-      if (H.hp <= 0) { H.dead = true; H.fallT = 2.2; this.raiseWanted(5, 'copkill', H.x, H.y); this.emit('banner', { title: 'HUBSCHRAUBER ABGESCHOSSEN', sub: 'Jetzt kommt alles, was sie haben.', kind: 'red' }); }
+      if (H.hp <= 0) { H.dead = true; H.fallT = 2.2; this.raiseWanted(5, 'copkill', H.x, H.y); this.emit('banner', { title: tr('HELICOPTER DOWN'), sub: tr('Now they’re sending everything they’ve got.'), kind: 'red' }); }
       return true;
     },
 
@@ -212,7 +214,7 @@
         [[hl - 13, -c.w / 2], [hl - 13, c.w / 2], [-hl + 12, -c.w / 2], [-hl + 12, c.w / 2]].forEach(([u, v], i) => {
           const wx = c.x + fx * u - fy * v, wy = c.y + fy * u + fx * v;
           const dx = wx - s.x, dy = wy - s.y, along = dx * Math.cos(s.a) + dy * Math.sin(s.a), across = -dx * Math.sin(s.a) + dy * Math.cos(s.a);
-          if (Math.abs(along) < s.len / 2 && Math.abs(across) < 7 && c.tires[i] > 0) { c.tires[i] = 0; this.emit('tireBurst', { x: wx, y: wy }); if (c.driver === 'player') this.notify('Nagelband! Reifen platt.', 'bad'); }
+          if (Math.abs(along) < s.len / 2 && Math.abs(across) < 7 && c.tires[i] > 0) { c.tires[i] = 0; this.emit('tireBurst', { x: wx, y: wy }); if (c.driver === 'player') this.notify(tr('Spike strip! Tires blown.'), 'bad'); }
         });
       }
       // set up a block ahead of a fleeing car
@@ -249,7 +251,7 @@
         if (!rb.cars.length) continue;
         if (this.wanted >= 4) (this.spikes || (this.spikes = [])).push({ x: x - Math.cos(dir) * 3 * TILE, y: y - Math.sin(dir) * 3 * TILE, a: across, len: 5 * TILE, life: 50 });
         (this.roadblocks || (this.roadblocks = [])).push(rb);
-        this.emit('radio', { text: this.wanted >= 4 ? 'Straßensperre mit Nagelband errichtet.' : 'Straßensperre errichtet.' });
+        this.emit('radio', { text: this.wanted >= 4 ? tr('Roadblock with spike strip set up.') : tr('Roadblock set up.') });
         void v;
         return rb;
       }
@@ -275,7 +277,7 @@
           const side = Math.sign((c.x - pc.x) * -Math.sin(pc.a) + (c.y - pc.y) * Math.cos(pc.a)) || 1;
           pc.yawKick = -side * 3.2; pc.yawT = 0.55;
           this.emit('crash', { x: (c.x + pc.x) / 2, y: (c.y + pc.y) / 2, v: 180, player: true });
-          if (pc.driver === 'player') this.notify('PIT-Manöver!', 'bad');
+          if (pc.driver === 'player') this.notify(tr('PIT maneuver!'), 'bad');
         }
         const fx = Math.cos(pc.a), fy = Math.sin(pc.a), side = c.pitSide;
         return [pc.x - fx * pc.l * 0.35 - fy * side * pc.w * 0.6, pc.y - fy * pc.l * 0.35 + fx * side * pc.w * 0.6];

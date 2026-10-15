@@ -287,7 +287,7 @@
       x.fillStyle = '#d4202a'; x.fillRect(-hl + 18, -3.5, 12, 7); x.fillRect(-hl + 20.5, -6, 7, 12);
     }
     if (c.livery) {   // city service vans: reflective stripes, roof beacon, a word on the roof
-      const L2 = { coroner: ['#7d828c', 'BESTATTER'], clean: ['#f4f4f0', 'STADTREINIGUNG'], power: ['#1f2f55', 'STADTWERKE'], tow: ['#121212', 'ABSCHLEPP'] }[c.livery];
+      const L2 = { coroner: ['#7d828c', K.tr('CORONER')], clean: ['#f4f4f0', K.tr('SANITATION')], power: ['#1f2f55', K.tr('CITY POWER')], tow: ['#121212', K.tr('TOWING')] }[c.livery];
       if (L2) {
         x.fillStyle = L2[0]; x.fillRect(-hl + 5, -hw + 1, L - 10, 3); x.fillRect(-hl + 5, hw - 4, L - 10, 3);
         if (c.livery !== 'coroner') { const on = Math.floor(t * 4) % 2; x.fillStyle = on && c.blink ? '#ffb020' : '#7a5a14'; x.fillRect(hl - 30, -6, 4, 12); }

@@ -1,6 +1,6 @@
 // prop system: placement, containers, locks, stations, burglars, save/load: node tools/props.mjs
 import fs from 'fs'; import vm from 'vm';
-const ctx = { console, Math, Date, JSON, globalThis: null }; ctx.globalThis = ctx; vm.createContext(ctx);
+const ctx = { console, Math, Date, JSON, globalThis: null, KONTRAKT_LANG: process.env.KONTRAKT_LANG || 'de' }; ctx.globalThis = ctx; vm.createContext(ctx);
 const files = fs.readFileSync('tools/scenarios.mjs', 'utf8').match(/for \(const f of (\[[^\]]+\])/)[1];
 for (const f of eval(files)) vm.runInContext(fs.readFileSync(f, 'utf8'), ctx, { filename: f });
 const K = ctx.K, TILE = 32;
@@ -9,9 +9,10 @@ const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail+
 const run = (w, n, inp = {}) => { for (let i = 0; i < n; i++) { w.update(1 / 60, { pressed: {}, ...inp }); w.events.length = 0; } };
 const mk = (seed = 1337) => { const w = new K.World({ seed }); w.time = 12 * 60; w.godMode = true; w.thugT = 1e9; w.updatePolice = () => {}; run(w, 2); return w; };
 /** free floor tiles inside the player's flat */
+const BLOCKED = () => ['Spot taken', 'Wall or door in the way', 'Blocks a door', 'Water', 'Half inside, half outside'].map((k) => K.tr(k));
 const homeSpots = (w) => {
   const b = w.propertyBuilding(w.P.home), out = [];
-  for (let j = b.y; j < b.y + b.h; j++) for (let i = b.x; i < b.x + b.w; i++) if (!w.placeCheck('safe', i, j, 1, 1).match(/belegt|Wand|Tür|Wasser|drin/)) out.push([i, j]);
+  for (let j = b.y; j < b.y + b.h; j++) for (let i = b.x; i < b.x + b.w; i++) if (!BLOCKED().includes(w.placeCheck('safe', i, j, 1, 1))) out.push([i, j]);
   return { b, out };
 };
 const place = (w, id, tx, ty, rot = 0) => {
@@ -35,7 +36,7 @@ console.log('placement');
   const { b, out } = homeSpots(w);
   const inside = out.find(([i, j]) => Math.hypot((i + 0.5) * TILE - (b.entrance.x + 0.5) * TILE, (j + 0.5) * TILE - (b.entrance.y + 0.5) * TILE) > 2.5 * TILE);
   a.x = (inside[0] + 0.5) * TILE; a.y = (inside[1] + 1.5) * TILE; w.rebuildGrid();
-  if (w.placeCheck('safe', inside[0], inside[1], 1, 1) === 'Du stehst im Weg') { a.y += TILE; }
+  if (w.placeCheck('safe', inside[0], inside[1], 1, 1) === K.tr("You're in the way")) { a.y += TILE; }
   w.addItem('pl_safe'); w.useItem('pl_safe');
   check(!!w.placing && w.placing.id === 'safe', 'using the item enters placement mode');
   run(w, 1, { ax: (inside[0] + 0.5) * TILE, ay: (inside[1] + 0.5) * TILE });

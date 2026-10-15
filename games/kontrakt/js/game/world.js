@@ -2,6 +2,7 @@
  * DOM-free: runs in the browser and in Node (tools/sim.mjs). Feature mixins live in sibling files. */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const T = K.T, TF = K.TF, TILE = K.TILE, U = K.U;
 
   let NEXT_ID = 1;
@@ -304,7 +305,7 @@
         }
         if (a.ko > 0 && !a.dragBy) {
           a.ko -= dt;
-          if (a.ko <= 0) { a.ko = 0; a.state = 'wake'; a.brain.t = 0; this.bark(a, U.pick(['Was… wo bin ich?', 'Mein Kopf…', 'Jemand hat mich angegriffen!'])); }
+          if (a.ko <= 0) { a.ko = 0; a.state = 'wake'; a.brain.t = 0; this.bark(a, U.pick([tr('What… where am I?'), tr('My head…'), tr('Someone attacked me!')])); }
         }
         if (a.poisoned > 0) {
           a.poisoned -= dt;

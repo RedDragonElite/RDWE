@@ -1,6 +1,7 @@
 /* RDE // KONTRAKT — renderer: baked ground chunks, roofs, shadows, line-of-sight fog, lightmap, weather, overlay */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, T = K.T, TF = K.TF, TILE = K.TILE;
   const CH = 8, CS = 2, CPX = CH * TILE; // chunk = 8×8 tiles, baked at 2 px per world px
   const BH = { house: 34, flat: 64, office: 120, hotel: 140, villa: 46, warehouse: 50, police: 70, hospital: 90, gun: 38, food: 34, pharmacy: 38, cloth: 44, diner: 34, bar: 36, club: 56, black: 44 };
@@ -293,7 +294,7 @@
           }
           if (b.type === 'hospital') { x.strokeStyle = '#e0b000'; x.lineWidth = 3; x.beginPath(); x.arc(Wd / 2, H / 2, 26, 0, 6.3); x.stroke(); x.fillStyle = '#e0b000'; x.font = 'bold 30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('H', Wd / 2, H / 2 + 1); }
           if (b.type === 'office' || b.type === 'hotel') { x.fillStyle = 'rgba(120,170,210,0.35)'; x.fillRect(Wd * 0.55, H * 0.55, Wd * 0.25, H * 0.2); x.strokeStyle = 'rgba(255,255,255,0.2)'; x.strokeRect(Wd * 0.55, H * 0.55, Wd * 0.25, H * 0.2); }
-          if (b.type === 'police') { x.fillStyle = '#1d3567'; x.fillRect(Wd / 2 - 30, H / 2 - 10, 60, 20); x.fillStyle = '#fff'; x.font = 'bold 13px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('POLIZEI', Wd / 2, H / 2 + 1); }
+          if (b.type === 'police') { x.fillStyle = '#1d3567'; x.fillRect(Wd / 2 - 30, H / 2 - 10, 60, 20); x.fillStyle = '#fff'; x.font = 'bold 13px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(tr('POLICE'), Wd / 2, H / 2 + 1); }
         }
       }
       // shop / landmark sign along the main door wall
@@ -559,7 +560,7 @@
         if (X > vx1 || X + p.w * TILE < vx0 || Y > vy1 || Y + p.h * TILE < vy0) continue;
         if (p.k === 'sign' && !p.gone) {
           ctx.fillStyle = '#1b1b1f'; ctx.fillRect(X + 15, Y + 14, 2, 14);
-          ctx.fillStyle = '#c8102e'; ctx.fillRect(X + 3, Y + 4, 26, 13); ctx.fillStyle = '#fff'; ctx.font = 'bold 5.5px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('ZU VERKAUFEN', X + 16, Y + 12.5);
+          ctx.fillStyle = '#c8102e'; ctx.fillRect(X + 3, Y + 4, 26, 13); ctx.fillStyle = '#fff'; ctx.font = 'bold 5.5px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(tr('FOR SALE'), X + 16, Y + 12.5);
         } else if (p.k === 'boat') {
           const bob = Math.sin(t * 1.2 + p.id) * 1.5;
           ctx.save(); ctx.translate(X + p.w * TILE / 2, Y + p.h * TILE / 2 + bob); ctx.rotate(Math.sin(t * 0.8 + p.id) * 0.03);
@@ -996,8 +997,8 @@
         if (onScreen && (instinct || this.visible(tgt))) {
           const bob = Math.sin(this.time * 4) * 3 * s;
           o.fillStyle = '#ff2030'; o.beginPath(); o.moveTo(sx, sy - 30 * zs + bob); o.lineTo(sx - 7 * s, sy - 30 * zs - 9 * s + bob); o.lineTo(sx + 7 * s, sy - 30 * zs - 9 * s + bob); o.closePath(); o.fill();
-          o.font = `600 ${10 * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.fillText('ZIEL', sx, sy - 30 * zs - 15 * s + bob);
-        } else if (!onScreen && c.intel) this.edgeArrow(o, sx, sy, '#ff2030', 'ZIEL', s);
+          o.font = `600 ${10 * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.fillText(tr('TARGET'), sx, sy - 30 * zs - 15 * s + bob);
+        } else if (!onScreen && c.intel) this.edgeArrow(o, sx, sy, '#ff2030', tr('TARGET'), s);
       }
       if (g.waypoint) { const [sx, sy] = toS(g.waypoint.x, g.waypoint.y); const onScreen = sx > 0 && sy > 0 && sx < this.ov.width && sy < this.ov.height; if (!onScreen) this.edgeArrow(o, sx, sy, '#ffd34d', 'WP', s); else { o.strokeStyle = '#ffd34d'; o.lineWidth = 2 * s; o.beginPath(); o.arc(sx, sy, 10 * s + Math.sin(this.time * 4) * 3 * s, 0, 6.3); o.stroke(); } }
       // floats
@@ -1111,7 +1112,7 @@
       if (tgt) {
         const isT = w.contract && w.contract.targetId === tgt.id;
         o.fillStyle = isT ? '#ff3a5a' : 'rgba(255,220,120,0.9)'; o.textAlign = 'right';
-        o.fillText(isT ? `ZIEL · ${tgt.name || ''}` : (tgt.name || K.KIND_NAMES?.[tgt.kind] || tgt.kind).toString().toUpperCase(), x - R * 0.48, y - R * 0.22);
+        o.fillText(isT ? tr('TARGET · {name}', { name: tgt.name || '' }) : (tgt.name || K.KIND_NAMES?.[tgt.kind] || tgt.kind).toString().toUpperCase(), x - R * 0.48, y - R * 0.22);
       }
       // breath meter
       const bw = R * 0.8, by = y + R + 16 * s;
@@ -1119,8 +1120,8 @@
       o.fillStyle = P.gasp > 0 ? '#ff4d4d' : w.holdBreath ? '#7cf2ff' : 'rgba(255,255,255,0.7)';
       o.fillRect(x - bw / 2, by, bw * (P.breath || 0) / 100, 5 * s);
       o.textAlign = 'center'; o.font = `600 ${10 * s}px "Oswald", sans-serif`; o.fillStyle = 'rgba(255,255,255,0.75)';
-      o.fillText(P.gasp > 0 ? 'AUSSER ATEM' : w.holdBreath ? 'ATEM ANGEHALTEN' : 'SHIFT · ATEM ANHALTEN', x, by + 18 * s);
-      if (wi.mag === 0 && (P.ammo[d.ammo] || 0) > 0) { o.fillStyle = '#ffb000'; o.fillText('R — NACHLADEN', x, y - R - 12 * s); }
+      o.fillText(P.gasp > 0 ? tr('OUT OF BREATH') : w.holdBreath ? tr('HOLDING BREATH') : tr('SHIFT · HOLD BREATH'), x, by + 18 * s);
+      if (wi.mag === 0 && (P.ammo[d.ammo] || 0) > 0) { o.fillStyle = '#ffb000'; o.fillText(tr('R — RELOAD'), x, y - R - 12 * s); }
       o.restore();
     }
     crosshair(o, s) {
@@ -1148,7 +1149,7 @@
         // laser line when aiming
         if (w.aiming) { const [px, py] = [((p.x - this.cam.vx) * this.cam.z) / this.dpr * s, ((p.y - this.cam.vy) * this.cam.z) / this.dpr * s]; o.strokeStyle = 'rgba(255,40,40,0.28)'; o.lineWidth = 1 * s; o.beginPath(); o.moveTo(px, py); o.lineTo(x, y); o.stroke(); }
         const wi = w.curWeapon();
-        if (wi.mag === 0 && (w.P.ammo[d.ammo] || 0) > 0) { o.fillStyle = '#ffb000'; o.font = `700 ${10 * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.fillText('R — NACHLADEN', x, y + 26 * s); }
+        if (wi.mag === 0 && (w.P.ammo[d.ammo] || 0) > 0) { o.fillStyle = '#ffb000'; o.font = `700 ${10 * s}px "Oswald", sans-serif`; o.textAlign = 'center'; o.fillText(tr('R — RELOAD'), x, y + 26 * s); }
       } else {
         o.strokeStyle = 'rgba(255,255,255,0.85)'; o.lineWidth = 1.5 * s;
         o.beginPath(); o.arc(x, y, 7 * s, 0, 6.3); o.stroke();
@@ -1194,7 +1195,7 @@
         case 'svcSpark': fx.sparks(e.x, e.y, Math.random() * 6.3, 2, [255, 230, 160]); break;
         case 'propChanged': for (let j = e.y - 1; j <= e.y + e.h + 3; j++) for (let i = e.x - 1; i <= e.x + e.w + 3; i++) this.invalidateTile(i, j); break;
         case 'propSmash': this.invalidateTile(e.tx, e.ty); fx.sparks(e.x, e.y, Math.random() * 6.3, e.k === 'lamp' ? 14 : 6); if (e.k === 'lamp') { fx.glass(e.x, e.y, 10); fx.decal('glass', e.x, e.y); } if (e.player) this.cam.shake = Math.min(1, this.cam.shake + 0.25); break;
-        case 'keys': fx.float(e.x, e.y - 30, '🔑 Schlüssel', '#ffd34d'); for (let k = 0; k < 8; k++) fx.sparks(e.x, e.y - 10, Math.random() * 6.3, 1, [255, 230, 140]); break;
+        case 'keys': fx.float(e.x, e.y - 30, tr('🔑 Keys'), '#ffd34d'); for (let k = 0; k < 8; k++) fx.sparks(e.x, e.y - 10, Math.random() * 6.3, 1, [255, 230, 140]); break;
         case 'rocketTrail': fx.smoke(e.x, e.y, 1, 0); break;
         case 'fuelDrip': fx.decal('drop', e.x, e.y, { s: 1.5, col: 'oil' }); break;
         case 'carJolt': this.cam.shake = Math.min(1, this.cam.shake + e.v / 700); break;
@@ -1206,7 +1207,7 @@
             const n = e.blunt ? 3 : Math.min(26, 6 + e.dmg * 0.3);
             fx.blood(e.x, e.y, a, n, e.head ? 1.4 : 1);
             if (e.kind === 'bullet' && g.settings.gore) fx.decal('streak', e.x, e.y, { a, len: 18 + e.dmg * 0.6 });
-            if (e.head) { fx.blood(e.x, e.y, a, 18, 1.8, 0.35); fx.float(e.x, e.y - 20, 'KOPFSCHUSS', '#ff4040'); }
+            if (e.head) { fx.blood(e.x, e.y, a, 18, 1.8, 0.35); fx.float(e.x, e.y - 20, tr('HEADSHOT'), '#ff4040'); }
           } else if (e.kind === 'fist') fx.dust(e.x, e.y, 2, [200, 190, 180]);
           if (e.player) {
             g.hurtFlash = Math.min(1, (g.hurtFlash || 0) + e.dmg / 40);
@@ -1244,7 +1245,7 @@
         case 'hideBody': fx.dust(e.x, e.y, 4); break;
         case 'takedown': if (e.kind === 'knife') fx.blood(e.x, e.y, Math.random() * 6.3, 16, 0.8); break;
         case 'xp': if (e.n >= 8) fx.float(p.x, p.y - 30, `+${e.n} XP  ${e.why || ''}`, '#9fd2ff'); break;
-        case 'targetDown': fx.float(e.x, e.y - 34, 'ZIEL ELIMINIERT', '#ff3a3a', true); break;
+        case 'targetDown': fx.float(e.x, e.y - 34, tr('TARGET ELIMINATED'), '#ff3a3a', true); break;
       }
     }
   }

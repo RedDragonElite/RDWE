@@ -3,6 +3,7 @@
  * Every heist trips an alarm sooner or later; banks bring three stars and a lot of police. */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, TILE = K.TILE;
 
   K.mixin({
@@ -20,21 +21,21 @@
       if (a.inCar || this.drag) return false;
       const d = this.vaultDoorNear();
       if (d) {
-        if (P.inv.keycard) add('E', 'Tresortür: Schlüsselkarte durchziehen', () => this.openVault(d, 'card'), 1.6, { tick: (dt) => { if (Math.random() < dt * 4) this.emit('sfx', { s: 'beep' }); } });
-        if (P.inv.drill) add('T', 'Tresortür aufbohren (Thermobohrer)', () => this.openVault(d, 'drill'), 20, { tick: (dt) => this.drillTick(d, dt) });
-        if (!P.inv.keycard && !P.inv.drill) add('E', 'Tresortür — Schlüsselkarte, Thermobohrer oder C4 nötig', null);
+        if (P.inv.keycard) add('E', tr('Vault door: swipe the keycard'), () => this.openVault(d, 'card'), 1.6, { tick: (dt) => { if (Math.random() < dt * 4) this.emit('sfx', { s: 'beep' }); } });
+        if (P.inv.drill) add('T', tr('Drill the vault door (thermal drill)'), () => this.openVault(d, 'drill'), 20, { tick: (dt) => this.drillTick(d, dt) });
+        if (!P.inv.keycard && !P.inv.drill) add('E', tr('Vault door — needs a keycard, thermal drill or C4'), null);
         return true;
       }
       const box = this.propNear(['deposit'], 1.2);
       if (box) {
-        if (box.lootDay === this.today()) add('E', 'Schließfach — ausgeräumt', null);
-        else add('E', 'Schließfach aufbrechen', () => this.lootDeposit(box), 2.2, { tick: (dt) => { if (Math.random() < dt * 5) this.emit('sfx', { s: 'pick' }); } });
+        if (box.lootDay === this.today()) add('E', tr('Deposit box — cleaned out'), null);
+        else add('E', tr('Break open the deposit box'), () => this.lootDeposit(box), 2.2, { tick: (dt) => { if (Math.random() < dt * 5) this.emit('sfx', { s: 'pick' }); } });
         return true;
       }
       const sc = this.propNear(['showcase'], 1.2);
       if (sc) {
-        if (sc.smashDay === this.today()) add('T', 'Vitrine — leer', null);
-        else add('T', 'Vitrine einschlagen', () => this.smashCase(sc), 0.7);
+        if (sc.smashDay === this.today()) add('T', tr('Display case — empty'), null);
+        else add('T', tr('Smash the display case'), () => this.smashCase(sc), 0.7);
         return true;
       }
       return false;
@@ -51,8 +52,8 @@
       for (const v of b.doors) if (v.vault) { v.locked = false; v.picked = true; v.vaultOpen = true; }
       if (how === 'card') this.takeItem('keycard');
       this.emit('sfx', { s: 'vault' });
-      this.emit('banner', { title: 'TRESOR OFFEN', sub: how === 'card' ? 'Leise rein, schnell raus. Der Zeitschloss-Alarm läuft.' : how === 'c4' ? 'Das hat die ganze Straße gehört.' : 'Der Bohrer hat es geschafft.', kind: 'gold' });
-      this.addXP(40, 'Tresor geöffnet');
+      this.emit('banner', { title: tr('VAULT OPEN'), sub: how === 'card' ? tr('In quiet, out fast. The time-lock alarm is ticking.') : how === 'c4' ? tr('The whole street heard that.') : tr('The drill got through.'), kind: 'gold' });
+      this.addXP(40, tr('Vault opened'));
       this.crimeEvent(this.player, 'heist', this.player.x, this.player.y, null);
       // the time lock reports an unscheduled opening — later with a card
       this.heistAlarm(b, how === 'card' ? 35 : how === 'drill' ? 4 : 0);
@@ -63,10 +64,10 @@
       const cash = 900 + U.rint(2600);
       P.money += cash;
       const extra = [];
-      if (Math.random() < 0.3) { this.addItem('gold'); extra.push('Goldbarren'); }
-      if (Math.random() < 0.25) { const n = 1 + U.rint(2); this.addItem('jewelry', n); extra.push(`Schmuck ×${n}`); }
-      if (Math.random() < 0.1) { this.addItem('diamond'); extra.push('Diamant'); }
-      this.notify(`Schließfach: +${U.money(cash)}${extra.length ? ' · ' + extra.join(', ') : ''}`, 'money');
+      if (Math.random() < 0.3) { this.addItem('gold'); extra.push(tr('Gold bar')); }
+      if (Math.random() < 0.25) { const n = 1 + U.rint(2); this.addItem('jewelry', n); extra.push(tr('Jewelry ×{n}', { n })); }
+      if (Math.random() < 0.1) { this.addItem('diamond'); extra.push(tr('Diamond')); }
+      this.notify(tr('Deposit box: +{cash}', { cash: U.money(cash) }) + (extra.length ? ' · ' + extra.join(', ') : ''), 'money');
       this.emit('sfx', { s: 'cash' });
       this.stats && (this.stats.heistLoot = (this.stats.heistLoot || 0) + cash);
       if (b && !(b.alarmUntil > this.t)) this.crimeEvent(this.player, 'theft', this.player.x, this.player.y, null);
@@ -77,13 +78,13 @@
       const x = (sc.x + 0.5) * TILE, y = (sc.y + 0.5) * TILE;
       this.emit('glass', { x, y, tx: sc.x, ty: sc.y });
       this.noise(x, y, 8, 'glass', a);
-      const n = 2 + U.rint(3), got = [`Schmuck ×${n}`];
+      const n = 2 + U.rint(3), got = [tr('Jewelry ×{n}', { n })];
       this.addItem('jewelry', n);
-      if (Math.random() < 0.4) { this.addItem('watch'); got.push('Goldene Uhr'); }
-      if (Math.random() < 0.15) { this.addItem('diamond'); got.push('Diamant'); }
-      this.notify(`Vitrine: ${got.join(', ')}`, 'loot');
+      if (Math.random() < 0.4) { this.addItem('watch'); got.push(tr('Gold watch')); }
+      if (Math.random() < 0.15) { this.addItem('diamond'); got.push(tr('Diamond')); }
+      this.notify(tr('Display case: {items}', { items: got.join(', ') }), 'loot');
       // the shopkeeper hits the panic button
-      for (const k of this.actors) if (k.kind === 'keeper' && k.home === sc.bld && k.alive && k.ko <= 0 && k.state !== 'cower') { k.state = 'cower'; k.crouch = true; k.brain.cowerT = 8; k.brain.cowerBy = 0; this.bark(k, 'Nein! Nicht die Vitrinen!', 2); }
+      for (const k of this.actors) if (k.kind === 'keeper' && k.home === sc.bld && k.alive && k.ko <= 0 && k.state !== 'cower') { k.state = 'cower'; k.crouch = true; k.brain.cowerT = 8; k.brain.cowerBy = 0; this.bark(k, tr('No! Not the cases!'), 2); }
       this.crimeEvent(a, 'robbery', a.x, a.y, null);
       this.heistAlarm(b, 5);
     },
@@ -100,7 +101,7 @@
         this.dispatch(cx, cy, 2, { foe: 0 });
         if (bank) this.dispatch(cx, cy, 2, { foe: 0 });
         if (b.zone != null) this.zoneAlert(b.zone, p.x, p.y);
-        this.emit('notify', { text: bank ? 'BANKALARM! Die halbe Polizei ist unterwegs.' : 'Alarm beim Juwelier — Polizei unterwegs!', kind: 'bad' });
+        this.emit('notify', { text: bank ? tr('BANK ALARM! Half the police force is on its way.') : tr('Jewelry store alarm — police on the way!'), kind: 'bad' });
       };
       if (delay > 0) this.later(delay, go); else go();
     },

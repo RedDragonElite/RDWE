@@ -1,6 +1,7 @@
 /* RDE // KONTRAKT — player control: movement, weapons, driving, context interactions, bodies, lockpicking */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, T = K.T, TILE = K.TILE, W8 = K.WEAPONS;
 
   K.mixin({
@@ -59,7 +60,7 @@
         if (pr.reload && d.type === 'gun') this.reload(a);
         this.switchWeapons(inp, pr);
         if (c.fire > 0) { this.exitCar(true); this.hurt(a, 10, null, { kind: 'explosion' }); }
-        this.ctx = [{ key: 'F', label: 'Aussteigen' }];
+        this.ctx = [{ key: 'F', label: tr('Get out') }];
         if (this.carContext) this.carContext(c, (key, label, fn, hold, extra) => this.ctx.unshift({ key, label, fn, hold, ...extra }));
         if (pr.t) { const ac = this.ctx.find((o) => o.key === 'T' && o.fn); if (ac) ac.fn(); }
         return;
@@ -69,7 +70,7 @@
       // -------------------------------------------------------- hidden in a container
       if (a.hidden) {
         a.vx = a.vy = 0; a.speed = 0;
-        this.ctx = [{ key: 'E', label: 'Rauskommen', fn: () => this.unhide() }];
+        this.ctx = [{ key: 'E', label: tr('Come out'), fn: () => this.unhide() }];
         if (pr.e) this.unhide();
         return;
       }
@@ -79,7 +80,7 @@
       if (pr.v && this.crewActors && this.crewActors().length) this.crewCommand('attack');
       if (P.surrender) {
         if (inp.up || inp.down || inp.left || inp.right || pr.fire) this.cancelSurrender(true);
-        else { this.moveActor(a, 0, 0, dt, 14); this.ctx = [{ key: 'X', label: 'Doch nicht ergeben (Widerstand!)' }]; return; }
+        else { this.moveActor(a, 0, 0, dt, 14); this.ctx = [{ key: 'X', label: tr('Take it back (resisting!)') }]; return; }
       }
 
       // -------------------------------------------------------- locked states
@@ -126,8 +127,8 @@
       if (pr.reload) this.reload(a);
       if (P.handsDown && P.slot === 0 && pr.fire) { P.handsDown = false; a.cool = Math.max(a.cool, 0.2); this.emit('equip', { w: 'fists' }); }   // first click raises the fists
       else if ((inp.fire || pr.fire) && !(P.handsDown && P.slot === 0)) this.attack(a, a.aim, inp.fire, pr.fire);
-      if (pr.g) { if (!this.detonate()) this.notify('Keine Sprengladung platziert.', 'bad'); }
-      if (pr.l) { if (P.inv.flashlight) { P.flashlight = !P.flashlight; this.emit('sfx', { s: 'click' }); } else this.notify('Keine Taschenlampe.', 'bad'); }
+      if (pr.g) { if (!this.detonate()) this.notify(tr('No charges placed.'), 'bad'); }
+      if (pr.l) { if (P.inv.flashlight) { P.flashlight = !P.flashlight; this.emit('sfx', { s: 'click' }); } else this.notify(tr('No flashlight.'), 'bad'); }
       this.updateDrag(dt);
 
       // -------------------------------------------------------- context
@@ -198,10 +199,10 @@
       const P = this.P;
       const cash = b.wallet || 0;
       let found = false;
-      if (cash) { P.money += cash; this.notify(`Taschen geleert: +${U.money(cash)}`, 'money'); found = true; }
-      if (b.loot) { this.addItem(b.loot); this.notify(`Gefunden: ${K.ITEMS[b.loot].name}`, 'loot'); found = true; }
-      if (b.kind === 'guard' && Math.random() < 0.3) { this.addItem('keycard'); this.notify('Gefunden: Keycard', 'loot'); found = true; }
-      if (!found) this.notify('Nichts Brauchbares.', 'info');
+      if (cash) { P.money += cash; this.notify(tr('Emptied the pockets: +{cash}', { cash: U.money(cash) }), 'money'); found = true; }
+      if (b.loot) { this.addItem(b.loot); this.notify(tr('Found: {item}', { item: K.ITEMS[b.loot].name }), 'loot'); found = true; }
+      if (b.kind === 'guard' && Math.random() < 0.3) { this.addItem('keycard'); this.notify(tr('Found: {item}', { item: K.ITEMS.keycard ? K.ITEMS.keycard.name : 'Keycard' }), 'loot'); found = true; }
+      if (!found) this.notify(tr('Nothing useful.'), 'info');
       this.emit('sfx', { s: 'pickup' });
       b.wallet = 0; b.loot = null;
     },
@@ -290,21 +291,20 @@
       // bodies
       if (this.drag) {
         const spot = this.hideSpot();
-        if (spot) add('E', `Leiche verstecken (${{ dumpster: 'Container', wardrobe: 'Schrank', locker: 'Spind' }[spot.k] || 'Versteck'})`, () => this.hideBody(spot), 1.1);
-        else add('E', 'Loslassen', () => this.dropDrag());
+        if (spot) add('E', tr('Hide the body ({spot})', { spot: { dumpster: tr('Dumpster'), wardrobe: tr('Closet'), locker: tr('Locker') }[spot.k] || tr('Hiding spot') }), () => this.hideBody(spot), 1.1);
+        else add('E', tr('Let go'), () => this.dropDrag());
       } else {
         // first aid on somebody critical (needs a bandage, tourniquet or medkit) — the long press on them
         const fa = this.firstAidTarget && this.firstAidTarget();
-        if (fa && (P.inv.medkit || P.inv.bandage || P.inv.tourniquet)) add('E', `Erste Hilfe: ${fa.name || 'Verletzter'} (${Math.round(fa.downed.loss)}% Blutverlust)`, () => this.firstAid(fa), 3.5, { long: true, at: fa });
+        if (fa && (P.inv.medkit || P.inv.bandage || P.inv.tourniquet)) add('E', tr('First aid: {name} ({loss}% blood loss)', { name: fa.name || tr('Injured'), loss: Math.round(fa.downed.loss) }), () => this.firstAid(fa), 3.5, { long: true, at: fa });
         // ground items next to you: tap E, the one you look at first
         const its = this.items.filter((x) => !x.taken && Math.hypot(x.x - a.x, x.y - a.y) < 30).sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y)).slice(0, 3);
-        for (const it of its) add('E', `Aufheben: ${this.itemLabel(it)}`, () => this.pickup(it), 0, { at: it });
+        for (const it of its) add('E', tr('Pick up: {item}', { item: this.itemLabel(it) }), () => this.pickup(it), 0, { at: it });
         const b = this.nearestBody();
         if (b) {
-          const who = b.alive ? 'Bewusstlosen' : 'Leiche';
-          if (!b.looted) add('E', `${who} durchsuchen`, () => this.lootBody(b), 0.9, { at: b, tick: () => { if (b.dragBy || b.hidden) this.action = null; } });
-          if (!fa || fa !== b) add('E', `${who} ziehen`, () => this.startDrag(b), 0, { long: true, at: b });
-          if (!b.stripped && b.outfit !== P.outfit && K.OUTFITS[b.outfit]) add('T', `Verkleiden: ${K.OUTFITS[b.outfit].name || 'Kleidung'}`, () => this.takeDisguise(b), 1.4);
+          if (!b.looted) add('E', b.alive ? tr('Search the unconscious') : tr('Search the body'), () => this.lootBody(b), 0.9, { at: b, tick: () => { if (b.dragBy || b.hidden) this.action = null; } });
+          if (!fa || fa !== b) add('E', b.alive ? tr('Drag the unconscious') : tr('Drag the body'), () => this.startDrag(b), 0, { long: true, at: b });
+          if (!b.stripped && b.outfit !== P.outfit && K.OUTFITS[b.outfit]) add('T', tr('Disguise: {outfit}', { outfit: K.OUTFITS[b.outfit].name || tr('Clothes') }), () => this.takeDisguise(b), 1.4);
         }
         if (fa && (P.inv.medkit || P.inv.bandage || P.inv.tourniquet)) return out;
       }
@@ -313,15 +313,15 @@
       if (door && !door.vault) {
         const hasPick = P.inv.lockpick > 0, hasBar = P.weapons.some((w) => w.id === 'crowbar');
         const b = this.buildings[door.bld];
-        if (door.access && door.access.includes('owner') && b && !b.owned) add('E', 'Verschlossen — Immobilie zu verkaufen', null);
-        else if (hasPick || hasBar) add('E', hasBar && !hasPick ? 'Tür aufbrechen (Brecheisen)' : 'Schloss knacken', () => this.pickDoor(door, !hasPick), hasPick ? 2.6 : 1.3, { tick: hasBar && !hasPick ? (dt) => { if (Math.random() < dt * 3) this.noise(a.x, a.y, 5, 'scuffle', a); } : null });
-        else add('E', 'Verschlossen — Dietrich nötig', null);
-        if (b && this.privateBuilding(b) && this.householdSounds) add('T', 'An der Tür lauschen', () => this.notify(this.householdSounds(b), 'info'), 1.6);
+        if (door.access && door.access.includes('owner') && b && !b.owned) add('E', tr('Locked — property for sale'), null);
+        else if (hasPick || hasBar) add('E', hasBar && !hasPick ? tr('Pry the door open (crowbar)') : tr('Pick the lock'), () => this.pickDoor(door, !hasPick), hasPick ? 2.6 : 1.3, { tick: hasBar && !hasPick ? (dt) => { if (Math.random() < dt * 3) this.noise(a.x, a.y, 5, 'scuffle', a); } : null });
+        else add('E', tr('Locked — needs a lockpick'), null);
+        if (b && this.privateBuilding(b) && this.householdSounds) add('T', tr('Listen at the door'), () => this.notify(this.householdSounds(b), 'info'), 1.6);
       }
       // hide yourself
       if (!this.drag && this.hideSpotNearPlayer) {
         const hs = this.hideSpotNearPlayer();
-        if (hs) add('T', `Verstecken (${{ dumpster: 'Container', wardrobe: 'Schrank', locker: 'Spind' }[hs.k]})`, () => this.hideIn(hs), 0.6);
+        if (hs) add('T', tr('Hide ({spot})', { spot: { dumpster: tr('Dumpster'), wardrobe: tr('Closet'), locker: tr('Locker') }[hs.k] }), () => this.hideIn(hs), 0.6);
       }
       // props
       if (!this.drag) {
@@ -330,21 +330,21 @@
           const b = p.bld >= 0 ? this.buildings[p.bld] : null;
           if (p.k === 'sign') {
             const d = this.propertyDef(p.property);
-            if (d && !P.owned.includes(d.id)) add('E', `Immobilie: ${d.name} — ${U.money(d.price)}`, () => this.emit('ui', { open: 'property', id: d.id }));
-          } else if (p.k === 'vending') add('E', 'Automat: Cola ($3)', () => { if (!this.pay(3)) return this.notify('Kein Kleingeld.', 'bad'); this.addItem('cola'); this.emit('sfx', { s: 'vend' }); this.notify('Cola gezogen.'); });
+            if (d && !P.owned.includes(d.id)) add('E', tr('Property: {name} — {price}', { name: d.name, price: U.money(d.price) }), () => this.emit('ui', { open: 'property', id: d.id }));
+          } else if (p.k === 'vending') add('E', tr('Vending machine: Cola ($3)'), () => { if (!this.pay(3)) return this.notify(tr('No change.'), 'bad'); this.addItem('cola'); this.emit('sfx', { s: 'vend' }); this.notify(tr('Got a cola.')); });
           else if ((p.k === 'counter' || p.k === 'barc') && b && b.shop && b.counter === p) {
             const s = K.SHOPS[b.shop];
             const keeper = this.actors.find((k) => k.kind === 'keeper' && k.home === b.id && k.alive && k.ko <= 0 && k.state === 'work' && Math.hypot(k.x - k.brain.post.x, k.y - k.brain.post.y) < 40);
-            if (!this.shopOpen(s)) add('E', `${s.name} — geschlossen (öffnet ${s.open[0]}:00)`, null);
-            else if (!keeper) { if (!out.some((o) => o.label === 'Kasse ausräumen' || o.label === 'Kasse ist leer')) add('E', `${s.name} — niemand da`, null); }
-            else if (s.cars) add('E', 'Autohaus: Katalog & Kauf', () => { this.emit('ui', { open: 'dealer' }); this.bark(keeper, 'Suchen Sie etwas Schnelles? Oder etwas Unauffälliges?', 2.4); });
-            else if (s.bank) add('E', 'Bankschalter: Konto', () => { this.emit('ui', { open: 'bank' }); this.bark(keeper, 'Guten Tag, was kann ich für Sie tun?', 2); });
-            else add('E', b.shop === 'hospital' ? 'Klinik: Behandlung & Medizin' : `Einkaufen: ${s.name}`, () => { this.emit('ui', { open: 'shop', shop: b.shop, b: b.id }); this.bark(keeper, U.pick(K.LINES.keeper), 2); });
+            if (!this.shopOpen(s)) add('E', tr('{shop} — closed (opens {h}:00)', { shop: s.name, h: s.open[0] }), null);
+            else if (!keeper) { if (!out.some((o) => o.label === tr('Empty the till') || o.label === tr('The till is empty'))) add('E', tr('{shop} — nobody here', { shop: s.name }), null); }
+            else if (s.cars) add('E', tr('Dealership: catalog & purchase'), () => { this.emit('ui', { open: 'dealer' }); this.bark(keeper, tr('Looking for something fast? Or something discreet?'), 2.4); });
+            else if (s.bank) add('E', tr('Bank counter: account'), () => { this.emit('ui', { open: 'bank' }); this.bark(keeper, tr('Good day, how can I help you?'), 2); });
+            else add('E', b.shop === 'hospital' ? tr('Clinic: treatment & medicine') : tr('Shop: {shop}', { shop: s.name }), () => { this.emit('ui', { open: 'shop', shop: b.shop, b: b.id }); this.bark(keeper, U.pick(K.LINES.keeper), 2); });
           } else if (p.k === 'safe' && b) {
-            if (b.owned) add('E', 'Waffenkammer & Lager', () => this.emit('ui', { open: 'stash', prop: b.property }));
-            else if (b.loot > 0) { if (P.inv.lockpick > 0) add('E', 'Tresor knacken', () => this.crackSafe(b), 4.2, { tick: () => {} }); else add('E', 'Tresor — Dietrich nötig', null); }
-          } else if (p.k === 'wardrobe' && b && b.owned) add('E', 'Kleiderschrank', () => this.emit('ui', { open: 'wardrobe' }));
-          else if (p.k === 'bed' && b && b.owned) add('E', 'Schlafen & speichern', () => { if (this.wanted > 0) return this.notify('Nicht mit der Polizei auf den Fersen.', 'bad'); this.emit('ui', { open: 'sleep', prop: b.property }); });
+            if (b.owned) add('E', tr('Armory & storage'), () => this.emit('ui', { open: 'stash', prop: b.property }));
+            else if (b.loot > 0) { if (P.inv.lockpick > 0) add('E', tr('Crack the safe'), () => this.crackSafe(b), 4.2, { tick: () => {} }); else add('E', tr('Safe — needs a lockpick'), null); }
+          } else if (p.k === 'wardrobe' && b && b.owned) add('E', tr('Wardrobe'), () => this.emit('ui', { open: 'wardrobe' }));
+          else if (p.k === 'bed' && b && b.owned) add('E', tr('Sleep & save'), () => { if (this.wanted > 0) return this.notify(tr('Not with the cops on your tail.'), 'bad'); this.emit('ui', { open: 'sleep', prop: b.property }); });
         }
       }
       // cars & takedowns
@@ -352,11 +352,11 @@
         const t = this.takedownTarget();
         if (t) {
           const d = W8[this.curWeapon().id];
-          const label = d.type === 'wire' ? 'Erdrosseln (Klaviersaite)' : d.sharp ? 'Messer-Takedown' : d.type === 'syringe' ? (d.lethal ? 'Giftspritze setzen' : 'Betäuben (Spritze)') : t.ko > 0 ? null : 'Würgegriff (bewusstlos)';
+          const label = d.type === 'wire' ? tr('Strangle (fiber wire)') : d.sharp ? tr('Knife takedown') : d.type === 'syringe' ? (d.lethal ? tr('Inject poison') : tr('Sedate (syringe)')) : t.ko > 0 ? null : tr('Chokehold (knock out)');
           if (label) add('F', label, () => this.tryTakedown());
         }
         const c = this.carNear(a);
-        if (c && !out.some((o) => o.key === 'F')) add('F', c.driver && c.driver !== 'player' ? (c.kind === 'police' ? 'Polizeiwagen kapern' : 'Auto klauen') : 'Einsteigen', () => this.enterCar(c));
+        if (c && !out.some((o) => o.key === 'F')) add('F', c.driver && c.driver !== 'player' ? (c.kind === 'police' ? tr('Hijack the police car') : tr('Steal the car')) : tr('Get in'), () => this.enterCar(c));
       }
       return out;
     },
@@ -371,7 +371,7 @@
       if (it.kind === 'weapon') {
         const d = W8[it.wid];
         const w = this.addWeapon(it.wid, { mag: it.mag, sup: it.sup });
-        if (w) { this.notify(`Aufgenommen: ${d.name}`, 'loot'); }
+        if (w) { this.notify(tr('Picked up: {item}', { item: d.name }), 'loot'); }
         else if (d.type !== 'gun') { it.taken = false; return; }
       } else if (it.kind === 'ammo') this.P.ammo[it.cal] = (this.P.ammo[it.cal] || 0) + it.n;
       else if (it.kind === 'cash') this.P.money += it.n;
@@ -384,7 +384,7 @@
       b.hidden = true; b.dragBy = 0; this.drag = null; b.hiddenSpot = spot.id;
       spot.bodies = (spot.bodies || 0) + 1;
       this.emit('hideBody', { x: (spot.x + spot.w / 2) * TILE, y: (spot.y + spot.h / 2) * TILE, k: spot.k });
-      this.addXP(15, 'Leiche versteckt');
+      this.addXP(15, tr('Body hidden'));
       this.note('hid', {});
     },
     takeDisguise(b) {
@@ -393,7 +393,7 @@
       if (!b.looted) this.lootBody(b);
       b.stripped = true; b.outfit = 'under';
       this.setOutfit(o, true);
-      this.emit('banner', { title: K.OUTFITS[o].name.toUpperCase(), sub: K.OUTFITS[o].disguise ? 'Verkleidung angelegt' : 'Kleidung gewechselt', kind: 'disguise' });
+      this.emit('banner', { title: K.OUTFITS[o].name.toUpperCase(), sub: K.OUTFITS[o].disguise ? tr('Disguise on') : tr('Changed clothes'), kind: 'disguise' });
       this.emit('sfx', { s: 'cloth' });
       this.crimeEvent(this.player, b.alive ? 'assault' : 'murder', b.x, b.y, null);
     },
@@ -403,16 +403,16 @@
       if (force) this.noise(this.player.x, this.player.y, 7, 'scuffle', this.player);
       const b = this.buildings[d.bld];
       if (b && (this.privateBuilding(b) || b.zone != null)) this.crimeEvent(this.player, 'burglary', d.x * TILE, d.y * TILE, null);
-      this.addXP(8, 'Schloss geknackt');
+      this.addXP(8, tr('Lock picked'));
     },
     crackSafe(b) {
       const cash = b.loot; b.loot = 0;
       this.P.money += cash;
       if (Math.random() < 0.35) this.addItem('watch');
       this.emit('sfx', { s: 'safe' });
-      this.notify(`Tresor geknackt: +${U.money(cash)}`, 'money');
+      this.notify(tr('Safe cracked: +{cash}', { cash: U.money(cash) }), 'money');
       this.crimeEvent(this.player, 'burglary', this.player.x, this.player.y, null);
-      this.addXP(30, 'Einbruch');
+      this.addXP(30, tr('Burglary'));
     },
   });
 })(globalThis.K = globalThis.K || {});

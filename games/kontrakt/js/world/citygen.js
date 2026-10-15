@@ -22,7 +22,8 @@
     'BBBBBKKKKK',
   ];
   const DCODE = { B: 'beach', O: 'old', D: 'down', H: 'hill', P: 'park', R: 'res', I: 'ind', K: 'docks' };
-  K.DISTRICTS = { beach: 'Ocean Beach', old: 'Altstadt', down: 'Mitte', hill: 'Sonnenhang', park: 'Stadtpark', res: 'Kanalviertel', ind: 'Industriegebiet', docks: 'Hafen', road: 'Straße', sea: 'Hafenbecken' };
+  K.DISTRICTS = { beach: 'Ocean Beach', old: 'Old Town', down: 'Midtown', hill: 'Sunridge', park: 'City Park', res: 'Canal District', ind: 'Industrial Zone', docks: 'The Docks', road: 'Street', sea: 'Harbor Basin' };
+  K.i18nStrings(K.DISTRICTS);
 
   // explicit block plans (laid out on the old 7 × 7 grid and scaled ×1.5); others fall back to the district default
   const PLAN7 = {
@@ -30,7 +31,7 @@
     '3,0': ['cloth', 'flat', 'food', 'flat'], '0,1': ['house', 'house', 'house', 'house'], '1,1': ['house', 'flat', 'house', 'house'],
     '2,1': ['flat', 'jeweler', 'pharmacy', 'house'], '3,1': ['office'], '4,1': ['police'], '2,2': ['gun', 'flat', 'flat', 'food'], '0,2': ['gas'],
     '3,2': ['hotel'], '4,2': ['office'], '5,2': ['club'], '2,3': ['bank'], '4,3': ['flat', 'diner', 'flat', 'flat'],
-    '5,3': ['stripclub'], '0,6': ['beachclub', 'Beachclub „Flamingo“'], '1,6': ['beach'], '2,6': ['beachclub', 'Beachclub „Sunset“'], '3,4': ['hospital'], '4,4': ['autohaus'], '6,3': ['warehouse', 'warehouse'],
+    '5,3': ['stripclub'], '0,6': ['beachclub', 'Flamingo Beach Club'], '1,6': ['beach'], '2,6': ['beachclub', 'Sunset Beach Club'], '3,4': ['hospital'], '4,4': ['autohaus'], '6,3': ['warehouse', 'warehouse'],
     '5,4': ['werkstatt'], '6,4': ['warehouse', 'warehouse'], '4,5': ['gas'], '5,5': ['warehouse', 'warehouse'], '6,5': ['warehouse', 'warehouse'],
     '4,6': ['black'],
   };
@@ -62,6 +63,7 @@
   };
 
   K.generateCity = function (seed) {
+    if (K.localizeData) K.localizeData();   // data tables in the chosen language before names are handed out
     const rng = new K.RNG(seed);
     const N = W * H;
     const tiles = new Uint8Array(N).fill(T.ROAD);
@@ -113,7 +115,7 @@
       const bt = K.BTYPES[type];
       const id = buildings.length;
       const b = {
-        id, type, x, y, w, h, name: opt.name || bt.name, floor: T[bt.floor], roof: bt.roof, color: rng.pick(bt.colors), doors: [], rooms: [], pois: [],
+        id, type, x, y, w, h, name: K.tr(opt.name || bt.name), floor: T[bt.floor], roof: bt.roof, color: rng.pick(bt.colors), doors: [], rooms: [], pois: [],
         shop: bt.shop || null, restricted: opt.restricted !== undefined ? opt.restricted : bt.restricted || null, property: null, owned: false, district: opt.district,
         lit: rng.chance(0.7), loot: 0, seed: rng.int(1e9),
       };
@@ -549,7 +551,7 @@
       fill(lot.x, lot.y, lot.w, lot.h, T.CONC);
       const b = makeBuilding(lot.x + 5, lot.y + 1, 8, 6, 'gas', ['S'], { district: d, depth: 0 });
       furnish(b);
-      canopies.push({ x: lot.x + 2, y: lot.y + 9, w: 14, h: 8, col: '#d9d9d4', stripe: '#1f8a4c', label: 'NORDLICHT' });
+      canopies.push({ x: lot.x + 2, y: lot.y + 9, w: 14, h: 8, col: '#d9d9d4', stripe: '#1f8a4c', label: K.tr('NORTHERN LIGHTS') });
       for (const [k, y] of [[0, lot.y + 11], [1, lot.y + 14]]) for (let i = 0; i < 3; i++) {
         const x = lot.x + 4 + i * 4, p = addProp('pump', x, y, 1, 1, { extra: { pump: pumps.length, bldG: b.id } });
         if (p) pumps.push({ x, y, id: p.id, bld: b.id });
@@ -580,7 +582,7 @@
       fill(lot.x, lot.y, lot.w, lot.h, T.CONC);
       const b = makeBuilding(lot.x + 1, lot.y + 1, 6, 7, 'werkstatt', ['S'], { district: d, depth: 0 });
       furnish(b);
-      canopies.push({ x: lot.x + 8, y: lot.y + 1, w: 10, h: 8, col: '#3a3d44', stripe: '#c87a00', label: 'WERKSTATT' });
+      canopies.push({ x: lot.x + 8, y: lot.y + 1, w: 10, h: 8, col: '#3a3d44', stripe: '#c87a00', label: K.tr('WORKSHOP') });
       for (let k = 0; k < 3; k++) {
         const bx = lot.x + 8 + k * 3.33;
         addProp('lift', Math.floor(bx + 0.5), lot.y + 3, 2, 4);

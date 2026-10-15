@@ -4,6 +4,7 @@
  * Rules of engagement: arrest first; weapons only against armed or shooting suspects. */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, TILE = K.TILE;
   const P_ = 26, NB = K.CITY.NB, LANE = 32;
   const nodeXY = (i, j) => [(i * P_ + 2) * TILE, (j * P_ + 2) * TILE];
@@ -45,7 +46,7 @@
       for (const t of this.near(a.x, a.y, range)) {
         if (t.kind !== 'thug' || !t.alive || !t.crim) continue;
         if (!this.sees(a, t.x, t.y, range, 1.2)) continue;
-        this.bark(a, U.pick(['Polizei! Stehen bleiben!', 'Hände hoch, du Ratte!']));
+        this.bark(a, U.pick([tr('Police! Freeze!'), tr('Hands up, you rat!')]));
         this.alarm(a, t);
         if (a.unit) { const c = this.cars.find((q) => q.id === a.unit); if (c && c.unit) c.unit.busy = true; }
         return;

@@ -1,8 +1,10 @@
 /* RDE // KONTRAKT — contracts: random targets with routines, bodyguards, intel, bonuses, ratings */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, TILE = K.TILE;
-  const CLIENTS = ['Die Zentrale', 'Vesna (Vermittlerin)', 'Ein Unbekannter', 'Das Konsortium', 'Familie Moretti', 'Hafengewerkschaft', 'Ein besorgter Bürger'];
+  const CLIENTS = ['Headquarters', 'Vesna (fixer)', 'An unknown party', 'The Consortium', 'The Moretti family', 'Dockworkers’ union', 'A concerned citizen'];
+  K.i18nStrings(CLIENTS);
 
   K.mixin({
     initContracts() {
@@ -27,7 +29,7 @@
       r.shuffle(bonusPool);
       const bonuses = bonusPool.slice(0, 2 + (diff > 3 ? 1 : 0)).map((b) => ({ ...b }));
       let wpn = null;
-      if (r.chance(0.4)) { wpn = r.pick(['wire', 'knife', 'silber', 'jaeger', 'pump', 'katana', 'bat', 'fists', 'syringe']); bonuses.push({ ...K.BONUSES.find((b) => b.id === 'weapon'), w: wpn, desc: `Mit ${K.WEAPONS[wpn].name}` }); }
+      if (r.chance(0.4)) { wpn = r.pick(['wire', 'knife', 'silber', 'jaeger', 'pump', 'katana', 'bat', 'fists', 'syringe']); bonuses.push({ ...K.BONUSES.find((b) => b.id === 'weapon'), w: wpn, desc: tr('With the {weapon}', { weapon: K.WEAPONS[wpn].name }) }); }
       const female = r.chance(0.4);
       const name = `${r.pick(K.NAMES.first)} ${r.chance(0.3) ? r.pick(K.NAMES.nick) + ' ' : ''}${r.pick(K.NAMES.last)}`;
       return {
@@ -46,7 +48,7 @@
     refreshOffers(force) {
       this.offers = this.offers.filter((o) => o.deadline > this.time + 120);
       while (this.offers.length < 3) this.offers.push(this.newOffer());
-      if (!force) { this.emit('phone', { text: 'Neuer Auftrag eingegangen.' }); }
+      if (!force) { this.emit('phone', { text: tr('New contract received.') }); }
     },
 
     acceptContract(c, silent) {
@@ -55,20 +57,20 @@
       c.status = 'active'; c.stopI = 0; c.since = this.time; c.lastPing = 0; c.killsAtStart = this.P.stats.kills; c.civAtStart = this.P.stats.civKills;
       this.contract = c;
       this.spawnTarget(c);
-      if (!silent) { this.emit('banner', { title: 'AUFTRAG ANGENOMMEN', sub: `Ziel: ${c.name}`, kind: 'red' }); this.emit('sfx', { s: 'accept' }); }
+      if (!silent) { this.emit('banner', { title: tr('CONTRACT ACCEPTED'), sub: tr('Target: {name}', { name: c.name }), kind: 'red' }); this.emit('sfx', { s: 'accept' }); }
       return true;
     },
     abortContract() {
       const c = this.contract; if (!c || c.status !== 'active') return;
       c.status = 'failed'; this.cleanupTarget(c);
-      this.emit('banner', { title: 'AUFTRAG ABGEBROCHEN', sub: c.name, kind: 'grey' });
+      this.emit('banner', { title: tr('CONTRACT ABORTED'), sub: c.name, kind: 'grey' });
       this.contract = null;
     },
     buyIntel() {
       const c = this.contract; if (!c || c.intel) return false;
       const cost = Math.round(c.reward * 0.1 / 50) * 50;
-      if (!this.pay(cost)) { this.notify('Nicht genug Geld für Intel.', 'bad'); return false; }
- c.intel = true; this.emit('sfx', { s: 'cash' }); this.notify(`Intel gekauft (−${U.money(cost)}). Ziel wird markiert.`, 'money');
+      if (!this.pay(cost)) { this.notify(tr('Not enough money for intel.'), 'bad'); return false; }
+ c.intel = true; this.emit('sfx', { s: 'cash' }); this.notify(tr('Intel bought (−{cost}). Target marked.', { cost: U.money(cost) }), 'money');
       return true;
     },
     spawnTarget(c) {
@@ -136,7 +138,7 @@
     ai_hide(a, dt) {
       a.brain.calm += dt;
       a.faceTo = a.angle + Math.sin(this.t) * 0.02;
-      if (a.brain.calm > 90) { a.state = 'routine'; a.brain.safe = null; a.brain.atStop = false; a.goal = null; this.bark(a, 'Ich glaube, sie sind weg.'); }
+      if (a.brain.calm > 90) { a.state = 'routine'; a.brain.safe = null; a.brain.atStop = false; a.goal = null; this.bark(a, tr('I think they’re gone.')); }
     },
 
     // ------------------------------------------------------------ bookkeeping
@@ -166,7 +168,7 @@
       if (c.status === 'active') {
         const t = this.byId.get(c.targetId);
         if (!t) { this.spawnTarget(c); return; }
-        if (this.time > c.deadline) { c.status = 'failed'; this.cleanupTarget(c); this.emit('banner', { title: 'AUFTRAG VERFEHLT', sub: 'Die Frist ist abgelaufen.', kind: 'grey' }); this.contract = null; return; }
+        if (this.time > c.deadline) { c.status = 'failed'; this.cleanupTarget(c); this.emit('banner', { title: tr('CONTRACT FAILED'), sub: tr('The deadline has passed.'), kind: 'grey' }); this.contract = null; return; }
         // rough location ping for the map without intel
         if (this.time - c.lastPing > 15 || !c.ping) { c.lastPing = this.time; c.ping = { x: t.x + U.rnd(-6, 6) * TILE, y: t.y + U.rnd(-6, 6) * TILE }; }
         return;
@@ -177,8 +179,8 @@
       const k = c.kill, n = c.notes, P = this.P;
       const lines = [];
       let pay = c.reward;
-      lines.push({ t: 'Grundhonorar', v: c.reward });
-      if (k.by !== 'player') { pay = Math.round(c.reward * 0.5); lines[0] = { t: 'Ziel tot (nicht durch dich) — halbes Honorar', v: pay }; }
+      lines.push({ t: tr('Base fee'), v: c.reward });
+      if (k.by !== 'player') { pay = Math.round(c.reward * 0.5); lines[0] = { t: tr('Target dead (not by you) — half fee'), v: pay }; }
       const extraKills = Math.max(0, (this.P.stats.kills - c.killsAtStart) - 1);
       const civPen = Math.min(pay * 0.6, (this.P.stats.civKills - (c.civAtStart || this.P.stats.civKills)) * 1500);
       const got = [];
@@ -196,18 +198,19 @@
           if (ok) { pay += v; got.push(b.id); }
         }
       }
-      if (civPen > 0) { lines.push({ t: 'Kollateralschaden', v: -civPen }); pay -= civPen; }
+      if (civPen > 0) { lines.push({ t: tr('Collateral damage'), v: -civPen }); pay -= civPen; }
       pay = Math.max(0, Math.round(pay));
-      let rating = 'AMATEUR';
-      if (got.includes('silent') && extraKills === 0) rating = 'LAUTLOSER ASSASSINE';
-      else if (n.spotted === 0) rating = 'PHANTOM';
-      else if (extraKills <= 2 && n.wanted < 2) rating = 'PROFI';
-      else if (extraKills > 6) rating = 'SCHLÄCHTER';
-      else if (n.wanted >= 3) rating = 'STAATSFEIND';
+      const SA = tr('SILENT ASSASSIN');
+      let rating = tr('AMATEUR');
+      if (got.includes('silent') && extraKills === 0) rating = SA;
+      else if (n.spotted === 0) rating = tr('GHOST');
+      else if (extraKills <= 2 && n.wanted < 2) rating = tr('PROFESSIONAL');
+      else if (extraKills > 6) rating = tr('BUTCHER');
+      else if (n.wanted >= 3) rating = tr('PUBLIC ENEMY');
       P.bank = (P.bank || 0) + pay; P.stats.contracts++; P.stats.earned += pay; this.contractsDone++;
-      if (rating === 'LAUTLOSER ASSASSINE') P.stats.silent++;
-      const xp = 120 + c.diff * 80 + got.length * 40 + (rating === 'LAUTLOSER ASSASSINE' ? 200 : 0);
-      this.addXP(xp, 'Auftrag');
+      if (rating === SA) P.stats.silent++;
+      const xp = 120 + c.diff * 80 + got.length * 40 + (rating === SA ? 200 : 0);
+      this.addXP(xp, tr('Contract'));
       c.status = 'done';
       this.emit('contractDone', { c, lines, pay, rating, xp });
       this.emit('sfx', { s: 'complete' });

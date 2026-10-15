@@ -1,6 +1,7 @@
 /* RDE // KONTRAKT — vehicles: arcade car physics, traffic on the lane graph, police pursuit, carjacking */
 (function (K) {
   'use strict';
+  const tr = K.tr;   // translate (K.T is the tile table)
   const U = K.U, T = K.T, TF = K.TF, TILE = K.TILE;
   const CARK = K.CARK = {
     sedan: { l: 64, w: 30, max: 430, acc: 250, colors: ['#8a1c22', '#1f3b63', '#d8d8d2', '#2b2d31', '#4e5a3a', '#6b6f78', '#0f2a24', '#7a5c2e'] },
@@ -499,14 +500,14 @@
     enterCar(c) {
       const a = this.player;
       const hadDriver = !!(c.driver && c.driver !== 'player');
-      if (c.display) return this.notify(`Ausstellungsstück — ${K.CARMODELS[c.display].name} gibt es beim Verkäufer im Autohaus.`, 'bad');
-      if (c.serviceLock) return this.notify('Der Wagen ist gerade auf der Bühne.', 'bad');
+      if (c.display) return this.notify(tr('Showroom car — get the {car} from the salesman at the dealership.', { car: K.CARMODELS[c.display].name }), 'bad');
+      if (c.serviceLock) return this.notify(tr("The car's up on the lift right now."), 'bad');
       if (c.service && this.svc && this.svc.car === c.id && this.serviceCancel) this.serviceCancel();
       if (c.driver && c.driver !== 'player') {
         const d = this.byId.get(c.driver);
         if (d) {
           this.ejectFrom(c, d, d.kind !== 'cop');
-          this.bark(d, d.kind === 'cop' ? 'Hey! Das ist ein Polizeiwagen!' : U.pick(['Mein Auto!!', 'Hilfe, Autodieb!', 'Nimm es, nimm es!']));
+          this.bark(d, d.kind === 'cop' ? tr("Hey! That's a police car!") : U.pick([tr('My car!!'), tr('Help, car thief!'), tr('Take it, take it!')]));
           this.crimeEvent(a, 'theft', c.x, c.y, d);
           if (d.kind === 'cop') { this.raiseWanted(2, 'assault'); this.alarm(d, a); }
         }
@@ -524,7 +525,7 @@
     exitCar(force) {
       const a = this.player, c = this.carOf(a);
       if (!c || c.driver !== 'player') { a.inCar = null; return; }
-      if (!force && c.speed > 120) return this.notify('Zu schnell zum Aussteigen!', 'bad');
+      if (!force && c.speed > 120) return this.notify(tr('Too fast to bail out!'), 'bad');
       a.inCar = null; c.driver = null; c.playerOwned = true; c.cruise = 0; c.boost = false;
       for (const s of [-1, 1]) {
         a.x = c.x - Math.sin(c.a) * (c.w / 2 + 14) * s; a.y = c.y + Math.cos(c.a) * (c.w / 2 + 14) * s;

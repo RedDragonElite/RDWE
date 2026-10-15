@@ -4,7 +4,7 @@ import fs from 'fs'; import vm from 'vm'; import path from 'path';
 let ok = 0, fail = 0;
 const check = (c, m) => { if (c) { ok++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
 const files = [];
-const walk = (d) => { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) walk(p); else if (p.endsWith('.js') && !p.includes('/lang/')) files.push(p); } };
+const walk = (d) => { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) walk(p); else if (p.endsWith('.js') && !p.includes('/lang/') && !p.endsWith('i18n.js')) files.push(p); } };
 walk('js');
 const load = (lang) => {
   const ctx = { console, Math, Date, JSON, globalThis: null, KONTRAKT_LANG: lang }; ctx.globalThis = ctx; vm.createContext(ctx);
@@ -15,7 +15,7 @@ const load = (lang) => {
 console.log('translation keys');
 {
   const K = load('de'), de = K.LANGS.de, keys = new Map();
-  const re = /\bT\(\s*(['"])((?:\\.|(?!\1).)*)\1/g;
+  const re = /\btr\(\s*(['"])((?:\\.|(?!\1).)*)\1/g;
   for (const f of files) { const s = fs.readFileSync(f, 'utf8'); let m; while ((m = re.exec(s))) { const k = m[2].replace(/\\(['"\\])/g, '$1').replace(/\\n/g, '\n'); keys.set(k, f); } }
   const html = fs.readFileSync('index.html', 'utf8');
   check(keys.size > 300, `${keys.size} T() keys in the code, ${Object.keys(de).length} German entries`);
@@ -24,10 +24,16 @@ console.log('translation keys');
   const ph = (s) => (s.match(/\{\w+\}/g) || []).sort().join(',');
   const badPh = Object.entries(de).filter(([k, v]) => ph(k) !== ph(v));
   check(badPh.length === 0, `placeholders match${badPh.length ? ' — ' + badPh.slice(0, 6).map(([k]) => `"${k}"`).join(', ') : ''}`);
-  const tpl = []; for (const f of files) { const s = fs.readFileSync(f, 'utf8'); const r = /\bT\(\s*`/g; let m; while ((m = r.exec(s))) tpl.push(f); }
+  const tpl = []; for (const f of files) { const s = fs.readFileSync(f, 'utf8'); const r = /\btr\(\s*`/g; let m; while ((m = r.exec(s))) tpl.push(f); }
   check(tpl.length === 0, `no template literals as keys${tpl.length ? ' — ' + [...new Set(tpl)].join(', ') : ''}`);
   const dataI18n = (html.match(/data-i18n/g) || []).length;
   check(dataI18n > 20, `${dataI18n} translatable elements in index.html`);
+  // static HTML keys: innerHTML of data-i18n elements, title/placeholder of data-i18n-title/-placeholder
+  const hk = [];
+  for (const m of html.matchAll(/<(\w+)\b([^>]*)\bdata-i18n\b(?!-)[^>]*>([\s\S]*?)<\/\1>/g)) hk.push(m[3].trim());
+  for (const a of ['title', 'placeholder']) for (const m of html.matchAll(new RegExp(`<[^>]*\\b${a}="([^"]*)"[^>]*\\bdata-i18n-${a}\\b[^>]*>`, 'g'))) hk.push(m[1]);
+  const hMiss = hk.filter((k) => de[k] == null);
+  check(hk.length === dataI18n && hMiss.length === 0, `every index.html text has a German translation (${hk.length})${hMiss.length ? ' — missing: ' + hMiss.slice(0, 8).map((k) => `"${k}"`).join(', ') : ''}`);
 }
 console.log('no German in the English build');
 {
