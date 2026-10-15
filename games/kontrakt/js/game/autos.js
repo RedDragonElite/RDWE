@@ -37,15 +37,70 @@
   K.carModel = (c) => K.CARMODELS[c.kind] || K.CARMODELS.sedan;
   K.carCls = (c) => K.CARCLS[K.carModel(c).cls] || K.CARCLS.sedan;
   K.KMH = 0.32;   // px/s → km/h on the dashboard
-  /** engine speed + gear from road speed (6-speed box) — drives the rev counter and the engine sound */
+  /** which recorded engine each model uses, and how that engine behaves */
+  K.ENGINE_SERIES = {
+    compact: 'su-mid', coupe: 'su-ss', sedan: 'b-i6r', taxi: 'b-i6r', police: 'b-i6r', muscle: 'gv8', sport: 'v8f',
+    super: 'v12d', suv: 'b-v8', pickup: 'ct-v8', van: 'ds8', ambulance: 'ds8', ev: 'electric',
+  };
+  //           idle, redline, gears, rev speed (rpm/s free-revving), sporty (overrun crackle), turbo flutter
+  K.DRIVE = {
+    'su-mid': { idle: 850, red: 7000, gears: 5, rev: 9000 }, 'su-ss': { idle: 900, red: 7600, gears: 6, rev: 11000, sporty: 1 },
+    'b-i6r': { idle: 750, red: 6800, gears: 6, rev: 8000 }, gv8: { idle: 700, red: 6300, gears: 5, rev: 7000, sporty: 1, flutter: 1 },
+    'ct-v8': { idle: 650, red: 5800, gears: 5, rev: 6000, flutter: 1 }, v8f: { idle: 1000, red: 8800, gears: 7, rev: 14000, sporty: 1 },
+    v12d: { idle: 950, red: 8600, gears: 7, rev: 12000, sporty: 1 }, 'b-v8': { idle: 700, red: 6000, gears: 6, rev: 6500, flutter: 1 },
+    ds8: { idle: 700, red: 4300, gears: 6, rev: 4000, flutter: 1 }, electric: { idle: 0, red: 11000, gears: 1, rev: 20000, ev: 1 },
+  };
+  K.driveOf = (c) => K.DRIVE[K.ENGINE_SERIES[c.kind] || 'b-i6r'] || K.DRIVE['b-i6r'];
+  /** engine speed and gear (simulated drivetrain when the car has one, otherwise estimated from road speed) */
   K.carRPM = function (c) {
     if (c.engineOn === false) return { rpm: 0, gear: 'N' };
-    const d = K.CARK[c.kind] || K.CARK.sedan, vf = c.vf || 0, thr = Math.abs(c.thr || 0), kmh = (c.speed || 0) * K.KMH;
-    if (vf < -8) return { rpm: U.clamp(1200 + -vf * 18, 900, 5200), gear: 'R' };
-    if (kmh < 2) return { rpm: 850 + thr * 3200, gear: 'N' };
-    const ratio = Math.abs(vf) / (d.max * 1.05), g = Math.min(6, 1 + Math.floor(ratio * 6)), band = Math.min(1, ratio * 6 - (g - 1));
-    const st = g === 1 ? 1200 : 3000;
-    return { rpm: U.clamp(st + band * (6800 - st) + thr * 400 + (c.boost ? 600 : 0), 900, 7900), gear: String(g) };
+    if (c.drv) return { rpm: c.drv.rpm, gear: c.drv.gearS, lim: c.drv.lim, cut: c.drv.cut > 0, boost: c.drv.boost };
+    const D = K.driveOf(c), d = K.CARK[c.kind] || K.CARK.sedan, vf = Math.abs(c.vf || 0);
+    const g = Math.max(1, Math.min(D.gears, Math.ceil(vf / (d.max * 1.05) * D.gears)));
+    return { rpm: Math.max(D.idle, D.red * 0.85 * vf / (d.max * Math.pow(g / D.gears, 0.8))), gear: String(g) };
+  };
+  /** an automatic gearbox with a real engine behind it: gear ratios, kick-down, a 0.2 s shift with
+   *  the throttle cut, clutch slip when pulling away, rev inertia, rev limiter, turbo boost with lag */
+  K.updateDrive = function (c, dt) {
+    const D = K.driveOf(c), d = K.CARK[c.kind] || K.CARK.sedan, dr = c.drv || (c.drv = { rpm: D.idle, gear: 1, gearS: 'N', shiftT: 0, cut: 0, lim: false, boost: 0, bov: 0 });
+    if (c.engineOn === false) { dr.rpm = Math.max(0, dr.rpm - dt * 4000); dr.boost = 0; dr.gearS = 'N'; return dr; }
+    const thr = Math.max(0, c.thr || 0), vf = c.vf || 0, v = Math.abs(vf), vmax = d.max * 1.15;   // top speed comes a little below the redline
+    const ratio = (g) => Math.pow(g / D.gears, 0.8);                    // share of top speed at the redline in gear g
+    const wheel = (g) => D.red * v / (vmax * ratio(g));                 // rpm the wheels force in gear g
+    dr.lim = false;
+    if (dr.shiftT > 0) dr.shiftT -= dt;
+    if (dr.cut > 0) dr.cut -= dt;
+    let target, lock = 14;
+    if (vf < -8) { dr.gearS = 'R'; target = Math.max(D.idle, wheel(1) * 1.2); }
+    else if ((v < 6 && thr < 0.05) || (c.hbOn && v < 40)) { dr.gearS = 'N'; dr.gear = 1; target = D.idle; lock = 4; }   // idling, or revving it on the handbrake
+    else {
+      // automatic: shift up early when cruising, near the redline at full throttle; kick down for a burst
+      const up = D.red * (0.33 + 0.6 * thr), down = Math.max(D.idle * 1.6, D.red * (0.2 + 0.4 * thr));
+      if (D.gears > 1 && dr.shiftT <= 0) {
+        if (dr.gear < D.gears && wheel(dr.gear) > up && vf > 0) { dr.gear++; dr.shiftT = 0.25; dr.cut = 0.16 + (thr > 0.8 ? 0 : 0.08); dr.shifted = (dr.shifted || 0) + 1; if (dr.boost > 0.35) dr.bov++; }
+        else if (dr.gear > 1 && wheel(dr.gear) < down && wheel(dr.gear - 1) < Math.min(D.red * 0.92, up * 0.9)) { dr.gear--; dr.shiftT = 0.3; dr.down = (dr.down || 0) + 1; }
+      }
+      dr.gearS = String(dr.gear);
+      target = wheel(dr.gear);
+      // pulling away: the clutch slips, revs rise ahead of the wheels
+      if (dr.gear === 1) { const slip = D.idle + thr * D.red * 0.42; if (target < slip) { target = U.lerp(target, slip, U.clamp(1 - v / 120, 0, 1)); lock = 8; } }
+      if (dr.cut > 0) target = Math.min(target, dr.rpm);                 // clutch open: the revs fall towards the next gear
+    }
+    // free revving at a standstill
+    if (dr.gearS === 'N' && thr > 0.05) { target = D.idle + thr * (D.red - D.idle); lock = 0; }
+    if (target >= D.red) { dr.lim = true; target = D.red - ((c.limPh = (c.limPh || 0) + dt * 14) % 1 < 0.5 ? 0 : 320); }
+    target = Math.max(D.idle * (dr.gearS === 'N' ? 1 : 0.92), target);
+    if (lock) dr.rpm += (target - dr.rpm) * Math.min(1, dt * lock);
+    else dr.rpm = target > dr.rpm ? Math.min(target, dr.rpm + D.rev * dt) : Math.max(target, dr.rpm - D.rev * 0.55 * dt);
+    if (D.ev) { dr.gearS = vf < -8 ? 'R' : v < 6 ? 'N' : 'D'; dr.rpm = Math.max(0, D.red * v / vmax); }
+    // turbo: spools with load and revs, dumps through the blow-off valve when you lift
+    if (c.tune && c.tune.turbo && !D.ev) {
+      const want = thr > 0.3 && dr.cut <= 0 ? U.clamp((dr.rpm - D.red * 0.3) / (D.red * 0.35), 0, 1) * thr : 0;
+      const b0 = dr.boost;
+      dr.boost += (want - dr.boost) * Math.min(1, dt * (want > dr.boost ? 1.6 : 7));
+      if (b0 > 0.45 && want < 0.1 && dr.cut <= 0) dr.bov++;
+    } else dr.boost = 0;
+    return dr;
   };
 
   // body outline (rounded rectangle) sampled into points with outward normals — dents push points inward
@@ -95,7 +150,7 @@
     /** combined performance multipliers from tuning, damage, heat, fuel and boost */
     carMods(c) {
       const t = c.tune || {}, d = K.CARK[c.kind] || {};
-      let acc = 1 + (t.engine || 0) * 0.08 + (t.trans || 0) * 0.05 + (t.turbo ? 0.15 : 0);
+      let acc = 1 + (t.engine || 0) * 0.08 + (t.trans || 0) * 0.05 + (t.turbo ? 0.15 : 0) + (t.exhaust || 0) * 0.03;
       let max = 1 + (t.engine || 0) * 0.04 + (t.trans || 0) * 0.03 + (t.turbo ? 0.05 : 0);
       let grip = (d.grip || 1) * (1 + (t.susp || 0) * 0.07 + (t.tires === 'sport' ? 0.12 : t.tires === 'drift' ? -0.38 : 0));
       const brake = 1 + (t.brakes || 0) * 0.2;

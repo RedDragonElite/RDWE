@@ -10,11 +10,7 @@
   const SERIES = {
     'su-mid': [1, 2, 3, 4, 5, 6, 7, 8], 'su-ss': [1, 2, 3, 4, 5, 6, 7, 8], 'b-i6r': [1, 2, 3, 4, 5, 6, 7, 8],
     gv8: [1, 2, 3, 4, 5, 6, 7], v8f: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], v12d: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    'b-v8': [1, 2, 3, 4, 5, 6, 7, 8], ds8: [0, 1, 2, 3, 4, 5], electric: [0, 1, 3, 7],
-  };
-  K.ENGINE_SERIES = {
-    compact: 'su-mid', coupe: 'su-ss', sedan: 'b-i6r', taxi: 'b-i6r', police: 'b-i6r', muscle: 'gv8', sport: 'v8f',
-    super: 'v12d', suv: 'b-v8', pickup: 'ds8', van: 'ds8', ambulance: 'ds8', ev: 'electric',
+    'b-v8': [1, 2, 3, 4, 5, 6, 7, 8], ds8: [0, 1, 2, 3, 4, 5], electric: [0, 1, 3, 7], 'ct-v8': [1, 2, 3, 4, 5, 6, 7],
   };
   const PAD = 0.15;
 
@@ -45,25 +41,33 @@
     }
 
     // ------------------------------------------------------------ engines
-    /** a sampled engine voice: one looping source per rpm step, weights crossfade with rpm */
+    /** a sampled engine voice: one looping recording per rpm step (crossfaded by rpm), then
+     *  bass shelf → exhaust rasp → load filter → gentle saturation; plus turbo whistle and air */
     mkEngine(series) {
       const c = this.a.ctx, steps = SERIES[series]; if (!steps) return null;
-      const e = { series, steps: [], out: c.createGain(), lp: c.createBiquadFilter(), pan: c.createStereoPanner(), sat: c.createWaveShaper() };
-      e.lp.type = 'lowpass'; e.lp.frequency.value = 2400; e.lp.Q.value = 0.5; e.out.gain.value = 0;
-      e.sat.curve = this.a.sat;
-      e.lp.connect(e.sat); e.sat.connect(e.out); e.out.connect(e.pan); e.pan.connect(this.a.sfx);
+      const bf = (type, f, q, g) => { const b = c.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; if (g != null) b.gain.value = g; return b; };
+      const e = { series, steps: [], mix: c.createGain(), bass: bf('lowshelf', 140, 0.7, 3), rasp: bf('peaking', 2300, 0.9, 0), lp: bf('lowpass', 6000, 0.6), sat: c.createWaveShaper(), out: c.createGain(), pan: c.createStereoPanner(), shots: 0, bovs: 0 };
+      const big = /v8|v12/.test(series);
+      e.bass.gain.value = big ? 5 : series === 'ds8' ? 4 : 2;
+      e.sat.curve = this.soft || (this.soft = (() => { const a = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; a[i] = Math.tanh(x * 1.4) / Math.tanh(1.4); } return a; })());
+      e.out.gain.value = 0;
+      e.mix.connect(e.bass); e.bass.connect(e.rasp); e.rasp.connect(e.lp); e.lp.connect(e.sat); e.sat.connect(e.out); e.out.connect(e.pan); e.pan.connect(this.a.sfx);
       for (const n of steps) {
         const b = this.buf[`e:${series}:${n}`]; if (!b) continue;
         const s = c.createBufferSource(), g = c.createGain();
         s.buffer = b; s.loop = true; s.loopStart = PAD; s.loopEnd = b.duration - PAD; g.gain.value = 0;
-        s.connect(g); g.connect(e.lp); s.start(c.currentTime + Math.random() * 0.05, PAD + Math.random() * 0.5);
+        s.connect(g); g.connect(e.mix); s.start(c.currentTime + Math.random() * 0.05, PAD + Math.random() * (b.duration - 2 * PAD));
         e.steps.push({ rpm: n === 0 ? 700 : n * 1000, s, g });
       }
       if (!e.steps.length) return null;
-      // turbo whistle loop
+      // turbo: a whistle that climbs with boost (the compressor wheel) and the rush of air
+      e.tw = c.createOscillator(); e.tw.type = 'sine'; e.tw.frequency.value = 3000;
+      e.tw2 = c.createOscillator(); e.tw2.type = 'sine'; e.tw2.frequency.value = 4500;
+      e.twg = c.createGain(); e.twg.gain.value = 0; const t2g = c.createGain(); t2g.gain.value = 0.35;
+      e.tw.connect(e.twg); e.tw2.connect(t2g); t2g.connect(e.twg); e.twg.connect(e.pan); e.tw.start(); e.tw2.start();
       if (this.buf.turbo2) {
-        const s = c.createBufferSource(), g = c.createGain(); s.buffer = this.buf.turbo2; s.loop = true; g.gain.value = 0;
-        s.connect(g); g.connect(e.pan); s.start(); e.turbo = { s, g };
+        const s = c.createBufferSource(), g = c.createGain(), f = bf('bandpass', 3500, 0.8); s.buffer = this.buf.turbo2; s.loop = true; g.gain.value = 0;
+        s.connect(f); f.connect(g); g.connect(e.pan); s.start(); e.air = { s, g, f };
       }
       return e;
     }
@@ -71,27 +75,56 @@
       if (!e) return;
       const t = this.a.ctx.currentTime;
       for (const st of e.steps) { st.g.gain.setTargetAtTime(0, t, 0.05); try { st.s.stop(t + 0.4); } catch (x) { /* already stopped */ } }
-      if (e.turbo) try { e.turbo.s.stop(t + 0.4); } catch (x) { /* already stopped */ }
+      for (const o of [e.tw, e.tw2, e.air && e.air.s]) if (o) try { o.stop(t + 0.4); } catch (x) { /* already stopped */ }
+      e.twg.gain.setTargetAtTime(0, t, 0.05);
       e.out.gain.setTargetAtTime(0, t, 0.05);
     }
-    /** drive the voice: rpm → which two recordings and at what speed; throttle → load (level + brightness) */
-    engineSet(e, rpm, thr, vol, t, turbo) {
+    /** drive the voice. st: rpm, load (0 = overrun … 1 = full throttle), red, lim, boost, sporty, pipe */
+    engineSet(e, st, vol, t) {
       const S = e.steps, last = S.length - 1;
-      rpm = U.clamp(rpm, S[0].rpm * 0.75, S[last].rpm * 1.08);
+      const rpm = U.clamp(st.rpm, S[0].rpm * 0.7, S[last].rpm * 1.35);
       let i = 0; while (i < last && S[i + 1].rpm <= rpm) i++;
       const j = Math.min(last, i + 1), f = j === i ? 0 : U.clamp((rpm - S[i].rpm) / (S[j].rpm - S[i].rpm), 0, 1);
       for (let k = 0; k <= last; k++) {
         const w = k === i ? Math.cos(f * Math.PI / 2) : k === j ? Math.sin(f * Math.PI / 2) : 0;
-        S[k].g.gain.setTargetAtTime(w, t, 0.04);
-        if (w > 0.001) S[k].s.playbackRate.setTargetAtTime(rpm / S[k].rpm, t, 0.04);
+        S[k].g.gain.setTargetAtTime(w, t, 0.03);
+        if (w > 0.001) S[k].s.playbackRate.setTargetAtTime(rpm / S[k].rpm, t, 0.025);
       }
-      const load = 0.45 + 0.55 * thr;
-      e.out.gain.setTargetAtTime(vol * load * 0.55, t, 0.06);
-      e.lp.frequency.setTargetAtTime(900 + thr * 3800 + rpm * 0.25, t, 0.08);
-      if (e.turbo) {
-        e.turbo.g.gain.setTargetAtTime(turbo ? vol * thr * 0.18 * U.clamp((rpm - 2500) / 3000, 0, 1) : 0, t, 0.12);
-        e.turbo.s.playbackRate.setTargetAtTime(0.7 + rpm / 9000, t, 0.1);
-      }
+      const L = st.load, hi = U.clamp(rpm / (st.red || 7000), 0, 1.1), pipe = st.pipe || 0;
+      // on the throttle the engine barks; off it (overrun) it goes hollow and quiet
+      let g = vol * (0.42 + 0.58 * L) * (0.5 + 0.5 * hi) * (1 + pipe * 0.25) * 0.62;
+      if (st.lim && Math.random() < 0.5) g *= 0.55;   // rev limiter stutter
+      e.out.gain.setTargetAtTime(g, t, st.lim ? 0.008 : 0.045);
+      e.lp.frequency.setTargetAtTime(U.lerp(1500 + rpm * 0.35, 5200 + rpm * 0.9 + pipe * 2500, L), t, 0.05);
+      e.rasp.gain.setTargetAtTime(L * ((st.sporty ? 4.5 : 2) + pipe * 2.5) * hi, t, 0.06);
+      const b = st.boost || 0;
+      e.twg.gain.setTargetAtTime(vol * Math.pow(b, 1.6) * 0.035, t, 0.08);
+      const tf = 2100 + b * 3200 + rpm * 0.12; e.tw.frequency.setTargetAtTime(tf, t, 0.12); e.tw2.frequency.setTargetAtTime(tf * 1.5, t, 0.12);
+      if (e.air) { e.air.g.gain.setTargetAtTime(vol * b * 0.12, t, 0.1); e.air.f.frequency.setTargetAtTime(2200 + b * 3500, t, 0.1); e.air.s.playbackRate.setTargetAtTime(0.8 + b * 0.6, t, 0.1); }
+    }
+    /** blow-off valve: "pssscht" — or the compressor surge flutter "stu-tu-tu-tu" without one */
+    blowOff(e, t, amt, flutter) {
+      const c = this.a.ctx, n = this.a.white; if (!n) return;
+      const s = c.createBufferSource(), f = c.createBiquadFilter(), h = c.createBiquadFilter(), g = c.createGain();
+      s.buffer = n; s.playbackRate.value = 1; f.type = 'bandpass'; f.Q.value = flutter ? 1.6 : 0.8; h.type = 'highpass'; h.frequency.value = flutter ? 500 : 1200;
+      const dur = flutter ? 0.55 : 0.42, a = Math.min(1, amt) * (flutter ? 0.3 : 0.2);
+      f.frequency.setValueAtTime(flutter ? 1500 : 4200, t); f.frequency.exponentialRampToValueAtTime(flutter ? 800 : 1700, t + dur);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a, t + 0.012);
+      if (flutter) { let q = t + 0.012, k = 0; while (q < t + dur) { const v = a * Math.exp(-(q - t) * 4.5); g.gain.setValueAtTime(v, q); g.gain.setValueAtTime(v * 0.12, q + 0.022); q += 0.042 + k * 0.004; k++; } g.gain.setValueAtTime(0.0001, t + dur); }
+      else g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+      s.connect(h); h.connect(f); f.connect(g); g.connect(e.pan); s.start(t); s.stop(t + dur + 0.05);
+    }
+    /** overrun crackle: unburnt fuel popping in the exhaust */
+    pop(e, t, amt) {
+      const c = this.a.ctx, n = this.a.white; if (!n) return;
+      const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      s.buffer = n; s.playbackRate.value = 0.6 + Math.random() * 0.8; f.type = 'bandpass'; f.frequency.value = 500 + Math.random() * 1500; f.Q.value = 1.1;
+      const d = 0.012 + Math.random() * 0.03;
+      g.gain.setValueAtTime(amt, t); g.gain.exponentialRampToValueAtTime(0.0005, t + d);
+      s.connect(f); f.connect(g); g.connect(e.pan); s.start(t, Math.random() * 1.5); s.stop(t + d + 0.02);
+      const o = c.createOscillator(), og = c.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(110 + Math.random() * 60, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.05);
+      og.gain.setValueAtTime(amt * 0.9, t); og.gain.exponentialRampToValueAtTime(0.0005, t + 0.06);
+      o.connect(og); og.connect(e.pan); o.start(t); o.stop(t + 0.08);
     }
 
     // ------------------------------------------------------------ gunshots (physical model)

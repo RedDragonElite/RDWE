@@ -111,8 +111,16 @@
         }
         else if (c.driver && !c.dead) { const dr = this.byId.get(c.driver); if (!dr || !dr.alive) { c.driver = null; } else [thr, steer, hb] = c.unit ? this.unitDrive(c, dt) : c.pursuit ? this.policeDrive(c, dt) : this.trafficDrive(c, dt); }
         if (c.serviceLock) thr = 0;
+        c.hbOn = hb;
         c.thr = thr; c.steer = U.lerp(c.steer, steer, Math.min(1, dt * 10));
         this.carPhysics(c, thr, c.steer, hb, dt);
+        if (c.driver && K.updateDrive) {
+          const dr = K.updateDrive(c, dt), D = K.driveOf(c);
+          // lift off after a hard pull: flames out of the exhaust on loud cars
+          if ((D.sporty || (c.tune && c.tune.exhaust)) && (dr.thrP || 0) > 0.6 && (c.thr || 0) < 0.08 && dr.rpm > D.red * 0.55) dr.flameT = 0.5 + (c.tune && c.tune.exhaust || 0) * 0.3;
+          if (dr.flameT > 0) { dr.flameT -= dt; if (Math.random() < dt * 9) this.emit('exhaustFlame', { x: c.x - Math.cos(c.a) * c.l / 2, y: c.y - Math.sin(c.a) * c.l / 2, a: c.a, small: true }); }
+          dr.thrP = c.thr || 0;
+        }
         if (c.yawT > 0 && this.applyYawKick) this.applyYawKick(c, dt);
       }
       this.carCollisions(dt);

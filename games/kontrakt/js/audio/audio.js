@@ -356,15 +356,26 @@
         if (!e.sm) e.sm = this.smp.mkEngine(series);
         if (e.sm) {
           set(e.g.gain, 0, 0.1); set(e.ng.gain, 0, 0.1); set(e.tg.gain, 0, 0.1); set(e.amG.gain, 0, 0.1);
-          const r = K.carRPM ? K.carRPM(car) : { rpm: 1000, gear: '1' }, thr = Math.abs(car.thr || 0);
-          const ev = series === 'electric', rpm = ev ? 700 + (car.speed || 0) * 22 : r.rpm;
-          this.smp.engineSet(e.sm, rpm, car.sputter > 0 ? thr * 0.2 : thr, vol * (car.sputter > 0 ? 0.35 : 1), t, car.tune && car.tune.turbo);
+          const D = K.driveOf ? K.driveOf(car) : { idle: 800, red: 7000 }, r = K.carRPM(car), tu = car.tune || {};
+          const thr = Math.max(0, car.thr || 0) * (car.sputter > 0 ? 0.2 : 1), load = r.cut ? 0 : thr, pipe = tu.exhaust || 0;
+          const sporty = !!(D.sporty || pipe), dr = car.drv || {};
+          this.smp.engineSet(e.sm, { rpm: Math.max(r.rpm || 0, D.ev ? 700 : D.idle * 0.9), load, red: D.red, lim: r.lim, boost: r.boost || 0, sporty, pipe }, vol * (car.sputter > 0 ? 0.35 : 1), t);
           e.sm.pan.pan.setTargetAtTime(e.pan.pan.value, t, 0.1);
-          if (vol >= 1 && r.gear !== e.gear && /\d/.test(r.gear) && /\d/.test(e.gear) && +r.gear > +e.gear && !ev) {
-            // upshift: the revs drop for a moment and the box clunks
-            e.sm.out.gain.cancelScheduledValues(t); e.sm.out.gain.setValueAtTime(e.sm.out.gain.value * 0.4, t); e.sm.out.gain.linearRampToValueAtTime(vol * 0.5, t + 0.16);
-            const g = this.out(null, null, 0.25); if (g) this.smp.play('gear_shift1', g, t, 0.8);
+          if (vol > 0.04 && !D.ev) {
+            // gear changes: the box clunks (you hear it in your own car), sporty engines bark on the shift
+            if (dr.shifted != null && e.shifts != null && dr.shifted > e.shifts) {
+              if (vol >= 1) { const g = this.out(null, null, 0.18); if (g) this.smp.play('gear_shift1', g, t + 0.02, 0.6); }
+              if (sporty && thr > 0.8) for (let k = 0; k < 1 + pipe; k++) this.smp.pop(e.sm, t + 0.03 + k * 0.05 + Math.random() * 0.03, vol * 0.5);
+            }
+            // turbo: blow-off on every lift and shift under boost
+            if (dr.bov != null && e.bovs != null && dr.bov > e.bovs) this.smp.blowOff(e.sm, t + 0.01, vol * (0.55 + 0.45 * Math.min(1, e.boost || 0)), tu.turbo === 2);
+            // overrun crackle after a hard pull
+            if (sporty && e.thr > 0.6 && thr < 0.08 && r.rpm > D.red * 0.5) {
+              const n = 3 + Math.floor(Math.random() * (4 + pipe * 4));
+              for (let k = 0; k < n; k++) this.smp.pop(e.sm, t + 0.05 + Math.random() * (0.6 + pipe * 0.4), vol * (0.25 + Math.random() * 0.4) * (0.7 + pipe * 0.3));
+            }
           }
+          e.shifts = dr.shifted || 0; e.bovs = dr.bov || 0; e.boost = r.boost || 0;
           e.gear = r.gear; e.thr = thr;
           return;
         }

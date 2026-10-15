@@ -46,7 +46,7 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Die Müllabfuhr leert jeden zweiten Morgen um 06:00 die Container, samt der Leichen darin. Manchmal meldet der Polizeifunk den Fund.
   - In deiner Nähe kommen die Teams mit eigenem Wagen und erledigen den Job zu Fuß. Woanders in der Stadt passiert es einfach.
 - **Tag-Nacht-Zyklus:** 1 Sekunde Echtzeit entspricht 1 Spielminute.
-  - Straßenlaternen, beleuchtete Fenster, Neonschilder und Scheinwerfer
+  - Straßenlaternen, beleuchtete Fenster, Neonschilder und Scheinwerfer: jedes Auto wirft zwei Lichtkegel, einen aus jeder Lampe, und hat zwei Rückleuchten
   - Sonnenschatten, die mit der Tageszeit wandern
 - **Wetter:** klar, bewölkt, Regen, Gewitter mit Blitz und Donner, Nebel.
   - Regen dämpft Schüsse und Schritte, Nebel senkt Sichtweiten, nasse Straßen spiegeln das Licht.
@@ -310,7 +310,8 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - In eine Bühne fahren, dann T drücken.
   - Reparatur mit Preis und Dauer: Ein Mechaniker läuft zur Haube, Funken fliegen, alles wird Stück für Stück wieder heil.
   - Tuning mit Vorschau, erst „✅ Kaufen“ oder „❌ Abbrechen“ macht es fest. Preise skalieren mit der Fahrzeugklasse.
-    - Leistung: Motor 1–4, Getriebe, Bremsen, Fahrwerk, Panzerung 1–4, Turbo, Sport-, Drift- oder kugelsichere Reifen, Nitro.
+    - Leistung: Motor 1–4, Getriebe, Bremsen, Fahrwerk, Panzerung 1–4, Turbo (mit Blow-off-Ventil oder flatternd), Auspuff (Sport oder Straight Pipe, mit sichtbaren Endrohren), Sport-, Drift- oder kugelsichere Reifen, Nitro.
+    - Tunst du ein Auto, das dir noch nicht gehört (zum Beispiel ein geklautes), kommt es in deinen Fuhrpark. Das Tuning wird mit dem Spielstand gespeichert.
     - Lack: 22 Farben in Klassik, Matt, Metallic, Spezial und Chrom, dazu Streifen und Felgen.
     - Licht: Xenon und 14 Neon-Unterbodenfarben.
     - Karosserie: Spoiler, Haube, Tönung, Hupen.
@@ -397,18 +398,21 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Instinkt-Entsättigung (Rot bleibt), Trunkenheits-Wabern, Film-Grain
 - **Dynamische Auflösung** hält die Framerate.
 - **Prozeduraler 3D-Sound:**
-  - **Echte Motor-Aufnahmen:** Boxer-Vierzylinder, Reihensechser, verschiedene V8, V12, Diesel und Elektro. Sie sind bei festen Drehzahlen aufgenommen und werden live nach Drehzahl überblendet und in der Tonhöhe angepasst. Dazu Turbo-Pfeifen, Schaltrucke und echte Metall-Crashes. Quellen siehe `sfx/CREDITS.md` (CC BY 4.0 / CC0).
+  - **Echte Motor-Aufnahmen:** Boxer-Vierzylinder, Reihensechser, verschiedene V8 (auch Crossplane im Pickup), V12, Diesel und Elektro.
+    - Aufgenommen bei festen Drehzahlen, als nahtlose 2,4-Sekunden-Loops in voller Qualität (44,1 kHz), live nach Drehzahl überblendet.
+    - Dahinter läuft ein echtes Getriebe-Modell: Gangstufen je Motor (5 bis 7 Gänge), frühes Schalten beim Cruisen und spätes bei Vollgas, Kick-down, Schleifkupplung beim Anfahren, Drehzahl-Trägheit beim Gasgeben im Stand und ein stotternder Drehzahlbegrenzer.
+    - Unter Last bellt der Motor mit Bass und Auspuff-Rasp, im Schub klingt er hohl und leise. Beim Hochschalten fällt die Drehzahl, die Zugkraft setzt kurz aus und das Getriebe klackt.
+    - Sportmotoren und Sportauspuffe knallen beim Gaswegnehmen (mit Flammen aus dem Auspuff) und beim Schalten unter Vollgas.
+    - **Turbo:** Der Lader pfeift mit dem Ladedruck hoch, der mit Verzögerung aufgebaut wird. Beim Schalten und Gaswegnehmen zischt das Blow-off-Ventil, oder der Lader flattert („stu-tu-tu“), wenn du die Variante ohne Ventil einbaust.
+    - Dazu echte Metall-Crashes. Quellen siehe `sfx/CREDITS.md` (CC BY 4.0 / CC0).
   - **Schüsse als physikalisches Modell** statt Synthesizer-Tönen: Friedlander-Druckwelle, Bodenreflexion, Fassaden-Echos, Stadt-Nachhall und übersteuertes Mikrofon. Je Waffe werden drei Varianten nah und eine aus der Ferne vorberechnet.
   - **Schüsse in Schichten** je Waffe:
     - Verschlussklick, Überschallknall, gesättigter Mündungsknall, tiefer Wumms und Körper
     - Bei Repetierern hörst du den Kammerstängel.
   - Ferne Schüsse kommen mit Schallverzögerung an, dumpfer, mit Echo von den Fassaden; drinnen mit Raumhall.
   - **Martinshorn:** Zweiton (A–D) mit Doppler-Effekt und Entfernungsfilter statt Dauerjaulen; im eigenen Streifenwagen leise.
-  - **Motor-Synthese nach Drehzahl:**
-    - 6-Gang-Getriebe, Zylinderzahl je Modell (Vierzylinder bis V12), Ansaugrauschen
-    - Turbo-Pfeifen mit Blow-off, Schaltrucke, Fehlzündungen beim Gaswegnehmen
-    - Elektroauto mit Surren
-    - Das nächste Auto im Verkehr hat eine eigene Motorstimme.
+  - Ohne geladene Aufnahmen (z. B. über `file://`) springt eine Motor-Synthese ein.
+  - Das nächste Auto im Verkehr hat eine eigene Motorstimme mit eigenem Getriebe.
   - Atem anhalten und Keuchen beim Zielen
   - Schritte je nach Untergrund, Hülsen, Glas, Explosionen mit Ohrenklingeln
   - Sirenen, Motor, Regen, Wind, Grillen nachts im Park, Möwen am Hafen, Club-Bass

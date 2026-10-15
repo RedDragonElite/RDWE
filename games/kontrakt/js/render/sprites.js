@@ -315,6 +315,7 @@
     x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(cab1 - 4, -hw + 7, 2, Wd / 2 - 6);
     if ((c.crack || 0) > 30) { x.strokeStyle = 'rgba(235,245,255,0.7)'; x.lineWidth = 0.6; x.beginPath(); const cx0 = cab1 - 1, cy0 = -2; for (let k = 0; k < 5; k++) { const a = k * 1.25 + 0.3; x.moveTo(cx0, cy0); x.lineTo(cx0 + Math.cos(a) * 5, cy0 + Math.sin(a) * 6); } x.stroke(); }
     // hood: scoop / carbon / crumple
+    if (tu.exhaust) { x.fillStyle = '#c9ced4'; const ex = tu.exhaust === 2 ? [[-4.5, 3.6], [1, 3.6]] : [[-hw + 7, 2.6], [hw - 9.6, 2.6]]; for (const [y0, wd] of ex) x.fillRect(-hl - 2.5, y0, 3.5, wd); x.fillStyle = '#16171a'; for (const [y0, wd] of ex) x.fillRect(-hl - 2.5, y0 + 0.7, 1.4, wd - 1.4); }
     if (tu.hood === 1) { x.fillStyle = 'rgba(0,0,0,0.55)'; rr(x, cab1 + 7, -3.5, 8, 7, 2); x.fill(); }
     if (tu.hood === 2) { x.save(); x.beginPath(); x.rect(cab1 + 4, -hw + 4, hl - cab1 - 6, Wd - 8); x.clip(); for (let i = 0; i < 12; i++) for (let j = 0; j < 8; j++) { x.fillStyle = (i + j) & 1 ? '#1b1c1f' : '#2a2c30'; x.fillRect(cab1 + 4 + i * 2.5, -hw + 4 + j * 3, 2.5, 3); } x.restore(); }
     if (dents && pts) {

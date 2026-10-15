@@ -22,7 +22,8 @@
       { id: 'brakes', name: 'Bremsen', price: 1500, opts: lv(3) },
       { id: 'susp', name: 'Fahrwerk', price: 1800, opts: lv(3) },
       { id: 'armor', name: 'Panzerung', price: 3000, opts: lv(4), desc: '−15% Schaden pro Stufe' },
-      { id: 'turbo', name: 'Turbo', price: 5000, opts: [{ v: 0, name: 'Ohne' }, { v: 1, name: 'Turbolader' }] },
+      { id: 'turbo', name: 'Turbo', price: 5000, opts: [{ v: 0, name: 'Ohne' }, { v: 1, name: 'Turbo + Blow-off-Ventil' }, { v: 2, name: 'Turbo, flatternd (ohne Ventil)' }], desc: 'Pfeift beim Hochdrehen, zischt oder flattert beim Schalten und Gaswegnehmen' },
+      { id: 'exhaust', name: 'Auspuff', price: 1800, opts: [{ v: 0, name: 'Serie' }, { v: 1, name: 'Sportauspuff' }, { v: 2, name: 'Straight Pipe', p: 3200 }], desc: 'Lauter, rauer, knallt beim Gaswegnehmen' },
       { id: 'tires', name: 'Reifen', price: 2000, opts: [{ v: 0, name: 'Serie' }, { v: 'sport', name: 'Sportreifen', p: 2000 }, { v: 'drift', name: 'Driftreifen', p: 3500 }, { v: 'bulletproof', name: 'Kugelsicher', p: 4500 }] },
       { id: 'nitro', name: 'Nitro', price: 7500, opts: [{ v: 0, name: 'Ohne' }, { v: 1, name: 'NOS-System' }], desc: 'Shift im Auto: Boost' },
     ] },
@@ -64,6 +65,17 @@
         if (!c) { if (!this.cars.some((q) => q.ownId === r.id)) continue; r.state = 'destroyed'; continue; }
         Object.assign(r, { x: c.x, y: c.y, a: c.a, color: c.color, tune: c.tune, fuel: c.fuel, eng: c.eng, bodyHP: c.bodyHP, hp: c.hp, tires: c.tires.slice(), dents: c.dents.slice(), crack: c.crack, lightsOK: c.lightsOK.slice(), odo: c.odo, tank: c.tank });
       }
+    },
+    /** a car you had tuned is yours now: it goes into the garage list and is saved like a bought one */
+    adoptCar(c) {
+      if (c.ownId || c.display || c.kind === 'police' || c.kind === 'ambulance' || c.svc) return null;
+      const P = this.P, M = K.CARMODELS[c.kind]; P.carSeq = (P.carSeq || 0) + 1;
+      c.plate = c.plate || plate();
+      const r = { id: P.carSeq, kind: c.kind, name: M ? M.name : c.kind, color: c.color, plate: c.plate, tune: c.tune || {}, fuel: c.fuel ?? 100, state: 'out', x: c.x, y: c.y, a: c.a, bought: this.today(), stolen: !c.owned };
+      this.ownedCars().push(r);
+      c.owned = true; c.ownId = r.id; c.playerOwned = true;
+      this.notify(`In deinen Fuhrpark übernommen — Kennzeichen ${r.plate}. Tuning bleibt gespeichert.`, 'good');
+      return r;
     },
     spawnOwned(r, x, y, a) {
       const c = this.spawnCar(r.kind, x, y, a, { color: r.color, parked: true });
@@ -230,7 +242,7 @@
       const price = K.tunePrice(c, part, opt);
       if (!this.pay(price)) { this.notify('Nicht genug Geld.', 'bad'); return false; }
       this.applyTune(c, partId, opt);
-      const r = this.ownRec(c); if (r) { r.tune = c.tune; r.color = c.color; }
+      const r = this.ownRec(c) || this.adoptCar(c); if (r) { r.tune = c.tune; r.color = c.color; }
       this.emit('sfx', { s: 'purchase' });
       this.notify(`${part.name}: ${opt.name} eingebaut (−${U.money(price)})`, 'good');
       return true;

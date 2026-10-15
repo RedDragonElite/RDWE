@@ -762,15 +762,28 @@
       for (const c of w.cars) {
         if (c.dead || c.x < vx0 - 300 || c.x > vx1 + 300 || c.y < vy0 - 300 || c.y > vy1 + 300) continue;
         if (c.lightsOn) {
-          const ok = c.lightsOK || [1, 1, 1, 1], n = ok[0] + ok[1];
-          if (n) {
-            const hi = c.highBeam ? 1.55 : 1;
-            l.save(); l.translate(c.x + Math.cos(c.a) * c.l / 2, c.y + Math.sin(c.a) * c.l / 2); l.rotate(c.a);
-            l.globalAlpha = 0.85 * nightK * (n / 2); l.drawImage(K.coneSprite(), 0, -70 * hi * 0.9, 260 * hi, 140 * hi * 0.9);
-            if (c.tune && c.tune.xenon) { l.globalAlpha = 0.35 * nightK; l.drawImage(K.lightSprite(U.hex2rgb(c.tune.xenon)), 20, -60, 200, 120); }
+          const ok = c.lightsOK || [1, 1, 1, 1], hw = c.w / 2 - 6;
+          if (ok[0] || ok[1]) {
+            // one beam per headlamp, each from its own lamp, aimed a touch outwards; they overlap ahead
+            const hi = c.highBeam ? 1.55 : 1, xen = c.tune && c.tune.xenon ? K.lightSprite(U.hex2rgb(c.tune.xenon)) : null;
+            l.save(); l.translate(c.x + Math.cos(c.a) * (c.l / 2 - 2), c.y + Math.sin(c.a) * (c.l / 2 - 2)); l.rotate(c.a);
+            for (const [side, on] of [[-1, ok[0]], [1, ok[1]]]) {
+              if (!on) continue;
+              l.save(); l.translate(0, side * hw); l.rotate(side * (c.highBeam ? 0.03 : 0.07));
+              l.globalAlpha = 0.62 * nightK; l.drawImage(K.coneSprite(), 0, -44 * hi, 250 * hi, 88 * hi);
+              l.globalAlpha = 0.8 * nightK; l.drawImage(K.lightSprite([255, 248, 225]), -9, -9, 18, 18);   // the lamp itself
+              if (xen) { l.globalAlpha = 0.3 * nightK; l.drawImage(xen, 16, -36, 170, 72); }
+              l.restore();
+            }
             l.restore();
           }
-          l.globalAlpha = 0.5 * nightK; const rs = K.lightSprite(c.brake ? [255, 30, 30] : [180, 20, 20]); l.drawImage(rs, c.x - Math.cos(c.a) * c.l / 2 - 26, c.y - Math.sin(c.a) * c.l / 2 - 26, 52, 52);
+          // two tail lights
+          l.globalAlpha = (c.brake ? 0.65 : 0.42) * nightK; const rs = K.lightSprite(c.brake ? [255, 30, 30] : [180, 20, 20]);
+          for (const [side, on] of [[-1, ok[2]], [1, ok[3]]]) {
+            if (!on) continue;
+            const bx = c.x - Math.cos(c.a) * c.l / 2 - Math.sin(c.a) * side * hw, by = c.y - Math.sin(c.a) * c.l / 2 + Math.cos(c.a) * side * hw;
+            l.drawImage(rs, bx - 20, by - 20, 40, 40);
+          }
         }
         if (c.tune && c.tune.neon) { l.globalAlpha = 0.75; l.drawImage(K.lightSprite(U.hex2rgb(c.tune.neon)), c.x - 70, c.y - 70, 140, 140); }
         if (c.blink && Math.floor(this.time / 0.55) % 2 === 0) { l.globalAlpha = 0.6; l.drawImage(K.lightSprite([255, 170, 30]), c.x - 30, c.y - 30, 60, 60); }
@@ -1165,7 +1178,7 @@
         case 'glass': fx.glass(e.x, e.y, 14); fx.decal('glass', e.x, e.y); break;
         case 'sparks': fx.sparks(e.x, e.y, Math.random() * 6.3, 4); break;
         case 'carSmoke': fx.smoke(e.x, e.y, 1, e.k >= 3 ? 1 : 0); if (e.k >= 3 && Math.random() < 0.3) fx.fire(e.x, e.y, 1); break;
-        case 'exhaustFlame': fx.fire(e.x, e.y, 2); fx.light(e.x, e.y, 70, [180, 120, 255], 0.6, 0.1); break;
+        case 'exhaustFlame': if (e.small) { fx.fire(e.x, e.y, 1); fx.light(e.x, e.y, 50, [255, 150, 60], 0.5, 0.08); } else { fx.fire(e.x, e.y, 2); fx.light(e.x, e.y, 70, [180, 120, 255], 0.6, 0.1); } break;
         case 'geyser': fx.add({ k: 'smoke', x: e.x + U.rnd(-4, 4), y: e.y + U.rnd(-4, 4), vx: U.rnd(-40, 40), vy: U.rnd(-90, -30), life: 0.7, max: 0.7, size: 3, grow: 10, col: [170, 210, 255], a: 0.7 }); if (Math.random() < 0.1) fx.decal('drop', e.x + U.rnd(-30, 30), e.y + U.rnd(-30, 30), { s: 2, col: 'water' }); break;
         case 'tireBurst': fx.sparks(e.x, e.y, Math.random() * 6.3, 8); fx.dust(e.x, e.y, 4, [60, 60, 60]); break;
         case 'clean': fx.clean(e.x, e.y, e.r, e.k); break;

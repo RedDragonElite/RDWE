@@ -287,7 +287,7 @@
         if (digital != null) { x.fillStyle = '#fff'; x.font = `700 ${r > 60 ? 18 : 13}px Inter, sans-serif`; x.fillText(digital, cx, cy + r * 0.66); if (unit) { x.fillStyle = '#888'; x.font = '600 8px Inter, sans-serif'; x.fillText(unit, cx, cy + r * 0.66 + 12); } }
       };
       gauge(82, 92, 66, kmh, 280, 40, 'KM/H', null, '', String(Math.round(kmh)));
-      gauge(226, 92, 66, this.rpmS, 8, 1, 'U/MIN ×1000', 7, '', null);
+      { const D = K.driveOf ? K.driveOf(c) : { red: 7000 }, mx = Math.ceil(D.red / 1000 + 0.6); gauge(226, 92, 66, this.rpmS, mx, mx > 9 ? 2 : 1, 'U/MIN ×1000', D.red / 1000, '', null); }
       // centre panel
       panel(306, 14, 178, 148);
       const blinkOn = Math.floor(t / 0.55) % 2 === 0;

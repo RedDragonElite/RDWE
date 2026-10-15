@@ -124,5 +124,49 @@ console.log('8) rde_carservice: pickup to the garage, delivery back');
   check(w.svc.stage === 'done' && Math.hypot(c2.x - p.x, c2.y - p.y) < 14 * TILE, `delivered and keys handed over (${Math.round(Math.hypot(c2.x - p.x, c2.y - p.y) / TILE)} tiles)`);
   check(c2.tune.engine === 4 && c2.tune.neon, 'tuning came along');
 }
+console.log('9) tuning survives saving — bought and stolen cars');
+{
+  const { w } = bought; w.P.money = 100000;
+  const p = w.player, st = w.spawnCar('coupe', p.x + 3 * TILE, p.y, 0, { parked: true });
+  w.enterCar(st); w.exitCar(true); run(w, 5);
+  check(w.buyTune(st, 'turbo', 1) && w.buyTune(st, 'neon', 1), 'tuned a stolen car');
+  check(!!w.ownRec(st), `it joined your garage (${w.ownRec(st) && w.ownRec(st).plate})`);
+  const save = JSON.parse(JSON.stringify(w.serialize()));
+  const w2 = new K.World({ seed: w.seed, save }); run(w2, 120);
+  const recs = w2.ownedCars();
+  const r1 = recs.find((r) => r.plate === w.ownRec(st).plate), c1 = r1 && w2.worldCarOf(r1);
+  check(!!(r1 && r1.tune.turbo && r1.tune.neon), 'its tuning is in the save');
+  check(!!(c1 && c1.tune.turbo && c1.tune.neon), 'after loading it stands there, still tuned');
+  const r2 = recs.find((r) => r.tune && r.tune.engine === 4);
+  check(!!r2, 'the bought car kept engine stage 4');
+}
+console.log('10) drivetrain: gears, kick-down, limiter, turbo');
+{
+  const sim = (kind, tune, plan, secs) => {
+    const c = { kind, vx: 0, vy: 0, vf: 0, speed: 0, thr: 0, engineOn: true, tune }, d = K.CARK[kind], log = [];
+    for (let i = 0; i < secs * 60; i++) {
+      const t = i / 60, thr = plan(t); let vf = c.vf;
+      vf += (thr > 0 ? d.acc * thr * (c.drv && c.drv.cut > 0 ? 0.3 : 1) : -90) / 60; vf = Math.max(0, Math.min(vf, d.max)); vf *= 1 - 0.25 / 60;
+      c.vf = c.vx = c.speed = vf; c.thr = thr; K.updateDrive(c, 1 / 60); log.push({ t, ...K.carRPM(c), bov: c.drv.bov, sh: c.drv.shifted || 0 });
+    }
+    return { c, log };
+  };
+  const D = K.driveOf({ kind: 'sport' });
+  const full = sim('sport', { turbo: 1 }, () => 1, 10);
+  const gears = new Set(full.log.map((q) => q.gear));
+  check(gears.size >= 6, `full throttle runs up through the gears (${[...gears].join(' ')})`);
+  const atShift = full.log.filter((q, i) => i && q.gear !== full.log[i - 1].gear && /\d/.test(q.gear)).map((q, i) => full.log[full.log.indexOf(q) - 1].rpm);
+  check(atShift.slice(1).every((r) => r > D.red * 0.8), `…shifting near the redline (${atShift.map((r) => Math.round(r)).join(', ')})`);
+  const easy = sim('sport', {}, () => 0.3, 10), up = easy.log.filter((q, i) => i && q.gear !== easy.log[i - 1].gear && /\d/.test(easy.log[i - 1].gear)).map((q) => easy.log[easy.log.indexOf(q) - 1].rpm);
+  check(up.length && up.every((r) => r < D.red * 0.65), `cruising it shifts early (${up.map((r) => Math.round(r)).join(', ')})`);
+  check(full.c.drv.bov >= 3, `turbo blow-off on shifts (${full.c.drv.bov}×)`);
+  check(Math.max(...full.log.map((q) => q.boost || 0)) > 0.8, 'boost builds up');
+  const rev = sim('muscle', {}, (t) => (t < 0.2 ? 0 : 1), 3);
+  // standing still, full throttle → it hits the limiter (no speed: the physics stub won't move without a gear… keep it parked)
+  const park = { kind: 'muscle', vx: 0, vy: 0, vf: 0, speed: 0, thr: 1, engineOn: true, tune: {}, hbOn: true }; let lim = 0;
+  for (let i = 0; i < 180; i++) { K.updateDrive(park, 1 / 60); if (park.drv.lim) lim++; }
+  check(lim > 30 && park.drv.gearS === 'N', `revving on the handbrake bounces off the limiter (${lim} frames)`);
+  check(rev.log.some((q) => q.gear === '1' && q.rpm > 2000 && q.rpm < 6000), 'pulling away the clutch slips');
+}
 console.log(`\n${ok} ok, ${fail} failed`);
 process.exit(fail ? 1 : 0);
