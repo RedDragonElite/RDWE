@@ -120,5 +120,29 @@ console.log('pursuit: roadblock, spikes, PIT');
   const a0 = car.a; car.yawKick = 3.2; car.yawT = 0.55; for (let i = 0; i < 30; i++) w.applyYawKick(car, 1 / 60);
   check(Math.abs(U.angDiff(car.a, a0)) > 0.8, `a PIT kicks the tail out (${Math.abs(U.angDiff(car.a, a0)).toFixed(2)} rad)`);
 }
+console.log('self-defence');
+{
+  const w = mk(); w.updatePolice = () => {}; w.forceCalls = true;
+  const p = w.player; w.godMode = true;
+  const civ = w.actors.find((a) => a.kind === 'civ' && a.alive && !a.inCar && w.bldAt(a.x, a.y) < 0);
+  p.x = civ.x + 40; p.y = civ.y; w.rebuildGrid();
+  // a thug jumps you, punches you; you fight back and knock him down — in front of witnesses
+  const thug = w.spawnActor('gang', p.x - 30, p.y, { weapon: 'fists', state: 'idle' });
+  w.hurt(p, 5, thug, { kind: 'melee' });
+  w.equipWeapon && w.equipWeapon('fists');
+  for (let k = 0; k < 8 && thug.alive && thug.ko <= 0; k++) w.hurt(thug, 30, p, { kind: 'melee', blunt: true });
+  run(w, 60 * 12);
+  check(w.wanted === 0, `fighting back against an attacker is self-defence (wanted ${w.wanted})`);
+  // but starting it yourself is a crime
+  const w2 = mk(); w2.updatePolice = () => {}; w2.forceCalls = true;
+  const p2 = w2.player; const c2 = w2.actors.find((a) => a.kind === 'civ' && a.alive && !a.inCar && w2.bldAt(a.x, a.y) < 0);
+  p2.x = c2.x + 40; p2.y = c2.y; w2.rebuildGrid();
+  const v = w2.spawnActor('civ', p2.x - 30, p2.y, { state: 'idle' });
+  w2.hurt(v, 20, p2, { kind: 'melee' });
+  w2.hurt(p2, 3, v, { kind: 'melee' });   // he hits back
+  for (let k = 0; k < 8 && v.alive && v.ko <= 0; k++) w2.hurt(v, 30, p2, { kind: 'melee', blunt: true });
+  let n = 0; while (w2.wanted < 1 && n++ < 60 * 12) run(w2, 1);
+  check(w2.wanted >= 1, `attacking someone first still gets you wanted (${w2.wanted})`);
+}
 console.log(`\n${ok} ok, ${fail} failed`);
 process.exit(fail ? 1 : 0);

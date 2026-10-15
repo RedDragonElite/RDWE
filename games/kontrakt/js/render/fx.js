@@ -28,6 +28,7 @@
         const k = i * 1000 + j;
         let c = this.decals.get(k);
         if (!c) { c = K.mkCanvas(DC, DC); c._x = i * DC; c._y = j * DC; this.decals.set(k, c); }
+        c._age = Math.min(c._age || 0, 300);   // fresh dirt keeps the chunk around a while longer
         const ctx = c.getContext('2d');
         ctx.save(); ctx.translate(-i * DC, -j * DC); fn(ctx); ctx.restore();
       }
@@ -85,26 +86,24 @@
       });
     }
     /** blood, skid marks and shell casings weather away: a dry street keeps them about a game day,
-     *  rain washes them off in a few hours. Chunks are visited round-robin and lose alpha linearly,
-     *  so even faint stains reach zero. */
+     *  rain washes them off in a few hours. Chunks are visited round-robin and faded with a
+     *  destination-out fill (no pixel read-back); a chunk that has fully aged is dropped. */
     weather(dt, rain, now) {
       this.fadeT = (this.fadeT || 0) - dt;
       if (this.fadeT > 0 || !this.decals.size) return;
       this.fadeT = 0.5;
-      const keys = [...this.decals.keys()];
-      for (let n = 0; n < Math.min(3, keys.length); n++) {
+      const keys = [...this.decals.keys()], LIFE = 1500;
+      for (let n = 0; n < Math.min(4, keys.length); n++) {
         this.fadeI = ((this.fadeI || 0) + 1) % keys.length;
-        const c = this.decals.get(keys[this.fadeI]);
-        if (c._fadeT == null) { c._fadeT = now; c._acc = 0; continue; }
-        const rate = 255 / 1500 * (1 + rain * 5);     // alpha per real second (1500 s ≈ a game day)
-        c._acc += (now - c._fadeT) * rate; c._fadeT = now;
-        const step = Math.floor(c._acc); if (step < 1) continue;
-        c._acc -= step;
-        const x = c.getContext('2d'), id = x.getImageData(0, 0, c.width, c.height), d = id.data;
-        let any = false;
-        for (let i = 3; i < d.length; i += 4) if (d[i]) { d[i] = d[i] > step ? d[i] - step : 0; if (d[i]) any = true; }
-        x.putImageData(id, 0, 0);
-        if (!any) this.decals.delete(keys[this.fadeI]);
+        const key = keys[this.fadeI], c = this.decals.get(key);
+        if (c._fadeT == null) { c._fadeT = now; c._age = c._age || 0; continue; }
+        const el = (now - c._fadeT) * (1 + rain * 5); c._fadeT = now;
+        c._age += el;
+        if (c._age >= LIFE) { this.decals.delete(key); continue; }
+        const k = 1 - Math.pow(0.02, el / LIFE);   // ~2 % left at the end of its life
+        if (k < 0.004) continue;
+        const x = c.getContext('2d');
+        x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'destination-out'; x.fillStyle = `rgba(0,0,0,${k})`; x.fillRect(0, 0, c.width, c.height); x.restore();
       }
     }
     drawDecals(ctx, x0, y0, x1, y1) {

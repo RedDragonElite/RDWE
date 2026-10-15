@@ -14,6 +14,7 @@
     /** main attack entry for any actor */
     attack(a, aim, held, pressed) {
       if (a.cool > 0 || a.stun > 0 || !a.alive || a.ko > 0) return false;
+      if (a.kind !== 'player' && !a.foe && this.markAggressor) this.markAggressor(a);   // swinging or shooting at you
       const d = this.wdef(a), wi = a.wi;
       if (a.reloadT > 0) {
         if (d.perShell && pressed && wi.mag > 0) { a.reloadT = 0; a.reloading = false; } else return false;
@@ -352,6 +353,7 @@
       if (!t.alive) { if (info.kind === 'bullet' || info.kind === 'explosion') this.emit('corpseHit', { x: t.x, y: t.y, a: info.dir, id: t.id, gore: info.kind === 'explosion' }); return; }
       let d = dmg;
       const isP = t.kind === 'player';
+      if (isP && src && src !== t && this.markAggressor) this.markAggressor(src);
       // somebody lying there critical: anything serious finishes them
       if (t.downed) { t.downed.loss = Math.min(100, t.downed.loss + dmg * 1.5); if (dmg >= 8 || t.downed.loss >= 100) { t.downed = null; t.ko = 0; this.kill(t, src, info); } return; }
       const zone = this.hitZone ? this.hitZone(t, info) : info.head ? 'head' : 'torso';

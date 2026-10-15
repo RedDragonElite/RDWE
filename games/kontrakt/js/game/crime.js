@@ -13,8 +13,35 @@
       this.charges = {};
     },
     /** player committed something at (x,y) — find who saw it */
+    // ------------------------------------------------------------ self-defence
+    /** an NPC went for you first: hitting back is self-defence (not for cops, guards or bodyguards —
+     *  they only act on what you did — and not while you are a wanted fugitive or if you started it) */
+    markAggressor(a) {
+      if (!a || a.kind === 'player' || ['cop', 'guard', 'bodyguard', 'crew'].includes(a.kind)) return;
+      if (a.provokedT > this.t - 60) return;
+      a.aggroT = this.t;
+    },
+    isAggressor(a) { return !!(a && a.aggroT > this.t - 45 && !(a.provokedT > a.aggroT - 0.01)); },
+    /** is what the player just did self-defence? (against that victim, or shots fired with an attacker close by) */
+    selfDefence(type, x, y, victim) {
+      if (this.wanted > 0 || !['assault', 'murder', 'shots', 'weapon'].includes(type)) return null;
+      if (victim) return this.isAggressor(victim) ? victim : null;
+      for (const n of this.near(x, y, 20 * TILE)) if (n.alive && n.ko <= 0 && this.isAggressor(n) && n.aggroT > this.t - 12) return n;
+      return null;
+    },
     crimeEvent(perp, type, x, y, victim, force) {
       if (!perp || perp.kind !== 'player') return;
+      const att = this.selfDefence(type, x, y, victim);
+      if (att) {
+        // self-defence: nobody reports it — cops who see it go for the attacker instead
+        for (const n of this.near(x, y, 24 * TILE)) {
+          if (n.kind !== 'cop' || !n.alive || n.ko > 0 || n.inCar) continue;
+          if (att.alive && att.ko <= 0 && this.sees(n, att.x, att.y, this.viewRange(n) * 1.15, 1.35)) { n.foe = att.id; n.knowsPlayer = false; this.alarm(n, att); }
+        }
+        if (this.t - (this.selfDefNoteT ?? -99) > 20) { this.selfDefNoteT = this.t; this.notify('Notwehr — du wurdest angegriffen.', 'info'); }
+        return;
+      }
+      if (victim && victim.kind !== 'player') victim.provokedT = this.t;   // you started it
       for (const n of this.near(x, y, 24 * TILE)) {
         if (n === perp || !n.alive || n.ko > 0 || n.kind === 'player' || (n.inCar && !n.unit) || n.kind === 'crew') continue;
         if (victim && victim.crim && victim.kind === 'thug') continue; // stopping a robber is not a crime
@@ -27,6 +54,7 @@
     },
     witness(n, type, perp, x, y, victim) {
       const sev = SEV[type] || 1;
+      n.provokedT = this.t;   // whatever they do to you now, you started it
       if (n.wit && n.wit.t > this.t - 1.5 && n.wit.sev >= sev) return;
       n.wit = { type, t: this.t, sev, x, y };
       n.knowsPlayer = true;

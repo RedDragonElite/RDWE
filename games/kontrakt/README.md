@@ -174,6 +174,7 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
 - **HUD:** Ein Körperdiagramm zeigt Wunden, Brüche und Arterien. Über Verletzten steht ein rotes Kreuz mit Blutverlust-Ring, und die Minimap zeigt Rettungswagen.
 
 ### Unterwelt: Verbrechen, Knast, Drogen
+- **Notwehr:** Greift dich jemand zuerst an (Gangster, Schläger, Straßenräuber, ein Passant mit Fäusten), darfst du dich wehren, ohne gesucht zu werden. Zeugen melden es nicht, und Cops, die es sehen, gehen auf den Angreifer los. Das gilt nicht, wenn du angefangen hast, wenn du schon gesucht wirst, und nicht gegen Polizei, Wachen oder Leibwächter.
 - **Strafregister:** Jede gemeldete Tat landet auf der Anklage, mit eigener Haftzeit (Raub 4h, Mord 10h, Polizistenmord 20h …).
   - Entkommst du der Fahndung, verfallen die Anklagepunkte.
 - **Ergeben (X):** Hände hoch, die Polizei legt Handschellen an. Das bringt 30% Strafnachlass. Wer sich danach bewegt, leistet Widerstand.

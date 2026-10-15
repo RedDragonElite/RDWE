@@ -719,8 +719,11 @@
         // under a closed overcast sky the shadows merge into an even grey; broken clouds cast the hardest shadows
         l.globalAlpha = d * (0.45 + 0.45 * (1 - Math.abs(cov - 0.5) * 1.4)) * (1 - wx.rain * 0.45);
         const tex = this.cloudShadowTex(cov), sc = 3200, sp = 14 + wx.wind * 40;
-        const ox = (this.time * sp) % sc, oy = (this.time * sp * 0.38) % sc;
-        for (let x = Math.floor((vx0 - ox) / sc) * sc + ox; x < vx1; x += sc) for (let y = Math.floor((vy0 - oy) / sc) * sc + oy; y < vy1; y += sc) l.drawImage(tex, x, y, sc + 1, sc + 1);
+        // one seamless pattern fill (tiling with drawImage leaves visible seams where tiles meet)
+        if (this.skyPatSrc !== tex || this.skyPatCov !== this.skyCov) { this.skyPat = l.createPattern(tex, 'repeat'); this.skyPatSrc = tex; this.skyPatCov = this.skyCov; }
+        const k = sc / tex.width;
+        this.skyPat.setTransform(new DOMMatrix([k, 0, 0, k, (this.time * sp) % sc, (this.time * sp * 0.38) % sc]));
+        l.fillStyle = this.skyPat; l.fillRect(vx0 - 10, vy0 - 10, vx1 - vx0 + 20, vy1 - vy0 + 20);
         l.globalAlpha = 1;
       }
       l.globalCompositeOperation = 'lighter';
@@ -845,7 +848,10 @@
           const ox = U.mod((this.time * sp - this.cam.vx) * z, sc), oy = U.mod((this.time * sp * 0.3 - this.cam.vy) * z, sc);
           ctx.globalAlpha = Math.min(0.8, fog * al);
           const ft = this.fogTint(br);
-          for (let x = ox - sc; x < this.cw; x += sc) for (let y = oy - sc; y < this.ch; y += sc) ctx.drawImage(ft, x, y, sc + 1, sc + 1);
+          if (this.fogPatQ !== this.fogQ || !this.fogPat) { this.fogPat = ctx.createPattern(ft, 'repeat'); this.fogPatQ = this.fogQ; }
+          const k = sc / ft.width;
+          this.fogPat.setTransform(new DOMMatrix([k, 0, 0, k, ox, oy]));
+          ctx.fillStyle = this.fogPat; ctx.fillRect(0, 0, this.cw, this.ch);
         }
         ctx.globalAlpha = 1;
       }
