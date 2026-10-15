@@ -41,6 +41,7 @@ oder lokal: `python3 -m http.server` im Ordner `games/kontrakt/`, dann `http://l
   - Danach wischt die Stadtreinigung das Blut weg.
   - Kaputte Laternen ersetzen die Stadtwerke nach 6–14 Stunden; umgefahrene Hydranten, Bänke und Schilder stehen nach 2,5–7 Stunden wieder.
   - Ausgebrannte Wracks schleppt der Abschleppdienst nach 1–2,5 Stunden ab.
+  - Ziehst du eine Leiche weg, bleibt die Blutlache, wo sie lag. Mit kommt nur eine Schleifspur, die mit der Zeit dünner wird. An der neuen Stelle bildet sich nur noch eine kleine Lache, und die Reinigung wischt beide Stellen.
   - Alle anderen Blutflecken, Bremsspuren und Hülsen verblassen in etwa einem Spieltag, Regen wäscht sie in ein paar Stunden weg.
   - Die Müllabfuhr leert jeden zweiten Morgen um 06:00 die Container, samt der Leichen darin. Manchmal meldet der Polizeifunk den Fund.
   - In deiner Nähe kommen die Teams mit eigenem Wagen und erledigen den Job zu Fuß. Woanders in der Stadt passiert es einfach.

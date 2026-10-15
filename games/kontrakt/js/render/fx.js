@@ -51,7 +51,19 @@
           break;
         }
         case 'drop': if (!g) return; this.stamp(x, y, 3, (c) => { c.fillStyle = o.col === 'oil' ? '#14110c' : o.col === 'water' ? '#3a4a5a' : '#5a0306'; c.globalAlpha = o.col === 'water' ? 0.35 : 0.8; c.beginPath(); c.arc(x, y, o.s || 1.4, 0, 6.3); c.fill(); }); break;
-        case 'smear': if (!g) return; this.stamp(x, y, 12, (c) => { c.strokeStyle = 'rgba(90,4,8,0.35)'; c.lineWidth = 10; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); c.lineTo(x - Math.cos(o.a) * 8, y - Math.sin(o.a) * 8); c.stroke(); }); break;
+        case 'smear': {
+          if (!g) return;
+          const px = o.px ?? x - Math.cos(o.a) * 8, py = o.py ?? y - Math.sin(o.a) * 8, k = o.k ?? 1;
+          this.stamp((x + px) / 2, (y + py) / 2, Math.hypot(x - px, y - py) / 2 + 12, (c) => {
+            c.lineCap = 'round';
+            c.strokeStyle = `rgba(92,4,9,${0.22 + 0.25 * k})`; c.lineWidth = 7 + 5 * k; c.beginPath(); c.moveTo(px, py); c.lineTo(x, y); c.stroke();
+            // drag streaks inside the smear (clothes, fingers)
+            c.strokeStyle = `rgba(70,2,6,${0.25 * k})`; c.lineWidth = 1.2;
+            const nx = -(y - py), ny = x - px, nl = Math.hypot(nx, ny) || 1;
+            for (const s of [-3.5, 0.5, 3]) { c.beginPath(); c.moveTo(px + nx / nl * s, py + ny / nl * s); c.lineTo(x + nx / nl * s, y + ny / nl * s); c.stroke(); }
+          });
+          break;
+        }
         case 'foot': this.stamp(x, y, 6, (c) => { c.fillStyle = 'rgba(90,6,10,0.5)'; c.translate(x, y); c.rotate(o.a); c.beginPath(); c.ellipse(0, o.side ? 3 : -3, 3.2, 1.6, 0, 0, 6.3); c.fill(); }); break;
         case 'hole': this.stamp(x, y, 4, (c) => { c.fillStyle = 'rgba(15,15,15,0.85)'; c.beginPath(); c.arc(x, y, 1.6, 0, 6.3); c.fill(); c.strokeStyle = 'rgba(200,200,200,0.25)'; c.lineWidth = 0.8; c.beginPath(); c.arc(x, y, 2.6, 0, 6.3); c.stroke(); }); break;
         case 'scorch': { const s = o.s || 50; this.stamp(x, y, s, (c) => { const gr = c.createRadialGradient(x, y, 0, x, y, s); gr.addColorStop(0, 'rgba(10,8,6,0.85)'); gr.addColorStop(0.6, 'rgba(20,16,12,0.5)'); gr.addColorStop(1, 'rgba(20,16,12,0)'); c.fillStyle = gr; c.beginPath(); c.arc(x, y, s, 0, 6.3); c.fill(); }); break; }

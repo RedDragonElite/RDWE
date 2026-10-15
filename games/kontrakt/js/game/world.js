@@ -299,7 +299,7 @@
             if (Math.abs(a.vx) + Math.abs(a.vy) < 2) { a.vx = 0; a.vy = 0; }
             this.collide(a);
           }
-          if (a.bloody && a.pool < 1 && !a.dragBy) a.pool = Math.min(1, a.pool + dt * 0.12);
+          if (a.bloody && a.pool < (a.poolCap ?? 1) && !a.dragBy) a.pool = Math.min(a.poolCap ?? 1, a.pool + dt * 0.12);
           continue;
         }
         if (a.ko > 0 && !a.dragBy) {

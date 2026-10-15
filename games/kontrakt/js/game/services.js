@@ -93,6 +93,7 @@
           if (a.dragBy) return false;
           this.removeActor(a);
           if (a.pool > 0.2 || a.bloody) this.svcJob('blood', a.x, a.y, K.SVC.blood, null);
+          for (const q of a.poolSpots || []) if (Math.hypot(q.x - a.x, q.y - a.y) > 2 * TILE) this.svcJob('blood', q.x, q.y, K.SVC.blood, null);   // where it lay before you moved it
           if (!remote) this.emit('svcBag', { x: a.x, y: a.y });
         }
       } else if (j.kind === 'blood') this.emit('clean', { x: j.x, y: j.y, r: 3.2 * TILE, k: 1 });

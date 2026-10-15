@@ -181,6 +181,14 @@
       return best;
     },
     startDrag(b) {
+      // the pool stays where the body lay; what comes along is only the smear
+      if (!b.alive && b.bloody && b.pool > 0.05) {
+        this.emit('poolStamp', { x: b.x, y: b.y, s: 8 + b.pool * 26, id: b.id });
+        (b.poolSpots || (b.poolSpots = [])).push({ x: b.x, y: b.y });
+        b.poolPeak = Math.max(b.poolPeak || 0, b.pool);
+        b.poolCap = Math.max(0.15, (b.poolCap ?? 1) - b.pool * 0.75);   // most of the blood is already on the floor
+        b.pool = 0;
+      }
       this.drag = b.id; b.dragBy = this.player.id;
       this.emit('sfx', { s: 'grab' });
     },
@@ -212,7 +220,16 @@
       b.deathA = Math.atan2(a.y - b.y, a.x - b.x) + Math.PI;
       if (b.ko > 0) b.koA = b.deathA;
       b.vx = b.vy = 0;
-      if (b.pool > 0.3 && Math.random() < dt * 6 && b.bloody) this.emit('smear', { x: b.x, y: b.y, a: Math.atan2(dy, dx) });
+      // a fresh body still bleeds, an old one only leaves what had pooled under it
+      const fresh = b.bloody && !b.alive ? U.clamp(1 - (b.deadT || 0) / 240, 0.25, 0.8) : 0, wet = Math.max(b.pool, b.poolPeak || 0, fresh);
+      // a continuous streak behind the body: one segment every few pixels it is dragged
+      if (b.smX == null) { b.smX = b.x; b.smY = b.y; }
+      const seg = Math.hypot(b.x - b.smX, b.y - b.smY);
+      if (seg >= 6) {
+        if (wet > 0.2 && b.bloody) this.emit('smear', { x: b.x, y: b.y, px: b.smX, py: b.smY, k: Math.min(1, wet), a: Math.atan2(dy, dx) });
+        b.smX = b.x; b.smY = b.y;
+      }
+      if (b.poolPeak) b.poolPeak = Math.max(0, b.poolPeak - dt * 0.015);   // the trail thins out the further you drag
     },
     hideSpot() {
       const a = this.player;

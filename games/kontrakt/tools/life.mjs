@@ -170,6 +170,24 @@ console.log('city services');
   w.time = 2 * 1440 + 6.2 * 60; run(w, 200);
   check(v.removed && !dump.bodies, 'the Müllabfuhr takes it at 06:00');
 }
+console.log('dragging a bloody body');
+{
+  const w = mk(), p = w.player, ev = [];
+  let spot = null;
+  for (let i = 0; i < w.W * w.H && !spot; i += 3) { const tx = i % w.W, ty = (i / w.W) | 0; if (tx > 5 && tx < w.W - 30 && ty > 5 && ty < w.H - 5 && [...Array(12).keys()].every((k) => w.tiles[ty * w.W + tx + k] === K.T.WALK && !w.solid[ty * w.W + tx + k] && w.bldAt((tx + k + 0.5) * TILE, (ty + 0.5) * TILE) < 0)) spot = [tx, ty]; }
+  p.x = (spot[0] + 2.5) * TILE; p.y = (spot[1] + 0.5) * TILE;
+  const v = w.spawnActor('civ', p.x - 20, p.y, {}); v.bloody = true; w.kill(v, null);
+  run(w, 60 * 12); const pool0 = v.pool, x0 = v.x, y0 = v.y;
+  check(pool0 > 0.8, `a pool forms under the body (${pool0.toFixed(2)})`);
+  w.startDrag(v);
+  for (let i = 0; i < 60 * 3; i++) { w.update(1 / 60, { pressed: {}, right: true }); ev.push(...w.events); w.events.length = 0; }
+  const moved = Math.hypot(v.x - x0, v.y - y0);
+  check(ev.filter((e) => e.type === 'poolStamp' && Math.hypot(e.x - x0, e.y - y0) < 2).length === 1, 'the pool is left behind where the body lay');
+  check(moved > 60 && v.pool < 0.05, `only a smear comes along (dragged ${Math.round(moved)} px, pool under the body ${v.pool.toFixed(2)})`);
+  check(ev.filter((e) => e.type === 'smear').length > 5, `smear trail (${ev.filter((e) => e.type === 'smear').length} marks)`);
+  w.dropDrag(); run(w, 60 * 20);
+  check(v.pool <= v.poolCap + 1e-9 && v.poolCap < 0.5, `at the new spot only a small pool forms (${v.pool.toFixed(2)})`);
+}
 console.log('traffic');
 {
   const w = mk(); w.player.x = (5 * 26 + 2) * TILE + 200; w.player.y = (5 * 26 + 12) * TILE;

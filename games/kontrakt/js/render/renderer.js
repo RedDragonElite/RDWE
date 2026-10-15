@@ -1169,6 +1169,7 @@
         case 'geyser': fx.add({ k: 'smoke', x: e.x + U.rnd(-4, 4), y: e.y + U.rnd(-4, 4), vx: U.rnd(-40, 40), vy: U.rnd(-90, -30), life: 0.7, max: 0.7, size: 3, grow: 10, col: [170, 210, 255], a: 0.7 }); if (Math.random() < 0.1) fx.decal('drop', e.x + U.rnd(-30, 30), e.y + U.rnd(-30, 30), { s: 2, col: 'water' }); break;
         case 'tireBurst': fx.sparks(e.x, e.y, Math.random() * 6.3, 8); fx.dust(e.x, e.y, 4, [60, 60, 60]); break;
         case 'clean': fx.clean(e.x, e.y, e.r, e.k); break;
+        case 'poolStamp': if (fx.gore) { const s = e.s; fx.stamp(e.x, e.y, s, (c) => { c.globalAlpha = 0.9; c.translate(e.x, e.y); c.rotate(e.id); c.drawImage(fx.blob(e.id % 6, '#4e0205'), -s, -s, s * 2, s * 2); }); } break;
         case 'svcBag': fx.dust(e.x, e.y, 6, [40, 42, 48]); break;
         case 'svcMop': fx.dust(e.x, e.y, 1, [200, 210, 220]); fx.decal('drop', e.x + U.rnd(-6, 6), e.y + U.rnd(-6, 6), { col: 'water', s: 2.4 }); break;
         case 'svcSpark': fx.sparks(e.x, e.y, Math.random() * 6.3, 2, [255, 230, 160]); break;
